@@ -1,0 +1,11 @@
+.mypy_cache
+.DS_Store
+/venv
+/data
+*.html
+*.json
+*.yaml
+*.pyc
+__pycache__
+*.csv
+*.vim
