@@ -1,7 +1,7 @@
 """Stochastic linear regression (SLR)"""
 import numpy as np
 from post_lin_smooth.slr.distributions import Prior, Conditional
-from analytics import pos_def_check
+from post_lin_smooth.analytics import pos_def_check
 
 
 class Slr:

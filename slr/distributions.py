@@ -2,8 +2,7 @@
 from abc import ABC, abstractmethod
 import numpy as np
 from scipy.stats import multivariate_normal as mvn
-from analytics import pos_def_check
-from calculations import make_pos_def
+from post_lin_smooth.analytics import pos_def_check
 
 
 class Prior(ABC):
@@ -35,12 +34,4 @@ class Gaussian(Prior):
         self.P = P
 
     def sample(self, num_samples):
-        self.P, sing_vals = make_pos_def(self.P)
-        if not pos_def_check(self.P, False):
-            print("\n")
-            print("Gaussian p(x) cov is pos def: False")
-            print("P:", np.round(self.P, decimals=2))
-            print("P eig:", np.linalg.eigvals(self.P))
-            print("sing vals:", sing_vals)
-            print("\n")
         return mvn.rvs(mean=self.x_bar, cov=self.P, size=num_samples)

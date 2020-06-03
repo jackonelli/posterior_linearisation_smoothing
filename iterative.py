@@ -8,7 +8,7 @@ from post_lin_smooth.smoothing import rts_smoothing
 from functools import partial
 from models.range_bearing import to_cartesian_coords
 import visualization as vis
-from analytics import pos_def_ratio
+from post_lin_smooth.analytics import pos_def_ratio
 
 
 def iterative_post_lin_smooth(measurements,

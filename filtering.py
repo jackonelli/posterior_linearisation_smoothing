@@ -2,7 +2,7 @@
 import numpy as np
 from post_lin_smooth.slr.distributions import Prior, Conditional
 from post_lin_smooth.slr.slr import Slr
-from analytics import pos_def_check, pos_def_ratio
+from post_lin_smooth.analytics import pos_def_check, pos_def_ratio
 
 
 def slr_kf(measurements,
@@ -20,8 +20,8 @@ def slr_kf(measurements,
         measurements (K, D_y): Measurement sequence for times 1,..., K
         x_0_0 (D_x,): Prior mean for time 0
         P_0_0 (D_x, D_x): Prior covariance for time 0
-        motion_model
-        meas_model
+        motion_model: Must inherit from Conditional
+        meas_model: Must inherit from Conditional
         num_samples
 
     Returns:
@@ -42,7 +42,6 @@ def slr_kf(measurements,
     x_kminus1_kminus1 = x_0_0
     P_kminus1_kminus1 = P_0_0
     for k in np.arange(1, K + 1):
-        print("Time step: ", k)
         # measurment vec is zero-indexed
         # this really gives y_k
         y_k = measurements[k - 1]
@@ -87,7 +86,6 @@ def slr_kf_known_priors(measurements,
     x_kminus1_kminus1 = x_0_0
     P_kminus1_kminus1 = P_0_0
     for k in np.arange(1, K + 1):
-        print("Time step: ", k)
         # measurment vec is zero-indexed
         # this really gives y_k
         y_k = measurements[k - 1]
@@ -131,9 +129,8 @@ def analytical_kf(measurements, x_0_0, P_0_0, motion_lin, meas_lin):
         measurements np.array(K, D_y): Measurement sequence for times 1,..., K
         x_0_0 np.array(D_x,): Prior mean for time 0
         P_0_0 np.array(D_x, D_x): Prior covariance
-        motion_model
-        meas_model
-        num_samples
+        motion_lin: Param's for lin. (affine) transf: (A, b, Q)
+        meas_lin: Param's for lin. (affine) transf: (H, c, R)
 
     Returns:
         filter_means np.array(K, D_x): Filtered estimates for times 1,..., K
@@ -171,8 +168,15 @@ def analytical_kf(measurements, x_0_0, P_0_0, motion_lin, meas_lin):
 
 def _predict(x_kminus1_kminus1, P_kminus1_kminus1, linearization):
     """KF prediction step
-        linearizations List(np.array, np.array, np.array):
-            List of tuples (A, b, Q), param's for linear approx
+
+    Args:
+        x_kminus1_kminus1: x_{k-1 | k-1}
+        P_kminus1_kminus1: P_{k-1 | k-1}
+        linearization (tuple): (A, b, Q) param's for linear (affine) approx
+
+    Returns:
+        x_k_kminus1: x_{k | k-1}
+        P_k_kminus1: P_{k | k-1}
     """
     A, b, Q = linearization
     x_k_kminus1 = A @ x_kminus1_kminus1 + b
@@ -182,7 +186,17 @@ def _predict(x_kminus1_kminus1, P_kminus1_kminus1, linearization):
 
 
 def _update(y_k, x_k_kminus1, P_k_kminus1, linearization):
-    """KF update step"""
+    """KF update step
+    Args:
+        y_k
+        x_k_kminus1: x_{k | k-1}
+        P_k_kminus1: P_{k | k-1}
+        linearization (tuple): (A, b, Q) param's for linear (affine) approx
+
+    Returns:
+        x_k_k: x_{k | k}
+        P_k_k: P_{k | k}
+    """
     H, c, R = linearization
     y_mean = H @ x_k_kminus1 + c
     S = H @ P_k_kminus1 @ H.T + R
