@@ -20,7 +20,7 @@ class Slr:
         A = psi.T @ np.linalg.inv(self.p_x.P)
         b = z_bar - A @ _bar(x_sample)
         Sigma = phi - A @ self.p_x.P @ A.T
-        if not pos_def_check(Sigma):
+        if not pos_def_check(Sigma, disabled=True):
             print(np.linalg.eigvals(Sigma))
             print(Sigma)
             raise ValueError("Sigma not pos def")

@@ -42,7 +42,7 @@ def rts_smoothing(filter_means,
                                                x_k_kminus1,
                                                P_k_kminus1,
                                                linear_params)
-        if not pos_def_check(P_kminus1_K):
+        if not pos_def_check(P_kminus1_K, disabled=True):
             raise ValueError("Smooth cov not pos def")
         smooth_means[k - 1, :] = x_kminus1_K
         smooth_covs[k - 1, :, :] = P_kminus1_K
