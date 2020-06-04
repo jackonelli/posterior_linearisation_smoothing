@@ -79,9 +79,9 @@ def _rts_update(x_k_K,
 
 
 def _init_smooth_estimates(filter_means, filter_covs):
-    K, D_x = filter_means.shape
-    smooth_means = np.empty((K, D_x))
-    smooth_covs = np.empty((K, D_x, D_x))
+    K_plus_1, D_x = filter_means.shape
+    smooth_means = np.empty((K_plus_1, D_x))
+    smooth_covs = np.empty((K_plus_1, D_x, D_x))
     smooth_means[-1, :] = filter_means[-1, :]
     smooth_covs[-1, :, :] = filter_covs[-1, :, :]
     return smooth_means, smooth_covs
