@@ -52,9 +52,11 @@ def kalman_filter(measurements,
         x_k_kminus1, P_k_kminus1 = _predict(x_kminus1_kminus1,
                                             P_kminus1_kminus1,
                                             motion_lin_kminus1)
+        x_k_kminus1 /= x_k_kminus1.sum()
 
         meas_lin_k = meas_lin.linear_params(x_k_kminus1, P_k_kminus1)
         x_k_k, P_k_k = _update(y_k, x_k_kminus1, P_k_kminus1, meas_lin_k)
+        x_k_k /= x_k_k.sum()
 
         linearizations[k - 1] = motion_lin_kminus1
         pred_means[k, :] = x_k_kminus1
