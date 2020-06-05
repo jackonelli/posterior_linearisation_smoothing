@@ -12,7 +12,8 @@ def iterative_post_lin_smooth(measurements,
                               P_0_0,
                               motion_lin: Linearizer,
                               meas_lin: Linearizer,
-                              num_iterations: int):
+                              num_iterations: int,
+                              normalize=False):
     """Iterative posterior linearization smoothing
     First iteration performs Kalman filtering with SLR and RTS smoothing
     Subsequent iterations use smooth estimates from previous iteration
@@ -41,7 +42,8 @@ def iterative_post_lin_smooth(measurements,
                                    x_0_0,
                                    P_0_0,
                                    motion_lin,
-                                   meas_lin)
+                                   meas_lin,
+                                   normalize=False)
     for iter_ in np.arange(2, num_iterations + 1):
         print("Iter: ", iter_)
         (smooth_means,
@@ -64,7 +66,7 @@ def _first_iter(measurements, x_0_0, P_0_0, motion_lin, meas_lin):
     Performs KF with gen. linearization, then RTS smoothing.
     """
     filter_means, filter_covs, pred_means, pred_covs, linearizations = kalman_filter(
-        measurements, x_0_0, P_0_0, motion_lin, meas_lin)
+        measurements, x_0_0, P_0_0, motion_lin, meas_lin, normalize=normalize)
     smooth_means, smooth_covs = rts_smoothing(filter_means, filter_covs,
                                               pred_means, pred_covs,
                                               linearizations)

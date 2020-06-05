@@ -10,7 +10,8 @@ def kalman_filter(measurements,
                   x_0_0,
                   P_0_0,
                   motion_lin: Linearizer,
-                  meas_lin: Linearizer):
+                  meas_lin: Linearizer,
+                  normalize=False):
     """Kalman filter with general linearization
     Filters a measurement sequence using a linear Kalman filter.
     Linearization is done with a general type
@@ -52,11 +53,13 @@ def kalman_filter(measurements,
         x_k_kminus1, P_k_kminus1 = _predict(x_kminus1_kminus1,
                                             P_kminus1_kminus1,
                                             motion_lin_kminus1)
-        x_k_kminus1 /= x_k_kminus1.sum()
+        if normalize:
+            x_k_kminus1 /= x_k_kminus1.sum()
 
         meas_lin_k = meas_lin.linear_params(x_k_kminus1, P_k_kminus1)
         x_k_k, P_k_k = _update(y_k, x_k_kminus1, P_k_kminus1, meas_lin_k)
-        x_k_k /= x_k_k.sum()
+        if normalize:
+            x_k_k /= x_k_k.sum()
 
         linearizations[k - 1] = motion_lin_kminus1
         pred_means[k, :] = x_k_kminus1
