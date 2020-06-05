@@ -2,32 +2,36 @@
 import numpy as np
 from post_lin_smooth.slr.distributions import Prior, Conditional
 from post_lin_smooth.analytics import pos_def_check
+from post_lin_smooth.linearizer import Linearizer
 
 
-class Slr:
+class Slr(Linearizer):
     """SLR"""
-    def __init__(self, p_x: Prior, p_z_given_x: Conditional):
+    def __init__(self, p_x: Prior, p_z_given_x: Conditional, num_samples: int):
         self.p_x = p_x
         self.p_z_given_x = p_z_given_x
+        self.num_samples = num_samples
 
-    def linear_parameters(self, num_samples):
+    def linear_params(self, mean, cov):
         """Estimate linear parameters"""
-        x_sample, z_sample = self._sample(num_samples)
+        x_sample, z_sample = self._sample(mean, cov)
         z_bar = self._z_bar(z_sample)
-        psi = self._psi(x_sample, z_sample, z_bar)
+        psi = self._psi(x_sample, mean, z_sample, z_bar)
         phi = self._phi(z_sample, z_bar)
 
-        A = psi.T @ np.linalg.inv(self.p_x.P)
+        A = psi.T @ np.linalg.inv(cov)
         b = z_bar - A @ _bar(x_sample)
-        Sigma = phi - A @ self.p_x.P @ A.T
+        Sigma = phi - A @ cov @ A.T
         if not pos_def_check(Sigma, disabled=True):
             print(np.linalg.eigvals(Sigma))
             print(Sigma)
             raise ValueError("Sigma not pos def")
         return A, b, Sigma
 
-    def _sample(self, num_samples: int):
-        x_sample = self.p_x.sample(num_samples)
+    def _sample(self, mean, cov):
+        print("Sampling x ~ p(x)")
+        x_sample = self.p_x.sample(mean, cov, self.num_samples)
+        print("Sampling x|z ~ p(z|x)")
         z_sample = self.p_z_given_x.sample(x_sample)
         return (x_sample, z_sample)
 
@@ -43,7 +47,7 @@ class Slr:
         """
         return _bar(z_sample)
 
-    def _psi(self, x_sample, z_sample, z_bar):
+    def _psi(self, x_sample, x_bar, z_sample, z_bar):
         """Calc Psi = Cov[x, z]
         Vectorization:
         x_diff.T @ z_diff is a matrix mult with dim's:
@@ -59,7 +63,7 @@ class Slr:
             Psi (D_x, D_z)
         """
         sample_size = x_sample.shape[0]
-        x_diff = x_sample - self.p_x.x_bar
+        x_diff = x_sample - x_bar
         z_diff = z_sample - z_bar
         cov = (x_diff.T @ z_diff)
         return cov / sample_size

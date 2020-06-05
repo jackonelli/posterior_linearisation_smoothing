@@ -1,28 +1,96 @@
 """Kalman filter (KF)"""
 import numpy as np
+from post_lin_smooth.linearizer import Linearizer
 from post_lin_smooth.slr.distributions import Prior, Conditional
 from post_lin_smooth.slr.slr import Slr
 from post_lin_smooth.analytics import pos_def_check, pos_def_ratio
 
 
-def slr_kf(measurements,
-           x_0_0,
-           P_0_0,
-           prior: Prior,
-           motion_model: Conditional,
-           meas_model: Conditional,
-           num_samples: int):
-    """Kalman filter with SLR linearization
+def kalman_filter(measurements,
+                  x_0_0,
+                  P_0_0,
+                  motion_lin: Linearizer,
+                  meas_lin: Linearizer):
+    """Kalman filter with general linearization
     Filters a measurement sequence using a linear Kalman filter.
-    Linearization is done with SLR
+    Linearization is done with a general type
+    implementing the abstract class Linearizer
 
     Args:
         measurements (K, D_y): Measurement sequence for times 1,..., K
         x_0_0 (D_x,): Prior mean for time 0
         P_0_0 (D_x, D_x): Prior covariance for time 0
-        motion_model: Must inherit from Conditional
-        meas_model: Must inherit from Conditional
-        num_samples
+        motion_lin: Must inherit from Linearizer
+        meas_lin: Must inherit from Linearizer
+
+    Returns:
+        filter_means (K, D_x): Filtered estimates for times 1,..., K
+        filter_covs (K, D_x, D_x): Filter error covariance
+        pred_means (K, D_x): Predicted estimates for times 1,..., K
+        pred_covs (K, D_x, D_x): Filter error covariance
+        linearizations List(np.array, np.array, np.array):
+            List of tuples (A, b, Q), param's for linear approx of the motion model.
+    """
+
+    K = measurements.shape[0]
+
+    filter_means, filter_covs = _init_estimates(x_0_0, P_0_0, K)
+    pred_means, pred_covs = _init_estimates(x_0_0, P_0_0, K)
+    linearizations = [None] * K
+
+    x_kminus1_kminus1 = x_0_0
+    P_kminus1_kminus1 = P_0_0
+    for k in np.arange(1, K + 1):
+        print("Time step: ", k)
+        if np.any(x_kminus1_kminus1 < 0):
+            print("Negative state")
+        # measurment vec is zero-indexed
+        # this really gives y_k
+        y_k = measurements[k - 1]
+        motion_lin_kminus1 = motion_lin.linear_params(x_kminus1_kminus1,
+                                                      P_kminus1_kminus1)
+        x_k_kminus1, P_k_kminus1 = _predict(x_kminus1_kminus1,
+                                            P_kminus1_kminus1,
+                                            motion_lin_kminus1)
+
+        meas_lin_k = meas_lin.linear_params(x_k_kminus1, P_k_kminus1)
+        x_k_k, P_k_k = _update(y_k, x_k_kminus1, P_k_kminus1, meas_lin_k)
+
+        linearizations[k - 1] = motion_lin_kminus1
+        pred_means[k, :] = x_k_kminus1
+        pred_covs[k, :, :] = P_k_kminus1
+        filter_means[k, :] = x_k_k
+        filter_covs[k, :, :] = P_k_k
+        print("y_k", y_k)
+        print("x_{k-1|k-1}: ", x_kminus1_kminus1)
+        print("x_{k-1|k}: ", x_k_kminus1)
+        print("x_{k|k}: ", x_k_k)
+        # Shift to next time step
+        x_kminus1_kminus1 = x_k_k
+        P_kminus1_kminus1 = P_k_k
+
+    return filter_means, filter_covs, pred_means, pred_covs, linearizations
+
+
+def kalman_filter_known_post(measurements,
+                             x_0_0,
+                             P_0_0,
+                             prev_smooth_means,
+                             prev_smooth_covs,
+                             motion_lin,
+                             meas_lin):
+    """Kalman filter with general linearization
+    Filters a measurement sequence using a linear Kalman filter.
+    The linearization is done w.r.t. to a known posterior estimate.
+    Linearization is done with a general type
+    implementing the abstract class Linearizer
+
+    Args:
+        measurements (K, D_y): Measurement sequence for times 1,..., K
+        x_0_0 (D_x,): Prior mean for time 0
+        P_0_0 (D_x, D_x): Prior covariance for time 0
+        motion_lin: Must inherit from Linearizer
+        meas_lin: Must inherit from Linearizer
 
     Returns:
         filter_means (K, D_x): Filtered estimates for times 1,..., K
@@ -45,63 +113,19 @@ def slr_kf(measurements,
         # measurment vec is zero-indexed
         # this really gives y_k
         y_k = measurements[k - 1]
-        slr = Slr(prior(x_bar=x_kminus1_kminus1,
-                        P=P_kminus1_kminus1),
-                  motion_model)
-        motion_lin = slr.linear_parameters(num_samples)
-        x_k_kminus1, P_k_kminus1 = _predict(x_kminus1_kminus1, P_kminus1_kminus1, motion_lin)
-
-        slr = Slr(prior(x_bar=x_k_kminus1, P=P_k_kminus1), meas_model)
-        meas_lin = slr.linear_parameters(num_samples)
-        x_k_k, P_k_k = _update(y_k, x_k_kminus1, P_k_kminus1, meas_lin)
-
-        linearizations[k - 1] = motion_lin
-        pred_means[k, :] = x_k_kminus1
-        pred_covs[k, :, :] = P_k_kminus1
-        filter_means[k, :] = x_k_k
-        filter_covs[k, :, :] = P_k_k
-        # Shift to next time step
-        x_kminus1_kminus1 = x_k_k
-        P_kminus1_kminus1 = P_k_k
-
-    return filter_means, filter_covs, pred_means, pred_covs, linearizations
-
-
-def slr_kf_known_priors(measurements,
-                        x_0_0,
-                        P_0_0,
-                        prev_smooth_means,
-                        prev_smooth_covs,
-                        prior,
-                        motion_model: Conditional,
-                        meas_model: Conditional,
-                        num_samples: int):
-
-    K = measurements.shape[0]
-
-    filter_means, filter_covs = _init_estimates(x_0_0, P_0_0, K)
-    pred_means, pred_covs = _init_estimates(x_0_0, P_0_0, K)
-    linearizations = [None] * K
-
-    x_kminus1_kminus1 = x_0_0
-    P_kminus1_kminus1 = P_0_0
-    for k in np.arange(1, K + 1):
-        # measurment vec is zero-indexed
-        # this really gives y_k
-        y_k = measurements[k - 1]
         x_kminus1_K = prev_smooth_means[k - 1, :]
         P_kminus1_K = prev_smooth_covs[k - 1, :, :]
         x_k_K = prev_smooth_means[k, :]
         P_k_K = prev_smooth_covs[k, :, :]
-        slr = Slr(prior(x_bar=x_kminus1_K, P=P_kminus1_K), motion_model)
-        motion_lin = slr.linear_parameters(num_samples)
-        x_k_kminus1, P_k_kminus1 = _predict(x_kminus1_kminus1, P_kminus1_kminus1, motion_lin)
+        motion_lin_kminus1 = motion_lin.linear_params(x_kminus1_K, P_kminus1_K)
+        x_k_kminus1, P_k_kminus1 = _predict(x_kminus1_kminus1,
+                                            P_kminus1_kminus1,
+                                            motion_lin_kminus1)
 
-        slr = Slr(prior(x_bar=x_k_K, P=P_k_K), meas_model)
-        meas_lin = slr.linear_parameters(num_samples)
-        x_k_k, P_k_k = _update(y_k, x_k_kminus1, P_k_kminus1, meas_lin)
+        meas_lin_k = meas_lin.linear_params(x_k_K, P_k_K)
+        x_k_k, P_k_k = _update(y_k, x_k_kminus1, P_k_kminus1, meas_lin_k)
 
-        linearizations[k - 1] = motion_lin
+        linearizations[k - 1] = motion_lin_kminus1
         pred_means[k, :] = x_k_kminus1
         pred_covs[k, :, :] = P_k_kminus1
         filter_means[k, :] = x_k_k
@@ -204,7 +228,5 @@ def _update(y_k, x_k_kminus1, P_k_kminus1, linearization):
 
     x_k_k = x_k_kminus1 + (K @ (y_k - y_mean)).reshape(x_k_kminus1.shape)
     P_k_k = P_k_kminus1 - K @ S @ K.T
-    if not pos_def_check(P_k_k):
-        raise ValueError("updated cov not pos def")
 
     return x_k_k, P_k_k

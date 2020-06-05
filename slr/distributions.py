@@ -12,11 +12,11 @@ class Prior(ABC):
     constraints in the approximated process.
     """
     @abstractmethod
-    def __init__(self, x_bar, P):
+    def __init__(self):
         pass
 
     @abstractmethod
-    def sample(self, num_samples):
+    def sample(self, x_bar, P, num_samples):
         pass
 
 
@@ -29,9 +29,8 @@ class Conditional(ABC):
 
 class Gaussian(Prior):
     """Gaussian distribution"""
-    def __init__(self, x_bar, P):
-        self.x_bar = x_bar
-        self.P = P
+    def __init__(self):
+        pass
 
-    def sample(self, num_samples):
-        return mvn.rvs(mean=self.x_bar, cov=self.P, size=num_samples)
+    def sample(self, x_bar, P, num_samples):
+        return mvn.rvs(mean=x_bar, cov=P, size=num_samples)
