@@ -5,11 +5,6 @@ from post_lin_smooth.slr.distributions import Prior, Conditional
 from post_lin_smooth.filtering import kalman_filter, kalman_filter_known_post
 from post_lin_smooth.smoothing import rts_smoothing
 from post_lin_smooth.linearizer import Linearizer
-# Debug imports
-from functools import partial
-from models.range_bearing import to_cartesian_coords
-import visualization as vis
-from post_lin_smooth.analytics import pos_def_ratio
 
 
 def iterative_post_lin_smooth(measurements,
@@ -66,7 +61,7 @@ def iterative_post_lin_smooth(measurements,
 def _first_iter(measurements, x_0_0, P_0_0, motion_lin, meas_lin):
     """First iteration
     Special case since no smooth estimates exist from prev iteration
-    Performs KF with SLR, then RTS smoothing.
+    Performs KF with gen. linearization, then RTS smoothing.
     """
     filter_means, filter_covs, pred_means, pred_covs, linearizations = kalman_filter(
         measurements, x_0_0, P_0_0, motion_lin, meas_lin)
@@ -85,7 +80,7 @@ def _iteration(measurements,
                meas_lin):
     """General non-first iteration
     Performs KF but uses smooth estimates from prev iteration as priors in
-    the filtering.
+    the linearization.
     Standard RTS
     """
     (filter_means,
