@@ -1,19 +1,22 @@
 """Iterative wrapper for the posterior linearization smoother"""
+import logging
 import numpy as np
-import matplotlib.pyplot as plt
-from post_lin_smooth.slr.distributions import Prior, Conditional
-from post_lin_smooth.filtering import kalman_filter, kalman_filter_known_post
-from post_lin_smooth.smoothing import rts_smoothing
-from post_lin_smooth.linearizer import Linearizer
+from slr.distributions import Prior, Conditional
+from filtering import kalman_filter, kalman_filter_known_post
+from smoothing import rts_smoothing
+from linearizer import Linearizer
+
+LOGGER = logging.getLogger(__name__)
 
 
-def iterative_post_lin_smooth(measurements,
-                              x_0_0,
-                              P_0_0,
-                              motion_lin: Linearizer,
-                              meas_lin: Linearizer,
-                              num_iterations: int,
-                              normalize=False):
+def iterative_post_lin_smooth(
+    measurements,
+    x_0_0,
+    P_0_0,
+    motion_lin: Linearizer,
+    meas_lin: Linearizer,
+    num_iterations: int,
+):
     """Iterative posterior linearization smoothing
     First iteration performs Kalman filtering with SLR and RTS smoothing
     Subsequent iterations use smooth estimates from previous iteration
@@ -33,30 +36,19 @@ def iterative_post_lin_smooth(measurements,
         num_samples
         num_iterations
     """
-    print("Iter: ", 1)
-    (smooth_means,
-     smooth_covs,
-     filter_means,
-     filter_covs,
-     linearizations) = _first_iter(measurements,
-                                   x_0_0,
-                                   P_0_0,
-                                   motion_lin,
-                                   meas_lin,
-                                   normalize=False)
+    LOGGER.info("Smoothing iter: %d", 1)
+    (smooth_means, smooth_covs, filter_means, filter_covs, linearizations) = _first_iter(
+        measurements,
+        x_0_0,
+        P_0_0,
+        motion_lin,
+        meas_lin,
+    )
     for iter_ in np.arange(2, num_iterations + 1):
-        print("Iter: ", iter_)
-        (smooth_means,
-         smooth_covs,
-         filter_means,
-         filter_covs,
-         linearizations) = _iteration(measurements,
-                                      x_0_0,
-                                      P_0_0,
-                                      smooth_means,
-                                      smooth_covs,
-                                      motion_lin,
-                                      meas_lin)
+        LOGGER.info("Smoothing iter: %d", iter_)
+        (smooth_means, smooth_covs, filter_means, filter_covs, linearizations) = _iteration(
+            measurements, x_0_0, P_0_0, smooth_means, smooth_covs, motion_lin, meas_lin
+        )
     return smooth_means, smooth_covs, filter_means, filter_covs, linearizations
 
 
@@ -66,38 +58,25 @@ def _first_iter(measurements, x_0_0, P_0_0, motion_lin, meas_lin):
     Performs KF with gen. linearization, then RTS smoothing.
     """
     filter_means, filter_covs, pred_means, pred_covs, linearizations = kalman_filter(
-        measurements, x_0_0, P_0_0, motion_lin, meas_lin, normalize=normalize)
-    smooth_means, smooth_covs = rts_smoothing(filter_means, filter_covs,
-                                              pred_means, pred_covs,
-                                              linearizations)
+        measurements,
+        x_0_0,
+        P_0_0,
+        motion_lin,
+        meas_lin,
+    )
+    smooth_means, smooth_covs = rts_smoothing(filter_means, filter_covs, pred_means, pred_covs, linearizations)
     return smooth_means, smooth_covs, filter_means, filter_covs, linearizations
 
 
-def _iteration(measurements,
-               x_0_0,
-               P_0_0,
-               prev_smooth_means,
-               prev_smooth_covs,
-               motion_lin,
-               meas_lin):
+def _iteration(measurements, x_0_0, P_0_0, prev_smooth_means, prev_smooth_covs, motion_lin, meas_lin):
     """General non-first iteration
     Performs KF but uses smooth estimates from prev iteration as priors in
     the linearization.
     Standard RTS
     """
-    (filter_means,
-     filter_covs,
-     pred_means,
-     pred_covs,
-     linearizations) = kalman_filter_known_post(measurements,
-                                                x_0_0,
-                                                P_0_0,
-                                                prev_smooth_means,
-                                                prev_smooth_covs,
-                                                motion_lin,
-                                                meas_lin)
+    (filter_means, filter_covs, pred_means, pred_covs, linearizations) = kalman_filter_known_post(
+        measurements, x_0_0, P_0_0, prev_smooth_means, prev_smooth_covs, motion_lin, meas_lin
+    )
 
-    smooth_means, smooth_covs = rts_smoothing(filter_means, filter_covs,
-                                              pred_means, pred_covs,
-                                              linearizations)
+    smooth_means, smooth_covs = rts_smoothing(filter_means, filter_covs, pred_means, pred_covs, linearizations)
     return smooth_means, smooth_covs, filter_means, filter_covs, linearizations

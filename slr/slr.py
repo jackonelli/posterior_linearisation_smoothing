@@ -1,16 +1,18 @@
 """Stochastic linear regression (SLR)"""
 import numpy as np
-from post_lin_smooth.slr.distributions import Prior, Conditional
-from post_lin_smooth.analytics import pos_def_check
-from post_lin_smooth.linearizer import Linearizer
+import logging
+from slr.distributions import Prior, Conditional
+from linearizer import Linearizer
 
 
 class Slr(Linearizer):
     """SLR"""
+
     def __init__(self, p_x: Prior, p_z_given_x: Conditional, num_samples: int):
         self.p_x = p_x
         self.p_z_given_x = p_z_given_x
         self.num_samples = num_samples
+        self._log = logging.getLogger(self.__class__.__name__)
 
     def linear_params(self, mean, cov):
         """Estimate linear parameters"""
@@ -22,16 +24,12 @@ class Slr(Linearizer):
         A = psi.T @ np.linalg.inv(cov)
         b = z_bar - A @ _bar(x_sample)
         Sigma = phi - A @ cov @ A.T
-        if not pos_def_check(Sigma, disabled=True):
-            print(np.linalg.eigvals(Sigma))
-            print(Sigma)
-            raise ValueError("Sigma not pos def")
         return A, b, Sigma
 
     def _sample(self, mean, cov):
-        print("Sampling x ~ p(x)")
+        self._log.debug("Sampling x ~ p(x)")
         x_sample = self.p_x.sample(mean, cov, self.num_samples)
-        print("Sampling x|z ~ p(z|x)")
+        self._log.debug("Sampling x|z ~ p(z|x)")
         z_sample = self.p_z_given_x.sample(x_sample)
         return (x_sample, z_sample)
 
@@ -65,7 +63,7 @@ class Slr(Linearizer):
         sample_size = x_sample.shape[0]
         x_diff = x_sample - x_bar
         z_diff = z_sample - z_bar
-        cov = (x_diff.T @ z_diff)
+        cov = x_diff.T @ z_diff
         return cov / sample_size
 
     def _phi(self, z_sample, z_bar):

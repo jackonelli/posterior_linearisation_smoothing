@@ -17,7 +17,7 @@ def nees(true, est, cov):
         nees (K, 1)
     """
     K, D_x = true.shape
-    err = (true - est)
+    err = true - est
     nees_ = np.empty((K, 1))
     for k, (err_k, cov_k) in enumerate(zip(err, cov)):
         err_k = err_k.reshape((D_x, 1))
@@ -41,6 +41,7 @@ def _is_pos_def(x):
 def pos_def_check(x, disabled=False):
     """Check matrix positive definite
     Can be toggled via the disable arg.
+    TODO: Unnec. should be done with a lambda if needed.
     """
     return _is_pos_def(x) or disabled
 

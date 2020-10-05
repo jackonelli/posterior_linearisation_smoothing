@@ -1,14 +1,9 @@
 """Rauch-Tung-Striebel (RTS) smoothing"""
 import numpy as np
-from post_lin_smooth.analytics import pos_def_check
-from post_lin_smooth.filtering import _init_estimates
+from filtering import _init_estimates
 
 
-def rts_smoothing(filter_means,
-                  filter_covs,
-                  pred_means,
-                  pred_covs,
-                  linearizations):
+def rts_smoothing(filter_means, filter_covs, pred_means, pred_covs, linearizations):
     """Rauch-Tung-Striebel smoothing
     Smooths a measurement sequence and outputs from a Kalman filter.
 
@@ -27,35 +22,22 @@ def rts_smoothing(filter_means,
     """
 
     K = filter_means.shape[0] - 1
-    smooth_means, smooth_covs = _init_smooth_estimates(filter_means,
-                                                       filter_covs)
+    smooth_means, smooth_covs = _init_smooth_estimates(filter_means, filter_covs)
     for k in np.flip(np.arange(1, K + 1)):
         linear_params = linearizations[k - 1]
         x_k_K, P_k_K = smooth_means[k, :], smooth_covs[k, :, :]
         x_k_kminus1, P_k_kminus1 = pred_means[k, :], pred_covs[k, :, :]
         x_kminus1_kminus1 = filter_means[k - 1, :]
         P_kminus_kminus1 = filter_covs[k - 1, :, :]
-        x_kminus1_K, P_kminus1_K = _rts_update(x_k_K,
-                                               P_k_K,
-                                               x_kminus1_kminus1,
-                                               P_kminus_kminus1,
-                                               x_k_kminus1,
-                                               P_k_kminus1,
-                                               linear_params)
-        if not pos_def_check(P_kminus1_K, disabled=True):
-            raise ValueError("Smooth cov not pos def")
+        x_kminus1_K, P_kminus1_K = _rts_update(
+            x_k_K, P_k_K, x_kminus1_kminus1, P_kminus_kminus1, x_k_kminus1, P_k_kminus1, linear_params
+        )
         smooth_means[k - 1, :] = x_kminus1_K
         smooth_covs[k - 1, :, :] = P_kminus1_K
     return smooth_means, smooth_covs
 
 
-def _rts_update(x_k_K,
-                P_k_K,
-                x_kminus1_kminus1,
-                P_kminus_kminus1,
-                x_k_kminus1,
-                P_k_kminus1,
-                linear_params):
+def _rts_update(x_k_K, P_k_K, x_kminus1_kminus1, P_kminus_kminus1, x_k_kminus1, P_k_kminus1, linear_params):
     """RTS update step
     Args:
         x_k_K: x_{k|K}

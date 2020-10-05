@@ -1,9 +1,9 @@
 """Distribution interfaces for SLR"""
 from abc import ABC, abstractmethod
+import logging
 import numpy as np
 from scipy.stats import multivariate_normal as mvn
-from post_lin_smooth.analytics import pos_def_check
-from post_lin_smooth.calculations import calc_subspace_proj_matrix
+from calculations import calc_subspace_proj_matrix
 
 
 class Prior(ABC):
@@ -12,6 +12,7 @@ class Prior(ABC):
     but some modifications might be necessary to fulfill
     constraints in the approximated process.
     """
+
     @abstractmethod
     def __init__(self):
         pass
@@ -23,6 +24,7 @@ class Prior(ABC):
 
 class Conditional(ABC):
     """Conditional distribution p(z | x)"""
+
     @abstractmethod
     def sample(self, x_sample, num_samples: int):
         pass
@@ -30,8 +32,9 @@ class Conditional(ABC):
 
 class Gaussian(Prior):
     """Gaussian distribution"""
+
     def __init__(self):
-        pass
+        self._log = logging.getLogger(self.__class__.__name__)
 
     def sample(self, x_bar, P, num_samples):
         return mvn.rvs(mean=x_bar, cov=P, size=num_samples)
@@ -45,6 +48,7 @@ class ProjectedTruncGauss(Prior):
 
     NOTE: The mean is normalized
     """
+
     def __init__(self, num_dims):
         self.U_orth = calc_subspace_proj_matrix(num_dims)
         self._distr = TruncGauss()
@@ -63,6 +67,7 @@ class TruncGauss(Prior):
     Samples until `num_samples` ok samples are found.
     Note: the mean is also truncated to have mean_c <- el. wise max(mean_c, 0)
     """
+
     def __init__(self):
         self._distr = Gaussian()
 
@@ -71,9 +76,6 @@ class TruncGauss(Prior):
         successful_samples = 0
         D_x = mean.shape[0]
         sample = np.empty((num_samples, D_x))
-        # print("Sampling with: mean:\n{}\ncov eig:\n{}".format(
-        #     mean,
-        #     np.linalg.eigvals(cov)))
         while successful_samples < num_samples:
             candidate = self._distr.sample(mean, cov, 1)
             if (candidate > 0).all():

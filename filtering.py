@@ -1,17 +1,20 @@
 """Kalman filter (KF)"""
+import logging
 import numpy as np
-from post_lin_smooth.linearizer import Linearizer
-from post_lin_smooth.slr.distributions import Prior, Conditional
-from post_lin_smooth.slr.slr import Slr
-from post_lin_smooth.analytics import pos_def_check, pos_def_ratio
+from linearizer import Linearizer
+from slr.distributions import Prior, Conditional
+from slr.slr import Slr
+
+LOGGER = logging.getLogger(__name__)
 
 
-def kalman_filter(measurements,
-                  x_0_0,
-                  P_0_0,
-                  motion_lin: Linearizer,
-                  meas_lin: Linearizer,
-                  normalize=False):
+def kalman_filter(
+    measurements,
+    x_0_0,
+    P_0_0,
+    motion_lin: Linearizer,
+    meas_lin: Linearizer,
+):
     """Kalman filter with general linearization
     Filters a measurement sequence using a linear Kalman filter.
     Linearization is done with a general type
@@ -42,34 +45,21 @@ def kalman_filter(measurements,
     x_kminus1_kminus1 = x_0_0
     P_kminus1_kminus1 = P_0_0
     for k in np.arange(1, K + 1):
-        print("Time step: ", k)
-        if np.any(x_kminus1_kminus1 < 0):
-            print("Negative state")
+        LOGGER.debug("Time step: %s", k)
         # measurment vec is zero-indexed
         # this really gives y_k
         y_k = measurements[k - 1]
-        motion_lin_kminus1 = motion_lin.linear_params(x_kminus1_kminus1,
-                                                      P_kminus1_kminus1)
-        x_k_kminus1, P_k_kminus1 = _predict(x_kminus1_kminus1,
-                                            P_kminus1_kminus1,
-                                            motion_lin_kminus1)
-        if normalize:
-            x_k_kminus1 /= x_k_kminus1.sum()
+        motion_lin_kminus1 = motion_lin.linear_params(x_kminus1_kminus1, P_kminus1_kminus1)
+        x_k_kminus1, P_k_kminus1 = _predict(x_kminus1_kminus1, P_kminus1_kminus1, motion_lin_kminus1)
 
         meas_lin_k = meas_lin.linear_params(x_k_kminus1, P_k_kminus1)
         x_k_k, P_k_k = _update(y_k, x_k_kminus1, P_k_kminus1, meas_lin_k)
-        if normalize:
-            x_k_k /= x_k_k.sum()
 
         linearizations[k - 1] = motion_lin_kminus1
         pred_means[k, :] = x_k_kminus1
         pred_covs[k, :, :] = P_k_kminus1
         filter_means[k, :] = x_k_k
         filter_covs[k, :, :] = P_k_k
-        print("y_k", y_k)
-        print("x_{k-1|k-1}: ", x_kminus1_kminus1)
-        print("x_{k-1|k}: ", x_k_kminus1)
-        print("x_{k|k}: ", x_k_k)
         # Shift to next time step
         x_kminus1_kminus1 = x_k_k
         P_kminus1_kminus1 = P_k_k
@@ -77,13 +67,15 @@ def kalman_filter(measurements,
     return filter_means, filter_covs, pred_means, pred_covs, linearizations
 
 
-def kalman_filter_known_post(measurements,
-                             x_0_0,
-                             P_0_0,
-                             prev_smooth_means,
-                             prev_smooth_covs,
-                             motion_lin,
-                             meas_lin):
+def kalman_filter_known_post(
+    measurements,
+    x_0_0,
+    P_0_0,
+    prev_smooth_means,
+    prev_smooth_covs,
+    motion_lin,
+    meas_lin,
+):
     """Kalman filter with general linearization
     Filters a measurement sequence using a linear Kalman filter.
     The linearization is done w.r.t. to a known posterior estimate.
@@ -123,9 +115,7 @@ def kalman_filter_known_post(measurements,
         x_k_K = prev_smooth_means[k, :]
         P_k_K = prev_smooth_covs[k, :, :]
         motion_lin_kminus1 = motion_lin.linear_params(x_kminus1_K, P_kminus1_K)
-        x_k_kminus1, P_k_kminus1 = _predict(x_kminus1_kminus1,
-                                            P_kminus1_kminus1,
-                                            motion_lin_kminus1)
+        x_k_kminus1, P_k_kminus1 = _predict(x_kminus1_kminus1, P_kminus1_kminus1, motion_lin_kminus1)
 
         meas_lin_k = meas_lin.linear_params(x_k_K, P_k_K)
         x_k_k, P_k_k = _update(y_k, x_k_kminus1, P_k_kminus1, meas_lin_k)
@@ -229,7 +219,7 @@ def _update(y_k, x_k_kminus1, P_k_kminus1, linearization):
     H, c, R = linearization
     y_mean = H @ x_k_kminus1 + c
     S = H @ P_k_kminus1 @ H.T + R
-    K = (P_k_kminus1 @ H.T @ np.linalg.inv(S))
+    K = P_k_kminus1 @ H.T @ np.linalg.inv(S)
 
     x_k_k = x_k_kminus1 + (K @ (y_k - y_mean)).reshape(x_k_kminus1.shape)
     P_k_k = P_k_kminus1 - K @ S @ K.T
