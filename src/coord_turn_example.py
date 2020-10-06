@@ -3,14 +3,14 @@ import logging
 from functools import partial
 import numpy as np
 from scipy.stats import multivariate_normal as mvn
-from iterative import iterative_post_lin_smooth
-from slr.distributions import Gaussian
-from slr.slr import Slr
-from models.range_bearing import to_cartesian_coords
-from models.coord_turn import CoordTurn
-from models.range_bearing import RangeBearing
-import visualization as vis
-from utils import setup_logger
+from src.iterative import iterative_post_lin_smooth
+from src.slr.distributions import Gaussian
+from src.slr.slr import Slr
+from src.models.range_bearing import to_cartesian_coords
+from src.models.coord_turn import CoordTurn
+from src.models.range_bearing import RangeBearing
+from src import visualization as vis
+from src.utils import setup_logger
 
 
 def main():

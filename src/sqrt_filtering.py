@@ -210,7 +210,7 @@ def _predict(x_kminus1_kminus1, P_sqrt_kminus1_kminus1, linearization):
     return x_k_kminus1, P_sqrt_k_kminus1
 
 
-def _update(y_k, x_k_kminus1, P_k_kminus1, linearization):
+def _update(y_k, x_k_kminus1, P_sqrt_k_kminus1, linearization):
     """Square root KF update step
     Args:
         y_k
@@ -222,12 +222,10 @@ def _update(y_k, x_k_kminus1, P_k_kminus1, linearization):
         x_k_k: x_{k | k}
         P_k_k: P_{k | k}
     """
-    H, c, R = linearization
-    y_mean = H @ x_k_kminus1 + c
-    S = H @ P_k_kminus1 @ H.T + R
-    K = P_k_kminus1 @ H.T @ np.linalg.inv(S)
+    (D_x,) = x_k_kminus1.shape
+    H, c, R_sqrt = linearization
+    instr_mat = np.block([[R_sqrt, H @ P_sqrt_k_kminus1], [np.zeros((D_x, D_x)), P_sqrt_k_kminus1]])
+    _, R_l_transp = np.linalg.qr(instr_mat.T)
+    print("R", R_l_transp.shape)
 
-    x_k_k = x_k_kminus1 + (K @ (y_k - y_mean)).reshape(x_k_kminus1.shape)
-    P_k_k = P_k_kminus1 - K @ S @ K.T
-
-    return x_k_k, P_k_k
+    return None

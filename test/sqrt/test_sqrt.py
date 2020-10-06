@@ -1,41 +1,73 @@
 import unittest
 import numpy as np
-from src.filtering import _predict as ref_predict
-from src.sqrt_filtering import _predict as sqrt_predict
-from src.analytics import is_pos_def
+from src import filtering as filter_ref
+from src import sqrt_filtering as filter_sqrt
 from hypothesis.extra.numpy import arrays
 from hypothesis import given
 from hypothesis.strategies import composite, floats, integers
 
 
+def square_mat_strat(dim, elements=floats(-10, 10)):
+    return arrays(np.float, (dim, dim), elements=elements)
+
+
+def vec_strat(dim, elements=floats(-10, 10)):
+    return arrays(np.float, (dim,), elements=elements)
+
+
 @composite
-def square_matrix_pair(draw, elements=floats(-10, 10)):
+def predict_data(draw, elements=floats(-10, 10)):
+    """Strategy for test of sqrt predict step"""
     dim = draw(integers(1, 10))
-    mat_strat = arrays(np.float, (dim, dim), elements=floats(-10, 10))
-    return draw(mat_strat), draw(mat_strat)
+    P_sqrt, Q_sqrt, A = draw(square_mat_strat(dim)), draw(square_mat_strat(dim)), draw(square_mat_strat(dim))
+    x, b = draw(vec_strat(dim)), draw(vec_strat(dim))
+    return x, A, b, Q_sqrt, P_sqrt
 
 
-class SqrtPredict(unittest.TestCase):
-    @given(matrices=square_matrix_pair())
-    def test_compare_ref(self, matrices):
-        P_sqrt, Q_sqrt = matrices
-        D_x = P_sqrt.shape[0]
-        x = np.random.rand(D_x)
+@composite
+def update_data(draw, elements=floats(0.1, 10)):
+    """Strategy for test of sqrt predict step"""
+    dim_x = draw(integers(1, 10))
+    dim_y = draw(integers(1, dim_x))
+    P_sqrt, R_sqrt = draw(square_mat_strat(dim_x), elements), draw(square_mat_strat(dim_y, elements))
+    H = draw(arrays(np.float, (dim_y, dim_x), elements=elements))
+    x, y, c = draw(vec_strat(dim_x)), draw(vec_strat(dim_y)), draw(vec_strat(dim_y))
+    return x, y, H, c, R_sqrt, P_sqrt
+
+
+class SqrtImpl(unittest.TestCase):
+    @given(data=predict_data())
+    def test_predict_compare_ref(self, data):
+        x, A, b, Q_sqrt, P_sqrt = data
         P = P_sqrt @ P_sqrt.T
 
-        A = np.random.rand(D_x, D_x)
-        b = np.random.rand(D_x)
         Q = Q_sqrt @ Q_sqrt.T
 
         ref_lin = (A, b, Q)
         sqrt_lin = (A, b, Q_sqrt)
 
-        x_ref, P_ref = ref_predict(x, P, ref_lin)
-        x_sqrt, P_sqrt_new = sqrt_predict(x, P_sqrt, sqrt_lin)
+        x_ref, P_ref = filter_ref._predict(x, P, ref_lin)
+        x_sqrt, P_sqrt_new = filter_sqrt._predict(x, P_sqrt, sqrt_lin)
 
         self.assertTrue(np.allclose(x_ref, x_sqrt))
 
         self.assertTrue(np.allclose(P_ref, P_sqrt_new @ P_sqrt_new.T))
+
+    @given(data=update_data())
+    def test_update_compare_ref(self, data):
+        x, y, H, c, R_sqrt, P_sqrt = data
+        P = P_sqrt @ P_sqrt.T
+        R = R_sqrt @ R_sqrt.T
+
+        ref_lin = (H, c, R)
+        sqrt_lin = (H, c, R_sqrt)
+
+        x_ref, P_ref = filter_ref._update(y, x, P, ref_lin)
+        # x_sqrt, P_sqrt_new = filter_sqrt._update(y, x, P_sqrt, sqrt_lin)
+
+        # self.assertTrue(np.allclose(x_ref, x_sqrt))
+
+        # self.assertTrue(np.allclose(P_ref, P_sqrt_new @ P_sqrt_new.T))
 
 
 if __name__ == "__main__":

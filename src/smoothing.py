@@ -1,6 +1,6 @@
 """Rauch-Tung-Striebel (RTS) smoothing"""
 import numpy as np
-from filtering import _init_estimates
+from src.filtering import _init_estimates
 
 
 def rts_smoothing(filter_means, filter_covs, pred_means, pred_covs, linearizations):

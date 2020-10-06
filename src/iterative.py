@@ -1,10 +1,10 @@
 """Iterative wrapper for the posterior linearization smoother"""
 import logging
 import numpy as np
-from slr.distributions import Prior, Conditional
-from filtering import kalman_filter, kalman_filter_known_post
-from smoothing import rts_smoothing
-from linearizer import Linearizer
+from src.slr.distributions import Prior, Conditional
+from src.filtering import kalman_filter, kalman_filter_known_post
+from src.smoothing import rts_smoothing
+from src.linearizer import Linearizer
 
 LOGGER = logging.getLogger(__name__)
 

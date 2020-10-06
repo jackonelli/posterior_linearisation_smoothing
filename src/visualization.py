@@ -2,7 +2,7 @@
 import numpy as np
 from scipy.linalg import sqrtm
 import matplotlib.pyplot as plt
-from analytics import nees
+from src.analytics import nees
 
 
 def plot_nees_comp(true_x, x_1, P_1, x_2, P_2):

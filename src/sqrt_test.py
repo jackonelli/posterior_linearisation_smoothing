@@ -2,17 +2,15 @@
 import logging
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.stats import multivariate_normal as mvn
-from iterative import iterative_post_lin_smooth
-from smoothing import rts_smoothing
-from slr.distributions import Gaussian
-from slr.slr import Slr
-from linearizer import Identity
-from models.affine import Affine
-import visualization as vis
-from utils import setup_logger
-from scipy.linalg import sqrtm, qr
-from analytics import pos_def_check
+from src.scipy.stats import multivariate_normal as mvn
+from src.iterative import iterative_post_lin_smooth
+from src.smoothing import rts_smoothing
+from src.slr.distributions import Gaussian
+from src.slr.slr import Slr
+from src.linearizer import Identity
+from src.models.affine import Affine
+from src.scipy.linalg import sqrtm, qr
+from src.analytics import pos_def_check
 
 
 def main():
