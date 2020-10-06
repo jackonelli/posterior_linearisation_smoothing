@@ -9,6 +9,7 @@ mypy = "*"
 pylint = "*"
 jedi = "*"
 rope = "*"
+hypothesis = "*"
 
 [packages]
 numpy = "*"

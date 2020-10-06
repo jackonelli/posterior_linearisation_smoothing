@@ -3,13 +3,23 @@ import numpy as np
 from src.filtering import _predict as ref_predict
 from src.sqrt_filtering import _predict as sqrt_predict
 from src.analytics import is_pos_def
+from hypothesis.extra.numpy import arrays
+from hypothesis import given
+from hypothesis.strategies import composite, floats, integers
+
+
+@composite
+def square_matrix(draw, elements=floats(-10, 10)):
+    dim = draw(integers(2, 10))
+    return draw(arrays(np.float, (dim, dim), elements=floats(-10, 10)))
 
 
 class SqrtPredict(unittest.TestCase):
-    def test_compare_ref(self):
-        D_x = 4
+    @given(P_sqrt=square_matrix())
+    def test_compare_ref(self, P_sqrt):
+        D_x = P_sqrt.shape[0]
         x = np.random.rand(D_x)
-        P_sqrt = np.random.rand(D_x, D_x)
+        # P_sqrt = np.random.rand(D_x, D_x)
         P = P_sqrt @ P_sqrt.T
 
         A = np.random.rand(D_x, D_x)

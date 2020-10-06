@@ -9,4 +9,5 @@
 *.pyc
 __pycache__
 *.csv
-*.vim
+.vim
+.hypothesis
