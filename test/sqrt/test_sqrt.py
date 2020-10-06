@@ -9,22 +9,22 @@ from hypothesis.strategies import composite, floats, integers
 
 
 @composite
-def square_matrix(draw, elements=floats(-10, 10)):
-    dim = draw(integers(2, 10))
-    return draw(arrays(np.float, (dim, dim), elements=floats(-10, 10)))
+def square_matrix_pair(draw, elements=floats(-10, 10)):
+    dim = draw(integers(1, 10))
+    mat_strat = arrays(np.float, (dim, dim), elements=floats(-10, 10))
+    return draw(mat_strat), draw(mat_strat)
 
 
 class SqrtPredict(unittest.TestCase):
-    @given(P_sqrt=square_matrix())
-    def test_compare_ref(self, P_sqrt):
+    @given(matrices=square_matrix_pair())
+    def test_compare_ref(self, matrices):
+        P_sqrt, Q_sqrt = matrices
         D_x = P_sqrt.shape[0]
         x = np.random.rand(D_x)
-        # P_sqrt = np.random.rand(D_x, D_x)
         P = P_sqrt @ P_sqrt.T
 
         A = np.random.rand(D_x, D_x)
         b = np.random.rand(D_x)
-        Q_sqrt = np.random.rand(D_x, D_x)
         Q = Q_sqrt @ Q_sqrt.T
 
         ref_lin = (A, b, Q)
