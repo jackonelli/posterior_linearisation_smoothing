@@ -1,8 +1,8 @@
 """Stochastic linear regression (SLR)"""
 import numpy as np
 import logging
-from slr.distributions import Prior, Conditional
-from linearizer import Linearizer
+from src.slr.distributions import Prior, Conditional
+from src.linearizer import Linearizer
 
 
 class Slr(Linearizer):

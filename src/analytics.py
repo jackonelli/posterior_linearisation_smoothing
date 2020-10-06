@@ -30,7 +30,7 @@ def _single_nees(err, cov):
     return err.T @ np.linalg.inv(cov) @ err
 
 
-def _is_pos_def(x):
+def is_pos_def(x):
     """Is positive definite
     Returns True if all eigen values are positive,
     otherwise False
@@ -38,14 +38,20 @@ def _is_pos_def(x):
     return np.all(np.linalg.eigvals(x) > 0)
 
 
-def pos_def_check(x, disabled=False):
-    """Check matrix positive definite
-    Can be toggled via the disable arg.
-    TODO: Unnec. should be done with a lambda if needed.
-    """
-    return _is_pos_def(x) or disabled
-
-
 def pos_def_ratio(covs):
     pos_defs = [pos_def_check(cov, False) for cov in covs]
     return sum(pos_defs) / len(pos_defs)
+
+
+def calc_subspace_proj_matrix(num_dim: int):
+    det_dir = np.ones((num_dim, 1))
+    Q, _ = np.linalg.qr(det_dir, mode="complete")
+    U = Q[:, 1:]
+    return U @ U.T
+
+
+def make_pos_def(x, eps=0.1):
+    u, s, vh = np.linalg.svd(x, hermitian=True)
+    neg_sing_vals = s < 0
+    s_hat = s * np.logical_not(neg_sing_vals) + eps * neg_sing_vals
+    return np.dot(u, np.dot(np.diag(s_hat), vh)), s

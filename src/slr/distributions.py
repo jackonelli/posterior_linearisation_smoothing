@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import logging
 import numpy as np
 from scipy.stats import multivariate_normal as mvn
-from calculations import calc_subspace_proj_matrix
+from src.analytics import calc_subspace_proj_matrix
 
 
 class Prior(ABC):

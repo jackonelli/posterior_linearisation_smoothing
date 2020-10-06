@@ -2,4 +2,8 @@
 line-length = 120
 
 [tool.pylint]
-max-line-length=240
+max-line-length=120
+disable=["C0103"]
+
+[tool.flake8]
+max-line-length=120

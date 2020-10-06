@@ -1,9 +1,9 @@
-"""Square root implementation of the Kalman filter (KF)"""
+"""Kalman filter (KF)"""
 import logging
 import numpy as np
-from linearizer import Linearizer
-from slr.distributions import Prior, Conditional
-from slr.slr import Slr
+from src.linearizer import Linearizer
+from src.slr.distributions import Prior, Conditional
+from src.slr.slr import Slr
 
 LOGGER = logging.getLogger(__name__)
 
@@ -185,20 +185,19 @@ def analytical_kf(measurements, x_0_0, P_0_0, motion_lin, meas_lin):
     return filter_means, filter_covs, pred_means, pred_covs
 
 
-def _predict(x_kminus1_kminus1, P_sqrt_kminus1_kminus1, linearization):
-    """Square root KF prediction step
+def _predict(x_kminus1_kminus1, P_kminus1_kminus1, linearization):
+    """KF prediction step
 
     Args:
         x_kminus1_kminus1: x_{k-1 | k-1}
         P_kminus1_kminus1: P_{k-1 | k-1}
-        linearization (tuple): (A, b, Q_sqrt) param's for linear (affine) approx
+        linearization (tuple): (A, b, Q) param's for linear (affine) approx
 
     Returns:
         x_k_kminus1: x_{k | k-1}
         P_k_kminus1: P_{k | k-1}
     """
-    A, b, Q_sqrt = linearization
-    A_p = np.array[Q_sqrt]
+    A, b, Q = linearization
     x_k_kminus1 = A @ x_kminus1_kminus1 + b
     P_k_kminus1 = A @ P_kminus1_kminus1 @ A.T + Q
     P_k_kminus1 = (P_k_kminus1 + P_k_kminus1.T) / 2
@@ -206,7 +205,7 @@ def _predict(x_kminus1_kminus1, P_sqrt_kminus1_kminus1, linearization):
 
 
 def _update(y_k, x_k_kminus1, P_k_kminus1, linearization):
-    """Square root KF update step
+    """KF update step
     Args:
         y_k
         x_k_kminus1: x_{k | k-1}
