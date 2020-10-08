@@ -28,11 +28,19 @@ def predict_data(draw, elements=floats(-10, 10)):
 def update_data(draw, elements=floats(0.1, 10)):
     """Strategy for test of sqrt predict step"""
     dim_x = draw(integers(1, 10))
-    dim_y = draw(integers(1, dim_x))
-    P_sqrt, R_sqrt = draw(square_mat_strat(dim_x), elements), draw(square_mat_strat(dim_y, elements))
+    dim_y = draw(integers(1, 10))
+    P_sqrt, R_sqrt = draw(square_mat_strat(dim_x, elements)), draw(square_mat_strat(dim_y, elements))
     H = draw(arrays(np.float, (dim_y, dim_x), elements=elements))
     x, y, c = draw(vec_strat(dim_x)), draw(vec_strat(dim_y)), draw(vec_strat(dim_y))
     return x, y, H, c, R_sqrt, P_sqrt
+
+
+def is_not_singular(sample):
+    _, _, H, _, R_sqrt, P_sqrt = sample
+    P = P_sqrt @ P_sqrt.T
+    R = R_sqrt @ R_sqrt.T
+    S = H @ P @ H.T + R
+    return np.linalg.matrix_rank(S) == S.shape[0]
 
 
 class SqrtImpl(unittest.TestCase):
@@ -53,7 +61,7 @@ class SqrtImpl(unittest.TestCase):
 
         self.assertTrue(np.allclose(P_ref, P_sqrt_new @ P_sqrt_new.T))
 
-    @given(data=update_data())
+    @given(data=update_data().filter(is_not_singular))
     def test_update_compare_ref(self, data):
         x, y, H, c, R_sqrt, P_sqrt = data
         P = P_sqrt @ P_sqrt.T
