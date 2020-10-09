@@ -195,7 +195,7 @@ def _predict(x_kminus1_kminus1, P_sqrt_kminus1_kminus1, linearization):
 
     Returns:
         x_k_kminus1: x_{k | k-1}
-        P_k_kminus1: P_{k | k-1}
+        P_sqrt_k_kminus1: P^{1/2}_{k | k-1}
     """
     (D_x,) = x_kminus1_kminus1.shape
 
@@ -216,16 +216,20 @@ def _update(y_k, x_k_kminus1, P_sqrt_k_kminus1, linearization):
         y_k
         x_k_kminus1: x_{k | k-1}
         P_k_kminus1: P_{k | k-1}
-        linearization (tuple): (A, b, Q) param's for linear (affine) approx
+        linearization (tuple): (H, c, R_sqrt) param's for linear (affine) approx
 
     Returns:
         x_k_k: x_{k | k}
-        P_k_k: P_{k | k}
+        P_sqrt_k_k: P^{1/2}_{k | k}
     """
-    (D_x,) = x_k_kminus1.shape
     H, c, R_sqrt = linearization
-    instr_mat = np.block([[R_sqrt, H @ P_sqrt_k_kminus1], [np.zeros((D_x, D_x)), P_sqrt_k_kminus1]])
+    (D_y, D_x) = H.shape
+    instr_mat = np.block([[R_sqrt, H @ P_sqrt_k_kminus1], [np.zeros((D_x, D_y)), P_sqrt_k_kminus1]])
     _, R_l_transp = np.linalg.qr(instr_mat.T)
-    print("R", R_l_transp.shape)
+    # Extract blocks from R matrix
+    X_u, Y_u, P_sqrt_k_k = R_l_transp.T[:D_y, :D_y], R_l_transp.T[D_y:, :D_y], R_l_transp.T[D_y:, D_y : (D_y + D_x)]
 
-    return None
+    y_mean = H @ x_k_kminus1 + c
+    K = Y_u @ np.linalg.inv(X_u)
+    x_k_k = x_k_kminus1 + (K @ (y_k - y_mean)).reshape(x_k_kminus1.shape)
+    return x_k_k, P_sqrt_k_k

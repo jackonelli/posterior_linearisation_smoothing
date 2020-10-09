@@ -30,6 +30,8 @@ def update_data(draw, elements=floats(0.1, 10)):
     dim_x = draw(integers(1, 10))
     dim_y = draw(integers(1, 10))
     P_sqrt, R_sqrt = draw(square_mat_strat(dim_x, elements)), draw(square_mat_strat(dim_y, elements))
+    # Decrease risk of sing matrix
+    R_sqrt += 1.5 * np.eye(dim_y)
     H = draw(arrays(np.float, (dim_y, dim_x), elements=elements))
     x, y, c = draw(vec_strat(dim_x)), draw(vec_strat(dim_y)), draw(vec_strat(dim_y))
     return x, y, H, c, R_sqrt, P_sqrt
@@ -71,11 +73,10 @@ class SqrtImpl(unittest.TestCase):
         sqrt_lin = (H, c, R_sqrt)
 
         x_ref, P_ref = filter_ref._update(y, x, P, ref_lin)
-        # x_sqrt, P_sqrt_new = filter_sqrt._update(y, x, P_sqrt, sqrt_lin)
+        x_sqrt, P_sqrt_new = filter_sqrt._update(y, x, P_sqrt, sqrt_lin)
 
-        # self.assertTrue(np.allclose(x_ref, x_sqrt))
-
-        # self.assertTrue(np.allclose(P_ref, P_sqrt_new @ P_sqrt_new.T))
+        self.assertTrue(np.allclose(x_ref, x_sqrt))
+        self.assertTrue(np.allclose(P_ref, P_sqrt_new @ P_sqrt_new.T))
 
 
 if __name__ == "__main__":
