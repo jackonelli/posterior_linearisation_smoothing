@@ -210,7 +210,7 @@ def _update(y_k, x_k_kminus1, P_k_kminus1, linearization):
         y_k
         x_k_kminus1: x_{k | k-1}
         P_k_kminus1: P_{k | k-1}
-        linearization (tuple): (A, b, Q) param's for linear (affine) approx
+        linearization (tuple): (H, c, R) param's for linear (affine) approx
 
     Returns:
         x_k_k: x_{k | k}
@@ -218,7 +218,9 @@ def _update(y_k, x_k_kminus1, P_k_kminus1, linearization):
     """
     H, c, R = linearization
     y_mean = H @ x_k_kminus1 + c
+    # S.shape = (D_y, D_y)
     S = H @ P_k_kminus1 @ H.T + R
+    # K.shape = (D_x, D_y)
     K = P_k_kminus1 @ H.T @ np.linalg.inv(S)
 
     x_k_k = x_k_kminus1 + (K @ (y_k - y_mean)).reshape(x_k_kminus1.shape)
