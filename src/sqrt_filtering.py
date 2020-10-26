@@ -226,6 +226,5 @@ def _update(y_k, x_k_kminus1, P_sqrt_k_kminus1, linearization):
     H, c, R_sqrt = linearization
     instr_mat = np.block([[R_sqrt, H @ P_sqrt_k_kminus1], [np.zeros((D_x, D_x)), P_sqrt_k_kminus1]])
     _, R_l_transp = np.linalg.qr(instr_mat.T)
-    print("R", R_l_transp.shape)
 
-    return None
+    return 
