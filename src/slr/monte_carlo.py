@@ -5,8 +5,8 @@ from src.slr.distributions import Prior, Conditional
 from src.linearizer import Linearizer
 
 
-class Slr(Linearizer):
-    """SLR"""
+class McSlr(Linearizer):
+    """Monte Carlo SLR"""
 
     def __init__(self, p_x: Prior, p_z_given_x: Conditional, num_samples: int):
         self.p_x = p_x
