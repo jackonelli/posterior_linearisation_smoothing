@@ -5,14 +5,7 @@ from src import sqrt_filtering as filter_sqrt
 from hypothesis.extra.numpy import arrays
 from hypothesis import given
 from hypothesis.strategies import composite, floats, integers
-
-
-def square_mat_strat(dim, elements=floats(-10, 10)):
-    return arrays(np.float, (dim, dim), elements=elements)
-
-
-def vec_strat(dim, elements=floats(-10, 10)):
-    return arrays(np.float, (dim,), elements=elements)
+from test.sqrt.strategies import square_mat_strat, vec_strat
 
 
 @composite
@@ -79,7 +72,7 @@ class SqrtImpl(unittest.TestCase):
         x_sqrt, P_sqrt_new = filter_sqrt._update(y, x, P_sqrt, sqrt_lin)
 
         self.assertTrue(np.allclose(x_ref, x_sqrt))
-        self.assertTrue(np.allclose(P_ref, P_sqrt_new @ P_sqrt_new.T, rtol=1e-4))
+        self.assertTrue(np.allclose(P_ref, P_sqrt_new @ P_sqrt_new.T, rtol=1e-3))
 
 
 if __name__ == "__main__":
