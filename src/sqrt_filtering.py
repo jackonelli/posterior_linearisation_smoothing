@@ -9,11 +9,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 def kalman_filter(
-    measurements,
-    x_0_0,
-    P_0_0,
-    motion_lin: Linearizer,
-    meas_lin: Linearizer,
+    measurements, x_0_0, P_0_0, motion_lin: Linearizer, meas_lin: Linearizer,
 ):
     """Kalman filter with general linearization
     Filters a measurement sequence using a linear Kalman filter.
@@ -68,13 +64,7 @@ def kalman_filter(
 
 
 def kalman_filter_known_post(
-    measurements,
-    x_0_0,
-    P_0_0,
-    prev_smooth_means,
-    prev_smooth_covs,
-    motion_lin,
-    meas_lin,
+    measurements, x_0_0, P_0_0, prev_smooth_means, prev_smooth_covs, motion_lin, meas_lin,
 ):
     """Kalman filter with general linearization
     Filters a measurement sequence using a linear Kalman filter.
