@@ -1,4 +1,4 @@
-"""Stochastic linear regression (SLR)"""
+"""Statistical linear regression (SLR)"""
 import numpy as np
 import logging
 from src.slr.distributions import Prior, Conditional

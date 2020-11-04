@@ -1,4 +1,4 @@
-"""Stochastic linear regression (SLR) with sigma points"""
+"""Statistical linear regression (SLR) with sigma points"""
 from abc import ABC, abstractmethod
 import numpy as np
 
