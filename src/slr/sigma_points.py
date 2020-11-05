@@ -4,7 +4,10 @@ import numpy as np
 
 
 class SigmaPointSlr:
-    def linear_params(self, fn, mean, cov, sigma_point_method):
+    def __init__(self, sigma_point_method=SphericalCubature()):
+        self.sigma_point_method = sigma_point_method
+
+    def linear_params(self, fn, mean, cov):
         """SLR sigma points linearization
         Args:
             fn: state mapping. In principle fn: R^n -> R^m,
@@ -27,7 +30,7 @@ class SigmaPointSlr:
             - If built in np cov insufficient, check monte_carlo.py for vectorization.
         """
 
-        sigma_points, weights = sigma_point_method._sigma_points(mean, cov)
+        sigma_points, weights = self.sigma_point_method._sigma_points(mean, cov)
         transf_sigma_points = fn(sigma_points)
         z_bar = transf_sigma_points.average(weights=weights)
         diff_sigma_points = sigma_points - mean
@@ -44,7 +47,7 @@ class SigmaPointMethod(ABC):
         pass
 
 
-class CubatureIntegration(SigmaPointMethod):
+class SphericalCubature(SigmaPointMethod):
     def _sigma_points(self, mean, cov):
         D_x = mean.shape[1]
         sqrt_cov = np.sqrtm(cov)
