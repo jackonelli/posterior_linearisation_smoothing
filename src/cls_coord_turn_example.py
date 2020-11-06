@@ -3,19 +3,17 @@ import logging
 from functools import partial
 import numpy as np
 from scipy.stats import multivariate_normal as mvn
-from src.iterative import iterative_post_lin_smooth
-from src.slr.distributions import Gaussian
-from src.slr.slr import Slr
 from src.models.range_bearing import to_cartesian_coords
 from src.models.coord_turn import CoordTurn
 from src.models.range_bearing import RangeBearing
+from src.filter.slr import SigmaPointSlrFilter
 from src import visualization as vis
 from src.utils import setup_logger
 
 
 def main():
     log = logging.getLogger(__name__)
-    setup_logger("logs/test.log", logging.INFO)
+    setup_logger("logs/coord_turn_example.log", logging.INFO)
     # np.random.seed(1)
     num_samples = 1000
     num_iterations = 3
@@ -28,7 +26,7 @@ def main():
     sigma_v = v_scale * 1
     sigma_omega = omega_scale * np.pi / 180
     Q = np.diag([0, 0, sampling_period * sigma_v ** 2, 0, sampling_period * sigma_omega ** 2])
-    motion_lin = Slr(p_x=Gaussian(), p_z_given_x=CoordTurn(sampling_period, Q), num_samples=num_samples)
+    motion_model = CoordTurn(sampling_period, Q)
 
     # Meas model
     pos = np.array([100, -100])
@@ -37,7 +35,6 @@ def main():
 
     R = np.diag([sigma_r ** 2, sigma_phi ** 2])
     meas_model = RangeBearing(pos, R)
-    meas_lin = Slr(p_x=Gaussian(), p_z_given_x=meas_model, num_samples=num_samples)
 
     # Generate data
     # K = 600
@@ -51,7 +48,9 @@ def main():
     x_0 = np.array([4.4, 0, 4, 0, 0])
     P_0 = np.diag([1 ** 2, 1 ** 2, 1 ** 2, (5 * np.pi / 180) ** 2, (1 * np.pi / 180) ** 2])
 
-    xs, Ps, xf, Pf, _ = iterative_post_lin_smooth(measurements, x_0, P_0, motion_lin, meas_lin, num_iterations)
+    filter_ = SigmaPointSlrFilter(motion_model, meas_model)
+
+    xf, Pf = filter_.filter_seq(measurements, x_0, P_0)
 
     vis.plot_nees_and_2d_est(
         true_states[range_[0] : range_[1], :],
@@ -98,7 +97,7 @@ def gen_non_lin_meas(states, meas_model, R):
         R np.array((D_y, D_y))
     """
 
-    meas_mean = np.apply_along_axis(meas_model.mean, 1, states)
+    meas_mean = np.apply_along_axis(meas_model.map, 1, states)
     num_states, meas_dim = meas_mean.shape
     noise = mvn.rvs(mean=np.zeros((meas_dim,)), cov=R, size=num_states)
     return meas_mean + noise

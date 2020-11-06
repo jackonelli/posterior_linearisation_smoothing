@@ -1,9 +1,10 @@
 """Stochastic coordinated turn motion model"""
 import numpy as np
-from src.models.base import Model
+from scipy.stats import multivariate_normal as mvn
+from slr.distributions import Conditional
 
 
-class CoordTurn(Model):
+class CoordTurn(Conditional):
     """
     state is
         x_k = [
@@ -19,7 +20,13 @@ class CoordTurn(Model):
         self.sampling_period = sampling_period
         self.process_noise = process_noise
 
-    def mapping(self, state):
+    def sample(self, states):
+        means = np.apply_along_axis(self.mean, 1, states)
+        num_samples, mean_dim = means.shape
+        noise = mvn.rvs(mean=np.zeros((mean_dim,)), cov=self.process_noise, size=num_samples)
+        return means + noise
+
+    def mean(self, state):
         v = state[2]
         phi = state[3]
         omega = state[4]
