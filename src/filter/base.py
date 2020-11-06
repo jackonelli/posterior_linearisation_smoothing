@@ -11,12 +11,7 @@ class Filter(ABC):
     # TODO: Need a name for this. Gaussian filter?
     """
 
-    def filter_seq(
-        self,
-        measurements,
-        x_0_0,
-        P_0_0,
-    ):
+    def filter_seq(self, measurements, x_0_0, P_0_0, Q, R):
         """Kalman filter with general linearization
         Filters a measurement sequence using a linear Kalman filter.
 
@@ -47,10 +42,10 @@ class Filter(ABC):
             # this really gives y_k
             y_k = measurements[k - 1]
             x_k_kminus1, P_k_kminus1 = self._predict(
-                x_kminus1_kminus1, P_kminus1_kminus1, self._motion_lin(x_kminus1_kminus1, P_kminus1_kminus1)
+                x_kminus1_kminus1, P_kminus1_kminus1, Q, self._motion_lin(x_kminus1_kminus1, P_kminus1_kminus1)
             )
 
-            x_k_k, P_k_k = self._update(y_k, x_k_kminus1, P_k_kminus1, self._meas_lin(x_k_kminus1, P_k_kminus1))
+            x_k_k, P_k_k = self._update(y_k, x_k_kminus1, P_k_kminus1, R, self._meas_lin(x_k_kminus1, P_k_kminus1))
 
             pred_means[k, :] = x_k_kminus1
             pred_covs[k, :, :] = P_k_kminus1
@@ -63,13 +58,13 @@ class Filter(ABC):
         return filter_means, filter_covs, pred_means, pred_covs
 
     @staticmethod
-    def _predict(x_kminus1_kminus1, P_kminus1_kminus1, linearization):
+    def _predict(x_kminus1_kminus1, P_kminus1_kminus1, Q, linearization):
         """KF prediction step
 
         Args:
             x_kminus1_kminus1: x_{k-1 | k-1}
             P_kminus1_kminus1: P_{k-1 | k-1}
-            linearization (tuple): (A, b, Q) param's for linear (affine) approx
+            linearization (tuple): (A, b, Omega) param's for linear (affine) approx
 
         Returns:
             x_k_kminus1: x_{k | k-1}
@@ -82,22 +77,22 @@ class Filter(ABC):
         return x_k_kminus1, P_k_kminus1
 
     @staticmethod
-    def _update(y_k, x_k_kminus1, P_k_kminus1, linearization):
+    def _update(y_k, x_k_kminus1, P_k_kminus1, R, linearization):
         """KF update step
         Args:
             y_k
             x_k_kminus1: x_{k | k-1}
             P_k_kminus1: P_{k | k-1}
-            linearization (tuple): (H, c, R) param's for linear (affine) approx
+            linearization (tuple): (H, c, Lambda) param's for linear (affine) approx
 
         Returns:
             x_k_k: x_{k | k}
             P_k_k: P_{k | k}
         """
-        H, c, R = linearization
+        H, c, Lambda = linearization
         y_mean = H @ x_k_kminus1 + c
         # S.shape = (D_y, D_y)
-        S = H @ P_k_kminus1 @ H.T + R
+        S = H @ P_k_kminus1 @ H.T + R + Lambda
         # K.shape = (D_x, D_y)
         K = P_k_kminus1 @ H.T @ np.linalg.inv(S)
 

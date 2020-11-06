@@ -17,7 +17,7 @@ def main():
     # np.random.seed(1)
     num_samples = 1000
     num_iterations = 3
-    range_ = (0, 75)
+    range_ = (0, 70)
 
     # Motion model
     sampling_period = 0.1
@@ -50,15 +50,15 @@ def main():
 
     filter_ = SigmaPointSlrFilter(motion_model, meas_model)
 
-    xf, Pf = filter_.filter_seq(measurements, x_0, P_0)
+    xf, Pf, _, _ = filter_.filter_seq(measurements, x_0, P_0, Q, R)
 
     vis.plot_nees_and_2d_est(
         true_states[range_[0] : range_[1], :],
         cartes_meas,
         xf[:, :obs_dims],
         Pf[:, :obs_dims, :obs_dims],
-        xs[:, :obs_dims],
-        Ps[:, :obs_dims, :obs_dims],
+        None,  # xs[:, :obs_dims],
+        None,  # Ps[:, :obs_dims, :obs_dims],
         sigma_level=3,
         skip_cov=5,
     )
@@ -97,7 +97,7 @@ def gen_non_lin_meas(states, meas_model, R):
         R np.array((D_y, D_y))
     """
 
-    meas_mean = np.apply_along_axis(meas_model.map, 1, states)
+    meas_mean = meas_model.map_set(states)
     num_states, meas_dim = meas_mean.shape
     noise = mvn.rvs(mean=np.zeros((meas_dim,)), cov=R, size=num_states)
     return meas_mean + noise

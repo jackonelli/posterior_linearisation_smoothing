@@ -1,28 +1,7 @@
 """Statistical linear regression (SLR) with sigma points"""
 from abc import ABC, abstractmethod
 import numpy as np
-from scipy.linalg import sqrtm
-
-
-class SigmaPointMethod(ABC):
-    @abstractmethod
-    def sigma_points(mean, cov):
-        pass
-
-
-class SphericalCubature(SigmaPointMethod):
-    def sigma_points(self, mean, cov):
-        D_x = mean.shape[0]
-        sqrt_cov = sqrtm(cov)
-        num_sigma_points = 2 * D_x
-
-        sigma_points = np.empty((num_sigma_points, D_x))
-        for dim in np.arange(0, D_x):
-            sigma_points[2 * dim, :] = mean + np.sqrt(D_x) * sqrt_cov[:, dim]
-            sigma_points[2 * dim + 1, :] = mean - np.sqrt(D_x) * sqrt_cov[:, dim]
-
-        weights = np.ones((num_sigma_points,)) / num_sigma_points
-        return sigma_points, weights
+from src.sigma_points import SphericalCubature
 
 
 class SigmaPointSlrBase(ABC):
@@ -61,15 +40,12 @@ class SigmaPointSlr(SigmaPointSlrBase):
         Calculate z_bar, psi, phi from a (non-linear) function and estimated distribution
         TODO:
             - Test that the weighted cov's work as intended.
-            - If built in np cov insufficient, check monte_carlo.py for vectorization.
         """
 
         sigma_points, weights = self._sigma_points(mean, cov)
         transf_sigma_points = fn(sigma_points)
         z_bar = weighted_avg(transf_sigma_points, weights)
-        print("Z\n{}\n".format(transf_sigma_points))
         psi = weighted_cov(sigma_points, mean, transf_sigma_points, z_bar, weights)
-        print("psi\n{}\n".format(psi))
         phi = weighted_cov(transf_sigma_points, z_bar, transf_sigma_points, z_bar, weights)
 
         return z_bar, psi, phi
