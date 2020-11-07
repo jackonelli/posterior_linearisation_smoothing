@@ -7,6 +7,7 @@ from src.models.range_bearing import to_cartesian_coords
 from src.models.coord_turn import CoordTurn
 from src.models.range_bearing import RangeBearing
 from src.filter.slr import SigmaPointSlrFilter
+from src.smoother.slr import SigmaPointSlrSmoother
 from src import visualization as vis
 from src.utils import setup_logger
 
@@ -17,7 +18,7 @@ def main():
     # np.random.seed(1)
     num_samples = 1000
     num_iterations = 3
-    range_ = (0, -1)
+    range_ = (0, 50)
 
     # Motion model
     sampling_period = 0.1
@@ -37,9 +38,6 @@ def main():
     meas_model = RangeBearing(pos, R)
 
     # Generate data
-    # K = 600
-    # true_states, measurements, obs_dims = gen_dummy_data(
-    #     K, sampling_period, meas_model, R)
     true_states, measurements = gen_tricky_data(meas_model, R, range_)
     obs_dims = true_states.shape[1]
     cartes_meas = np.apply_along_axis(partial(to_cartesian_coords, pos=pos), 1, measurements)
@@ -49,16 +47,18 @@ def main():
     P_0 = np.diag([1 ** 2, 1 ** 2, 1 ** 2, (5 * np.pi / 180) ** 2, (1 * np.pi / 180) ** 2])
 
     filter_ = SigmaPointSlrFilter(motion_model, meas_model)
-
     xf, Pf, xp, Pp = filter_.filter_seq(measurements, x_0, P_0)
+
+    smoother = SigmaPointSlrSmoother(motion_model)
+    xs, Ps = smoother.smooth_seq(xf, Pf, xp, Pp)
 
     vis.plot_nees_and_2d_est(
         true_states[range_[0] : range_[1], :],
         cartes_meas,
         xf[:, :obs_dims],
         Pf[:, :obs_dims, :obs_dims],
-        None,  # xs[:, :obs_dims],
-        None,  # Ps[:, :obs_dims, :obs_dims],
+        xs[:, :obs_dims],
+        Ps[:, :obs_dims, :obs_dims],
         sigma_level=3,
         skip_cov=5,
     )

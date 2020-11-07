@@ -12,15 +12,15 @@ class Filter(ABC):
     """
 
     def filter_seq(self, measurements, x_0_0, P_0_0):
-        """Kalman filter with general linearization
-        Filters a measurement sequence using a linear Kalman filter.
+        """Filters a measurement sequence
+        This method can be used for any Kalman-like filter which estimates non-linear motion/meas. models as:
+        f(x) = A x + b + e, e ~ N(0, Omega)
+        h(x) = H x + c + eps, eps ~ N(0, Lambda)
 
         Args:
             measurements (K, D_y): Measurement sequence for times 1,..., K
             x_0_0 (D_x,): Prior mean for time 0
             P_0_0 (D_x, D_x): Prior covariance for time 0
-            motion_lin: Must inherit from Linearizer
-            meas_lin: Must inherit from Linearizer
 
         Returns:
             filter_means (K, D_x): Filtered estimates for times 1,..., K
