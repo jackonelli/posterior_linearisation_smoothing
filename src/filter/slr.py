@@ -16,3 +16,9 @@ class SigmaPointSlrFilter(Filter):
 
     def _meas_lin(self, state, cov):
         return self._slr.linear_params(self.meas_model.map_set, state, cov)
+
+    def _process_noise(self):
+        return self.motion_model.process_noise
+
+    def _meas_noise(self):
+        return self.meas_model.meas_noise

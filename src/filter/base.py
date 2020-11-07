@@ -11,7 +11,7 @@ class Filter(ABC):
     # TODO: Need a name for this. Gaussian filter?
     """
 
-    def filter_seq(self, measurements, x_0_0, P_0_0, Q, R):
+    def filter_seq(self, measurements, x_0_0, P_0_0):
         """Kalman filter with general linearization
         Filters a measurement sequence using a linear Kalman filter.
 
@@ -42,10 +42,15 @@ class Filter(ABC):
             # this really gives y_k
             y_k = measurements[k - 1]
             x_k_kminus1, P_k_kminus1 = self._predict(
-                x_kminus1_kminus1, P_kminus1_kminus1, Q, self._motion_lin(x_kminus1_kminus1, P_kminus1_kminus1)
+                x_kminus1_kminus1,
+                P_kminus1_kminus1,
+                self._process_noise(),
+                self._motion_lin(x_kminus1_kminus1, P_kminus1_kminus1),
             )
 
-            x_k_k, P_k_k = self._update(y_k, x_k_kminus1, P_k_kminus1, R, self._meas_lin(x_k_kminus1, P_k_kminus1))
+            x_k_k, P_k_k = self._update(
+                y_k, x_k_kminus1, P_k_kminus1, self._meas_noise(), self._meas_lin(x_k_kminus1, P_k_kminus1)
+            )
 
             pred_means[k, :] = x_k_kminus1
             pred_covs[k, :, :] = P_k_kminus1
@@ -72,7 +77,7 @@ class Filter(ABC):
         """
         A, b, Omega = linearization
         x_k_kminus1 = A @ x_kminus1_kminus1 + b
-        P_k_kminus1 = A @ P_kminus1_kminus1 @ A.T + Omega
+        P_k_kminus1 = A @ P_kminus1_kminus1 @ A.T + Omega + Q
         P_k_kminus1 = (P_k_kminus1 + P_k_kminus1.T) / 2
         return x_k_kminus1, P_k_kminus1
 
@@ -102,11 +107,19 @@ class Filter(ABC):
         return x_k_k, P_k_k
 
     @abstractmethod
+    def _motion_lin(self, state, cov):
+        pass
+
+    @abstractmethod
     def _meas_lin(self, state, cov):
         pass
 
     @abstractmethod
-    def _motion_lin(self, state, cov):
+    def _meas_noise(self):
+        pass
+
+    @abstractmethod
+    def _process_noise(self):
         pass
 
     @staticmethod

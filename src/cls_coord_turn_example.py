@@ -17,7 +17,7 @@ def main():
     # np.random.seed(1)
     num_samples = 1000
     num_iterations = 3
-    range_ = (0, 70)
+    range_ = (0, -1)
 
     # Motion model
     sampling_period = 0.1
@@ -50,7 +50,7 @@ def main():
 
     filter_ = SigmaPointSlrFilter(motion_model, meas_model)
 
-    xf, Pf, _, _ = filter_.filter_seq(measurements, x_0, P_0, Q, R)
+    xf, Pf, xp, Pp = filter_.filter_seq(measurements, x_0, P_0)
 
     vis.plot_nees_and_2d_est(
         true_states[range_[0] : range_[1], :],
