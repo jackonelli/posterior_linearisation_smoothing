@@ -7,9 +7,14 @@ LOGGER = logging.getLogger(__name__)
 
 
 class Smoother(ABC):
+    """Abstract smoother class
+
+    Assumes motion and meas model on the form:
+        x_k = f(x_{k-1}) + q_k, q_k ~ N(0, Q_k)
+        y_k = f(x_k}) + r_k, r_k ~ N(0, R_k).
+    """
     def smooth_seq(self, filter_means, filter_covs, pred_means, pred_covs):
-        """Smoothing
-        Smooths the outputs from a filter.
+        """Smooths the outputs from a filter.
 
         Args:
             filter_means (K+1, D_x): Filtered estimates for times 0,..., K
