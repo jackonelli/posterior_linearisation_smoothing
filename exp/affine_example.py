@@ -11,10 +11,10 @@ from src.utils import setup_logger
 
 def main():
     log = logging.getLogger(__name__)
-    setup_logger("logs/affine_logger.log", logging.INFO)
-    analytical_linearizer = True
+    experiment_name = "affine_problem"
+    setup_logger(f"logs/{experiment_name}.log", logging.INFO)
+    log.info(f"Running experiment: {experiment_name}")
     K = 20
-    num_iterations = 3
 
     prior_mean = np.array([1, 1, 3, 2])
     prior_cov = 1 * np.eye(4)

@@ -53,7 +53,7 @@ def main():
     xs, Ps = smoother.smooth_seq(xf, Pf, xp, Pp)
 
     vis.plot_nees_and_2d_est(
-        true_states[range_[0]: range_[1], :],
+        true_states[range_[0] : range_[1], :],
         cartes_meas,
         xf[:, :obs_dims],
         Pf[:, :obs_dims, :obs_dims],
