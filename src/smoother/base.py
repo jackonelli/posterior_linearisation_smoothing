@@ -4,8 +4,6 @@ import logging
 import numpy as np
 from src.filter.base import Filter
 
-LOGGER = logging.getLogger(__name__)
-
 
 class Smoother(ABC):
     """Abstract smoother class
@@ -14,6 +12,9 @@ class Smoother(ABC):
         x_k = f(x_{k-1}) + q_k, q_k ~ N(0, Q_k)
         y_k = f(x_k}) + r_k, r_k ~ N(0, R_k).
     """
+
+    def __init__(self):
+        self._log = logging.getLogger(self.__class__.__name__)
 
     def filter_and_smooth(self, measurements, x_0_0, P_0_0):
         """Filters and smooths a measurement sequence.

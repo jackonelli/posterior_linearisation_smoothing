@@ -8,6 +8,7 @@ class SigmaPointSlrSmoother(Smoother):
     """Sigma point SLR smoother"""
 
     def __init__(self, motion_model, meas_model):
+        super().__init__()
         self.motion_model = motion_model
         self.meas_model = meas_model
         self._slr = SigmaPointSlr()

@@ -51,7 +51,7 @@ class Filter(ABC):
                 x_kminus1_kminus1,
                 P_kminus1_kminus1,
                 self._process_noise(),
-                self._motion_lin(x_kminus1_kminus1, P_kminus1_kminus1, k),
+                self._motion_lin(x_kminus1_kminus1, P_kminus1_kminus1, k - 1),
             )
 
             x_k_k, P_k_k = self._update(

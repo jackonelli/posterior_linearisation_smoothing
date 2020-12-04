@@ -5,6 +5,7 @@ from src.filter.kalman import KalmanFilter
 
 class RtsSmoother(Smoother):
     def __init__(self, motion_model, meas_model):
+        super().__init__()
         self.motion_model = motion_model
         self.meas_model = meas_model
 

@@ -7,22 +7,26 @@ from src.models.range_bearing import to_cartesian_coords
 from src.models.coord_turn import CoordTurn
 from src.models.range_bearing import RangeBearing
 from src.filter.slr import SigmaPointSlrFilter
-from src.smoother.slr import SigmaPointSlrSmoother
+
+# from src.smoother.slr import SigmaPointSlrSmoother
+from src.smoother.ipls import Ipls
 from src import visualization as vis
 from src.utils import setup_logger
 
 
 def main():
+    logging.getLogger("matplotlib").setLevel(logging.WARNING)
     log = logging.getLogger(__name__)
-    experiment_name = "affine_problem"
+    experiment_name = "coord_turn"
     setup_logger(f"logs/{experiment_name}.log", logging.INFO)
     log.info(f"Running experiment: {experiment_name}")
     # np.random.seed(1)
-    range_ = (0, 50)
+    range_ = (0, 100)
+    num_iter = 2
 
     # Motion model
     sampling_period = 0.1
-    v_scale = 0.01
+    v_scale = 1
     omega_scale = 1
     sigma_v = v_scale * 1
     sigma_omega = omega_scale * np.pi / 180
@@ -46,7 +50,7 @@ def main():
     x_0 = np.array([4.4, 0, 4, 0, 0])
     P_0 = np.diag([1 ** 2, 1 ** 2, 1 ** 2, (5 * np.pi / 180) ** 2, (1 * np.pi / 180) ** 2])
 
-    smoother = SigmaPointSlrSmoother(motion_model, meas_model)
+    smoother = Ipls(motion_model, meas_model, num_iter)
     xf, Pf, xs, Ps = smoother.filter_and_smooth(measurements, x_0, P_0)
 
     vis.plot_nees_and_2d_est(
