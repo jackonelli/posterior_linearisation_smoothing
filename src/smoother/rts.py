@@ -8,7 +8,7 @@ class RtsSmoother(Smoother):
         self.motion_model = motion_model
         self.meas_model = meas_model
 
-    def _motion_lin(self, state, cov):
+    def _motion_lin(self, _state, _cov, _time_step):
         return self.motion_model
 
     def _filter_seq(self, measurements, x_0_0, P_0_0):

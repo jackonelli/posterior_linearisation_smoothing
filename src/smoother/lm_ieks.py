@@ -11,5 +11,5 @@ class LmIeks(Smoother):
         self.meas_model = meas_model
         self._slr = SigmaPointSlr()
 
-    def _motion_lin(self, state, cov):
-        return self._slr.linear_params(self.motion_model.map_set, state, cov)
+    def _motion_lin(self, state, cov, time_step):
+        pass

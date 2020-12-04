@@ -51,11 +51,11 @@ class Filter(ABC):
                 x_kminus1_kminus1,
                 P_kminus1_kminus1,
                 self._process_noise(),
-                self._motion_lin(x_kminus1_kminus1, P_kminus1_kminus1),
+                self._motion_lin(x_kminus1_kminus1, P_kminus1_kminus1, k),
             )
 
             x_k_k, P_k_k = self._update(
-                y_k, x_k_kminus1, P_k_kminus1, self._meas_noise(), self._meas_lin(x_k_kminus1, P_k_kminus1)
+                y_k, x_k_kminus1, P_k_kminus1, self._meas_noise(), self._meas_lin(x_k_kminus1, P_k_kminus1, k)
             )
 
             pred_means[k, :] = x_k_kminus1
@@ -111,11 +111,11 @@ class Filter(ABC):
         return x_k_k, P_k_k
 
     @abstractmethod
-    def _motion_lin(self, state, cov):
+    def _motion_lin(self, state, cov, time_step):
         pass
 
     @abstractmethod
-    def _meas_lin(self, state, cov):
+    def _meas_lin(self, state, cov, time_step):
         pass
 
     @abstractmethod

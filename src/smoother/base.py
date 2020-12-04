@@ -59,7 +59,7 @@ class Smoother(ABC):
                 P_kminus_kminus1,
                 x_k_kminus1,
                 P_k_kminus1,
-                self._motion_lin(x_kminus1_kminus1, P_kminus_kminus1),
+                self._motion_lin(x_kminus1_kminus1, P_kminus_kminus1, k),
             )
             smooth_means[k - 1, :] = x_kminus1_K
             smooth_covs[k - 1, :, :] = P_kminus1_K
@@ -111,5 +111,9 @@ class Smoother(ABC):
         return smooth_means, smooth_covs
 
     @abstractmethod
-    def _motion_lin(state, cov):
+    def _motion_lin(state, cov, time_step):
+        """Linearise motion model
+
+        Time step k gives required context for some linearisations (Posterior SLR).
+        """
         pass
