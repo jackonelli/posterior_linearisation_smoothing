@@ -8,14 +8,20 @@ LOGGER = logging.getLogger(__name__)
 
 class Filter(ABC):
     """Abstract filter class
-    # TODO: Need a name for this. Gaussian filter?
+
+    Assumes motion and meas model on the form:
+        x_k = f(x_{k-1}) + q_k, q_k ~ N(0, Q_k)
+        y_k = f(x_k}) + r_k, r_k ~ N(0, R_k).
+
+    The filtering is done through linearisation of the motion and meas models:
+        f(x) = A x + b + omega, omega ~ N(0, Omega)
+        h(x) = H x + c + lambda, lambda ~ N(0, Lambda).
+
+    The method of linearisation is specified in the concrete implementations of this class.
     """
 
     def filter_seq(self, measurements, x_0_0, P_0_0):
         """Filters a measurement sequence
-        This method can be used for any Kalman-like filter which estimates non-linear motion/meas. models as:
-        f(x) = A x + b + e, e ~ N(0, Omega)
-        h(x) = H x + c + eps, eps ~ N(0, Lambda)
 
         Args:
             measurements (K, D_y): Measurement sequence for times 1,..., K
@@ -96,9 +102,7 @@ class Filter(ABC):
         """
         H, c, Lambda = linearization
         y_mean = H @ x_k_kminus1 + c
-        # S.shape = (D_y, D_y)
         S = H @ P_k_kminus1 @ H.T + R + Lambda
-        # K.shape = (D_x, D_y)
         K = P_k_kminus1 @ H.T @ np.linalg.inv(S)
 
         x_k_k = x_k_kminus1 + (K @ (y_k - y_mean)).reshape(x_k_kminus1.shape)
