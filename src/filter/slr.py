@@ -4,7 +4,7 @@ from src.slr.sigma_points import SigmaPointSlr
 
 
 class SigmaPointSlrFilter(Filter):
-    """Slr filter"""
+    """Sigma point SLR filter"""
 
     def __init__(self, motion_model, meas_model):
         self.motion_model = motion_model

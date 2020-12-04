@@ -46,11 +46,8 @@ def main():
     x_0 = np.array([4.4, 0, 4, 0, 0])
     P_0 = np.diag([1 ** 2, 1 ** 2, 1 ** 2, (5 * np.pi / 180) ** 2, (1 * np.pi / 180) ** 2])
 
-    filter_ = SigmaPointSlrFilter(motion_model, meas_model)
-    xf, Pf, xp, Pp = filter_.filter_seq(measurements, x_0, P_0)
-
-    smoother = SigmaPointSlrSmoother(motion_model)
-    xs, Ps = smoother.smooth_seq(xf, Pf, xp, Pp)
+    smoother = SigmaPointSlrSmoother(motion_model, meas_model)
+    xf, Pf, xs, Ps = smoother.filter_and_smooth(measurements, x_0, P_0)
 
     vis.plot_nees_and_2d_est(
         true_states[range_[0] : range_[1], :],

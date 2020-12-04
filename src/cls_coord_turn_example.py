@@ -50,10 +50,10 @@ def main():
     xf, Pf, xp, Pp = filter_.filter_seq(measurements, x_0, P_0)
 
     smoother = SigmaPointSlrSmoother(motion_model)
-    xs, Ps = smoother.smooth_seq(xf, Pf, xp, Pp)
+    xs, Ps = smoother.smooth_seq_pre_comp_filter(xf, Pf, xp, Pp)
 
     vis.plot_nees_and_2d_est(
-        true_states[range_[0]: range_[1], :],
+        true_states[range_[0] : range_[1], :],
         cartes_meas,
         xf[:, :obs_dims],
         Pf[:, :obs_dims, :obs_dims],

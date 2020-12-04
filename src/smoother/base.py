@@ -2,6 +2,7 @@
 from abc import abstractmethod, ABC
 import logging
 import numpy as np
+from src.filter.base import Filter
 
 LOGGER = logging.getLogger(__name__)
 
@@ -13,7 +14,24 @@ class Smoother(ABC):
         x_k = f(x_{k-1}) + q_k, q_k ~ N(0, Q_k)
         y_k = f(x_k}) + r_k, r_k ~ N(0, R_k).
     """
-    def smooth_seq(self, filter_means, filter_covs, pred_means, pred_covs):
+
+    def filter_and_smooth(self, measurements, x_0_0, P_0_0):
+        """Filters and smooths a measurement sequence.
+
+        Args:
+
+        Returns:
+            filter_means (K, D_x): Filtered estimates for times 1,..., K
+            filter_covs (K, D_x, D_x): Filter error covariance
+            smooth_means (K+1, D_x): Smooth estimates for times 0,..., K
+            smooth_covs (K+1, D_x, D_x): Smooth error covariance for times 0,..., K
+        """
+
+        filter_means, filter_covs, pred_means, pred_covs = self._filter_seq(measurements, x_0_0, P_0_0)
+        smooth_means, smooth_covs = self.smooth_seq_pre_comp_filter(filter_means, filter_covs, pred_means, pred_covs)
+        return filter_means, filter_covs, smooth_means, smooth_covs
+
+    def smooth_seq_pre_comp_filter(self, filter_means, filter_covs, pred_means, pred_covs):
         """Smooths the outputs from a filter.
 
         Args:
@@ -47,6 +65,20 @@ class Smoother(ABC):
             smooth_covs[k - 1, :, :] = P_kminus1_K
         return smooth_means, smooth_covs
 
+    @abstractmethod
+    def _filter_seq(self, measurements, x_0_0, P_0_0):
+        """Filter sequence
+
+        Technically smoothers do not require the ability to filter.
+        Given a motion model and filtered and predicted estimates,
+        the smooth estimates can be calculated without an explicit filter and meas model.
+        However, a concrete implementation of a smoother, e.g. the RTS smoother,
+        is expected to smooth estimates coming from a KF, not some other filter.
+
+        The API still allows for smoothing of any filter sequence by using the `smooth_seq_pre_comp_filter` method
+        """
+        pass
+
     def _rts_update(self, x_k_K, P_k_K, x_kminus1_kminus1, P_kminus_kminus1, x_k_kminus1, P_k_kminus1, linear_params):
         """RTS update step
         Args:
@@ -78,5 +110,6 @@ class Smoother(ABC):
         smooth_covs[-1, :, :] = filter_covs[-1, :, :]
         return smooth_means, smooth_covs
 
+    @abstractmethod
     def _motion_lin(state, cov):
         pass

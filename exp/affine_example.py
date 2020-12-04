@@ -38,11 +38,8 @@ def main():
     true_x = gen_linear_state_seq(prior_mean, prior_cov, A, Q, K)
     y = gen_linear_meas_seq(true_x, H, R)
 
-    analytical_filt = KalmanFilter(motion_lin, meas_lin)
-    xf, Pf, xp, Pp = analytical_filt.filter_seq(y, prior_mean, prior_cov)
-
-    analytical_smooth = RtsSmoother(motion_lin)
-    xs, Ps = analytical_smooth.smooth_seq(xf, Pf, xp, Pp)
+    analytical_smooth = RtsSmoother(motion_lin, meas_lin)
+    xf, Pf, xs, Ps = analytical_smooth.filter_and_smooth(y, prior_mean, prior_cov)
     vis.plot_nees_and_2d_est(true_x, y, xf, Pf, xs, Ps, sigma_level=3, skip_cov=2)
 
 
