@@ -75,10 +75,10 @@ def weighted_cov(
     The *_bar quantities can be calculated from *_vecs but they are often already calculated, so for efficiency we reuse them.
 
     Args:
-        x_vecs: List of N vectors of dim. d_x represented as matrix R^(Nxd_x)
-        x_bar:  Average of x_vecs, represented as a vector R^(d_x,)
-        y_vecs: List of N vectors of dim. d_y represented as matriy R^(Nxd_y)
-        y_bar:  Average of y_vecs, represented as a vector R^(d_y,)
+        x_vecs: List of N vectors of dim. D_x represented as matrix R^(NxD_x)
+        x_bar:  Average of x_vecs, represented as a vector R^(D_x,)
+        y_vecs: List of N vectors of dim. D_y represented as matriy R^(NxD_y)
+        y_bar:  Average of y_vecs, represented as a vector R^(D_y,)
         weights: N weights represented as np array R^(N,)
 
     Returns:
