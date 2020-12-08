@@ -1,13 +1,11 @@
 .mypy_cache
 .DS_Store
 /venv
-/data
 /logs
 *.html
 *.json
 *.yaml
 *.pyc
 __pycache__
-*.csv
 .vim
 .hypothesis
