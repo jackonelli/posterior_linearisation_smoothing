@@ -24,7 +24,8 @@ class SigmaPointSlr(SigmaPointSlrBase):
         """SLR sigma points linearization
         Args:
             fn: state mapping. In principle fn: R^n -> R^m,
-                but in practice the function should handle batches of vectors of lenght N.
+                but in practice the function must handle sets of vectors of length N.
+                I.e., fn: R^Nxn -> R^Nxm
             mean: estimated state, mean in R^n
             cov: estimate state covaraiance, R^(n x n)
         """

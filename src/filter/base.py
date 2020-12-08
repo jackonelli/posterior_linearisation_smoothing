@@ -50,7 +50,7 @@ class Filter(ABC):
             x_k_kminus1, P_k_kminus1 = self._predict(
                 x_kminus1_kminus1,
                 P_kminus1_kminus1,
-                self._process_noise(),
+                self._proc_noise(k),
                 self._motion_lin(x_kminus1_kminus1, P_kminus1_kminus1, k - 1),
             )
 
@@ -123,7 +123,7 @@ class Filter(ABC):
         pass
 
     @abstractmethod
-    def _process_noise(self):
+    def _proc_noise(self, time_step):
         pass
 
     @staticmethod

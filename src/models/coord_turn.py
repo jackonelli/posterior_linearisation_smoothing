@@ -1,9 +1,9 @@
 """Stochastic coordinated turn motion model"""
 import numpy as np
-from src.models.base import Model
+from src.models.base import MotionModel
 
 
-class CoordTurn(Model):
+class CoordTurn(MotionModel):
     """
     state is
         x_k = [
@@ -15,9 +15,9 @@ class CoordTurn(Model):
         ]
     """
 
-    def __init__(self, sampling_period, process_noise):
+    def __init__(self, sampling_period, proc_noise):
         self.sampling_period = sampling_period
-        self.process_noise = process_noise
+        self._proc_noise = proc_noise
 
     def mapping(self, state):
         v = state[2]
@@ -33,3 +33,6 @@ class CoordTurn(Model):
             ]
         )
         return state + delta
+
+    def proc_noise(self, _k):
+        return self._proc_noise

@@ -1,4 +1,4 @@
-"""Stochastic coordinated turn motion model"""
+"""Range bearing meas model"""
 import numpy as np
 from src.models.base import Model
 
@@ -14,6 +14,23 @@ class RangeBearing(Model):
         range_ = np.sqrt(np.sum((state[:2] - self.pos) ** 2))
         bearing = np.arctan2(state[1] - self.pos[1], state[0] - self.pos[0])
         return np.array([range_, bearing])
+
+
+class MultiSensorRange(Model):
+    def __init__(self, sensors, meas_noise):
+        """
+        Num. sensors = N
+        sensors (np.ndarray): (N, D_y)
+        """
+        self.sensors = sensors
+        self.meas_noise = meas_noise
+
+    def mapping(self, state):
+        return np.apply_along_axis(lambda pos: euclid_dist(state[:2], pos), axis=1, arr=self.sensors)
+
+
+def euclid_dist(x, y):
+    return np.sqrt(np.sum((x - y) ** 2))
 
 
 def to_cartesian_coords(meas, pos):

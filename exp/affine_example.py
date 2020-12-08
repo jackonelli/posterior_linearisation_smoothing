@@ -7,6 +7,7 @@ from src import visualization as vis
 from src.filter.kalman import KalmanFilter
 from src.smoother.rts import RtsSmoother
 from src.utils import setup_logger
+from src.models.affine import AffineModel
 
 
 def main():
@@ -33,8 +34,8 @@ def main():
     c = np.zeros((H @ prior_mean).shape)
     R = 2 * np.eye(2)
 
-    motion_lin = A, b, Q
-    meas_lin = H, c, R
+    motion_lin = AffineModel(A, b, Q)
+    meas_lin = AffineModel(H, c, R)
     true_x = gen_linear_state_seq(prior_mean, prior_cov, A, Q, K)
     y = gen_linear_meas_seq(true_x, H, R)
 

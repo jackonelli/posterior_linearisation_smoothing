@@ -12,6 +12,7 @@ class Model(ABC):
         Must be able to handle to process a set of N vectors represented
         as a matrix R^(N, D_x)
         """
+        pass
 
     def map_set(self, states: np.ndarray) -> np.ndarray:
         """Map multiple states
@@ -20,3 +21,23 @@ class Model(ABC):
         vecs: Set of N states with dim. D_x, represented as a matrix R^(N, D_x)
         """
         return np.apply_along_axis(self.mapping, axis=1, arr=states)
+
+
+class MeasModel(Model):
+    @abstractmethod
+    def mapping(self, state: np.ndarray) -> np.ndarray:
+        """See Model parent class"""
+
+    @abstractmethod
+    def meas_noise(self, timestep: int) -> np.ndarray:
+        pass
+
+
+class MotionModel(Model):
+    @abstractmethod
+    def mapping(self, state: np.ndarray) -> np.ndarray:
+        """See Model parent class"""
+
+    @abstractmethod
+    def proc_noise(self, timestep: int) -> np.ndarray:
+        pass

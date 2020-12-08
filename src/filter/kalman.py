@@ -1,22 +1,23 @@
 """Kalman filter"""
 from src.filter.base import Filter
+from src.models.affine import AffineModel
 
 
 class KalmanFilter(Filter):
     """Kalman filter"""
 
-    def __init__(self, motion_model, meas_model):
-        self.A, self.b, self.Q = motion_model
-        self.H, self.c, self.R = meas_model
+    def __init__(self, motion_model: AffineModel, meas_model: AffineModel):
+        self._motion_model = motion_model
+        self._meas_model = meas_model
 
     def _motion_lin(self, _state, _cov, _time_step):
-        return (self.A, self.b, 0)
+        return (self._motion_model.linear_map, self._motion_model.offset, 0)
 
     def _meas_lin(self, _state, _cov, _time_step):
-        return (self.H, self.c, 0)
+        return (self._meas_model.linear_map, self._meas_model.offset, 0)
 
-    def _process_noise(self):
-        return self.Q
+    def _proc_noise(self, time_step):
+        return self._motion_model.noise
 
     def _meas_noise(self):
-        return self.R
+        return self._meas_model.noise
