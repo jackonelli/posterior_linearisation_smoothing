@@ -1,9 +1,9 @@
 """Stochastic coordinated turn motion model"""
 import numpy as np
-from src.models.base import MotionModel
+from src.models.base import MotionModel, Differentiable
 
 
-class CoordTurn(MotionModel):
+class CoordTurn(MotionModel, Differentiable):
     """
     state is
         x_k = [

@@ -1,32 +1,39 @@
 """Range bearing meas model"""
 import numpy as np
-from src.models.base import Model
+from src.models.base import MeasModel, Differentiable
+from scipy.stats import multivariate_normal as mvn
 
 
-class RangeBearing(Model):
+class RangeBearing(MeasModel):
     """ pos np.array(2,)"""
 
     def __init__(self, pos, meas_noise):
         self.pos = pos
-        self.meas_noise = meas_noise
+        self._meas_noise = meas_noise
 
     def mapping(self, state):
         range_ = np.sqrt(np.sum((state[:2] - self.pos) ** 2))
         bearing = np.arctan2(state[1] - self.pos[1], state[0] - self.pos[0])
         return np.array([range_, bearing])
 
+    def meas_noise(self, _time_step):
+        return self._meas_noise
 
-class MultiSensorRange(Model):
+
+class MultiSensorRange(MeasModel, Differentiable):
     def __init__(self, sensors, meas_noise):
         """
         Num. sensors = N
         sensors (np.ndarray): (N, D_y)
         """
         self.sensors = sensors
-        self.meas_noise = meas_noise
+        self._meas_noise = meas_noise
 
     def mapping(self, state):
         return np.apply_along_axis(lambda pos: euclid_dist(state[:2], pos), axis=1, arr=self.sensors)
+
+    def meas_noise(self, _time_step):
+        return self._meas_noise
 
     def jacobian(self, state):
         zeros_len = state.shape[0] - 2
@@ -39,6 +46,12 @@ class MultiSensorRange(Model):
         H_21 = -(s_2[0] - state[0]) / s_2_den
         H_22 = -(s_2[1] - state[1]) / s_2_den
         return np.column_stack((np.array([[H_11, H_12], [H_21, H_22]]), np.zeros((2, zeros_len))))
+
+    def sample(self, states):
+        means = self.map_set(states)
+        num_samples, D_y = means.shape
+        noise = mvn.rvs(mean=np.zeros((D_y,)), cov=self.meas_noise(None), size=num_samples)
+        return means + noise
 
 
 def euclid_dist(x, y):

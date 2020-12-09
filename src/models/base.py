@@ -23,21 +23,19 @@ class Model(ABC):
         return np.apply_along_axis(self.mapping, axis=1, arr=states)
 
 
-class MeasModel(Model):
+class Differentiable(ABC):
     @abstractmethod
-    def mapping(self, state: np.ndarray) -> np.ndarray:
-        """See Model parent class"""
+    def jacobian(self, state) -> np.ndarray:
+        pass
 
+
+class MeasModel(Model):
     @abstractmethod
     def meas_noise(self, timestep: int) -> np.ndarray:
         pass
 
 
 class MotionModel(Model):
-    @abstractmethod
-    def mapping(self, state: np.ndarray) -> np.ndarray:
-        """See Model parent class"""
-
     @abstractmethod
     def proc_noise(self, timestep: int) -> np.ndarray:
         pass

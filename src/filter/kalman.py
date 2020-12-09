@@ -17,7 +17,7 @@ class KalmanFilter(Filter):
         return (self._meas_model.linear_map, self._meas_model.offset, 0)
 
     def _proc_noise(self, time_step):
-        return self._motion_model.noise
+        return self._motion_model.proc_noise(time_step)
 
-    def _meas_noise(self):
-        return self._meas_model.noise
+    def _meas_noise(self, time_step):
+        return self._meas_model.meas_noise(time_step)

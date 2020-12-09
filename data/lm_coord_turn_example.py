@@ -45,7 +45,7 @@ def gen_data(sens_pos_1, sens_pos_2, std, dt, x_0, time_steps, seed=None) -> (np
     a = 1 + dt * 10 * np.cumsum(np.random.randn(1, time_steps))
     meas_model_1 = RangeBearing(sens_pos_1, std)
     meas_model_2 = RangeBearing(sens_pos_2, std)
-    meas_model = MultiSensorRange(np.row_stack((sens_pos_1, sens_pos_2)), std)
+    # meas_model = MultiSensorRange(np.row_stack((sens_pos_1, sens_pos_2)), std)
 
     x = x_0
     t = 0
@@ -68,12 +68,21 @@ def gen_data(sens_pos_1, sens_pos_2, std, dt, x_0, time_steps, seed=None) -> (np
 
 
 def get_specific_states_from_file(root: Path) -> np.ndarray:
+    # seed = 4
     file_ = root / "data/lm_ieks_coord_turn_states.csv"
     if file_.exists():
-        data = np.genfromtxt(file_, dtype=float, delimiter=";", comments="#")
+        states = np.genfromtxt(file_, dtype=float, delimiter=";", comments="#")
     else:
         raise FileNotFoundError(f"No data file at '{file_}'")
-    return data
+
+    # Values taken from Simos code
+    sens_pos_1 = np.array([-1.5, 0.5])
+    sens_pos_2 = np.array([1, 1])  # Position of sensor 2
+    std = 0.5  # Standard deviation of measurements
+    R = std ** 2 * np.eye(2)
+    meas_model = MultiSensorRange(np.row_stack((sens_pos_1, sens_pos_2)), R)
+    measurements = meas_model.sample(states)
+    return states, measurements
 
 
 if __name__ == "__main__":
