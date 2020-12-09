@@ -8,6 +8,7 @@ from src.filter.kalman import KalmanFilter
 from src.smoother.rts import RtsSmoother
 from src.utils import setup_logger
 from src.models.range_bearing import MultiSensorRange
+from src.models.coord_turn import CoordTurn
 from data.affine import sim_affine_state_seq, sim_affine_meas_seq
 
 
@@ -17,6 +18,20 @@ def main():
     setup_logger(f"logs/{experiment_name}.log", logging.INFO)
     log.info(f"Running experiment: {experiment_name}")
     K = 20
+    dt = 0.01
+    qc = 0.01
+    qw = 10
+    Q = np.array(
+        [
+            [qc * dt ** 3 / 3, 0, qc * dt ** 2 / 2, 0, 0],
+            [0, qc * dt ** 3 / 3, 0, qc * dt ** 2 / 2, 0],
+            [qc * dt ** 2 / 2, 0, qc * dt, 0, 0],
+            [0, qc * dt ** 2 / 2, 0, qc * dt, 0],
+            [0, 0, 0, 0, dt * qw],
+        ]
+    )
+    motion_model = CoordTurn(dt, Q)
+
     sens_pos_1 = (np.array([-1.5, 0.5]),)
     sens_pos_2 = np.array([1, 1])
     sensors = np.row_stack((sens_pos_1, sens_pos_2))
@@ -35,8 +50,8 @@ def main():
 
     prior_mean = np.array([0, 0, 1, 0, 0])
     prior_cov = np.diag([0.1, 0.1, 1, 1, 1])
-    y_mean = meas_model.mapping(prior_mean)
-    jac = meas_model.jacobian(prior_mean)
+    x_mean = motion_model.mapping(prior_mean)
+    jac = motion_model.jacobian(prior_mean)
     print(jac)
     # T = 1
     # A = np.array([[1, 0, T, 0], [0, 1, 0, T], [0, 0, 1, 0], [0, 0, 0, 1]])
