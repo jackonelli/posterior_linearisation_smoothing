@@ -28,6 +28,18 @@ class MultiSensorRange(Model):
     def mapping(self, state):
         return np.apply_along_axis(lambda pos: euclid_dist(state[:2], pos), axis=1, arr=self.sensors)
 
+    def jacobian(self, state):
+        zeros_len = state.shape[0] - 2
+        s_1 = self.sensors[0, :]
+        s_2 = self.sensors[1, :]
+        s_1_den = np.sqrt((state[0] - s_1[0]) ** 2 + (state[1] - s_1[1]) ** 2)
+        s_2_den = np.sqrt((state[0] - s_2[0]) ** 2 + (state[1] - s_2[1]) ** 2)
+        H_11 = -(s_1[0] - state[0]) / s_1_den
+        H_12 = -(s_1[1] - state[1]) / s_1_den
+        H_21 = -(s_2[0] - state[0]) / s_2_den
+        H_22 = -(s_2[1] - state[1]) / s_2_den
+        return np.column_stack((np.array([[H_11, H_12], [H_21, H_22]]), np.zeros((2, zeros_len))))
+
 
 def euclid_dist(x, y):
     return np.sqrt(np.sum((x - y) ** 2))
