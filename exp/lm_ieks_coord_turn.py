@@ -17,6 +17,15 @@ def main():
     setup_logger(f"logs/{experiment_name}.log", logging.INFO)
     log.info(f"Running experiment: {experiment_name}")
     K = 20
+    data = gen_data(
+        sens_pos_1=np.array([-1.5, 0.5]),
+        sens_pos_2=np.array([1, 1]),  # Position of sensor 2
+        std=0.5,  # Standard deviation of measurements
+        dt=0.01,  # Sampling period
+        x_0=np.array([0.1, 0.2, 1, 0]),  # Initial state
+        time_steps=500,
+        seed=4,
+    )
 
     prior_mean = np.array([1, 1, 3, 2])
     prior_cov = 1 * np.eye(4)

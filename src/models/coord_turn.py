@@ -36,3 +36,6 @@ class CoordTurn(MotionModel):
 
     def proc_noise(self, _k):
         return self._proc_noise
+
+    def jacobian(self, state):
+        pass
