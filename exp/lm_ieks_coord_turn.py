@@ -1,4 +1,4 @@
-"""Example: Basic analytical RTS smoothing with affine models"""
+"""Example: Levenberg-Marquardt regularised IEKS smoothing"""
 import logging
 import numpy as np
 import matplotlib.pyplot as plt
@@ -13,7 +13,7 @@ from data.affine import sim_affine_state_seq, sim_affine_meas_seq
 
 def main():
     log = logging.getLogger(__name__)
-    experiment_name = "affine_problem"
+    experiment_name = "lm_ieks"
     setup_logger(f"logs/{experiment_name}.log", logging.INFO)
     log.info(f"Running experiment: {experiment_name}")
     K = 20
@@ -37,11 +37,10 @@ def main():
 
     motion_model = AffineModel(A, b, Q)
     meas_model = AffineModel(H, c, R)
-    analytical_smooth = RtsSmoother(motion_model, meas_model)
-
     true_x = sim_affine_state_seq(prior_mean, prior_cov, motion_model, K)
     y = sim_affine_meas_seq(true_x, H, R)
 
+    analytical_smooth = RtsSmoother(motion_model, meas_model)
     xf, Pf, xs, Ps = analytical_smooth.filter_and_smooth(y, prior_mean, prior_cov)
     vis.plot_nees_and_2d_est(true_x, y, xf, Pf, xs, Ps, sigma_level=3, skip_cov=2)
 
