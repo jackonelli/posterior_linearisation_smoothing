@@ -1,3 +1,10 @@
+""" LM-IEKS coordinated turn simulation
+
+Data simulation used in the paper
+Levenberg-marquardt and line-search extended kalman smoother
+The particular realisation used in the paper is data/lm_ieks_coord_turn_states.csv
+"""
+
 from pathlib import Path
 import numpy as np
 from scipy.linalg import expm
@@ -6,8 +13,7 @@ from src.models.range_bearing import RangeBearing, MultiSensorRange
 
 
 def gen_data(sens_pos_1, sens_pos_2, std, dt, x_0, time_steps, seed=None) -> (np.ndarray, np.ndarray):
-    """Create a bit curved trajectory
-    and angle measurements from two sensors
+    """Create a curved trajectory and angle measurements from two sensors (TODO angles)
     D_x = 4, D_y = 2
 
     LM-IEKS paper parameters:
