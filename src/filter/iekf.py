@@ -9,18 +9,18 @@ class Iekf(Filter):
     def __init__(self, motion_model, meas_model):
         self._motion_model = motion_model
         self._meas_model = meas_model
-        self._current_estimates = None
+        self._current_means = None
 
     def _update_estimates(self, means):
-        self._current_estimates = means
+        self._current_means = means
 
     def _motion_lin(self, _state, _cov, time_step):
-        mean = self._current_estimates[0]
+        mean = self._current_means[0]
         F, b = ekf_lin(self._motion_model, mean)
         return (F, b, 0)
 
     def _meas_lin(self, _state, _cov, time_step):
-        mean = self._current_estimates[0]
+        mean = self._current_means[0]
         H, c = ekf_lin(self._meas_model, mean)
         return (H, c, 0)
 

@@ -55,7 +55,7 @@ class Filter(ABC):
             # this really gives y_k
             y_k = measurements[k - 1]
             x_k_k, P_k_k = self._update(
-                y_k, x_k_kminus1, P_k_kminus1, self._meas_noise(k), self._meas_lin(x_k_kminus1, P_k_kminus1, k)
+                y_k, x_k_kminus1, P_k_kminus1, self._meas_noise(k), self._meas_lin(x_k_kminus1, P_k_kminus1, k), k
             )
 
             pred_means[k, :] = x_k_kminus1
@@ -87,9 +87,12 @@ class Filter(ABC):
         P_k_kminus1 = (P_k_kminus1 + P_k_kminus1.T) / 2
         return x_k_kminus1, P_k_kminus1
 
-    @staticmethod
-    def _update(y_k, x_k_kminus1, P_k_kminus1, R, linearization):
+    def _update(_self, y_k, x_k_kminus1, P_k_kminus1, R, linearization, _time_step):
         """KF update step
+
+        This is a static method in almost all cases, but e.g. LM-IEKS needs the context of self, and time_step
+        when overriding this method.
+
         Args:
             y_k
             x_k_kminus1: x_{k | k-1}
