@@ -15,7 +15,6 @@ def plot_nees_comp(true_x, x_1, P_1, x_2, P_2):
 
 
 def plot_nees_and_2d_est(true_x, meas, xf, Pf, xs, Ps, sigma_level=3, skip_cov=1):
-    print(xf.shape, xs.shape)
     filter_nees = nees(true_x, xf[1:, :], Pf[1:, :, :])
 
     _, (ax_1, ax_2) = plt.subplots(1, 2)

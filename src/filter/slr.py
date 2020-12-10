@@ -7,18 +7,18 @@ class SigmaPointSlrFilter(Filter):
     """Sigma point SLR filter"""
 
     def __init__(self, motion_model, meas_model):
-        self.motion_model = motion_model
-        self.meas_model = meas_model
+        self._motion_model = motion_model
+        self._meas_model = meas_model
         self._slr = SigmaPointSlr()
 
     def _motion_lin(self, state, cov, _time_step):
-        return self._slr.linear_params(self.motion_model.map_set, state, cov)
+        return self._slr.linear_params(self._motion_model.map_set, state, cov)
 
     def _meas_lin(self, state, cov, _time_step):
-        return self._slr.linear_params(self.meas_model.map_set, state, cov)
+        return self._slr.linear_params(self._meas_model.map_set, state, cov)
 
     def _proc_noise(self, time_step):
-        return self.motion_model.proc_noise(time_step)
+        return self._motion_model.proc_noise(time_step)
 
-    def _meas_noise(self):
-        return self.meas_model.meas_noise
+    def _meas_noise(self, time_step):
+        return self._meas_model.meas_noise(time_step)

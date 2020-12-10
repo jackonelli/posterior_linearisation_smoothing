@@ -7,19 +7,24 @@ class Iplf(Filter):
     """Iterated posterior linearisation filter (IPLF)"""
 
     def __init__(self, motion_model, meas_model):
-        self.motion_model = motion_model
-        self.meas_model = meas_model
+        self._motion_model = motion_model
+        self._meas_model = meas_model
         self._slr = SigmaPointSlr()
         self._current_estimates = None
 
-    def _motion_lin(self, state, cov, _time_step):
-        return self._slr.linear_params(self.motion_model.map_set, state, cov)
+    def _update_estimates(self, means, covs):
+        self._current_estimates = (means, covs)
 
-    def _meas_lin(self, state, cov, _time_step):
-        return self._slr.linear_params(self.meas_model.map_set, state, cov)
+    def _motion_lin(self, _state, _cov, time_step):
+        means, covs = self._current_estimates
+        return self._slr.linear_params(self._motion_model.map_set, means[time_step, :], covs[time_step, :])
+
+    def _meas_lin(self, _state, _cov, time_step):
+        means, covs = self._current_estimates
+        return self._slr.linear_params(self._meas_model.map_set, means[time_step, :], covs[time_step, :])
 
     def _proc_noise(self, time_step):
-        return self.motion_model.proc_noise(time_step)
+        return self._motion_model.proc_noise(time_step)
 
-    def _meas_noise(self):
-        return self.meas_model.meas_noise
+    def _meas_noise(self, time_step):
+        return self._meas_model.meas_noise(time_step)

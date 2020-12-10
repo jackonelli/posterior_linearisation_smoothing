@@ -22,8 +22,8 @@ def main():
     setup_logger(f"logs/{experiment_name}.log", logging.INFO)
     log.info(f"Running experiment: {experiment_name}")
     # np.random.seed(1)
-    range_ = (0, 100)
-    num_iter = 2
+    range_ = (0, 200)
+    num_iter = 10
 
     # Motion model
     sampling_period = 0.1

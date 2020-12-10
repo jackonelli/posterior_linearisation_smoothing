@@ -6,6 +6,7 @@ from scipy.stats import multivariate_normal as mvn
 from src import visualization as vis
 from src.filter.ekf import Ekf
 from src.smoother.eks import Eks
+from src.smoother.ieks import Ieks
 from src.utils import setup_logger
 from src.models.range_bearing import MultiSensorRange
 from src.models.coord_turn import CoordTurn
@@ -18,9 +19,9 @@ def main():
     experiment_name = "lm_ieks"
     setup_logger(f"logs/{experiment_name}.log", logging.INFO)
     log.info(f"Running experiment: {experiment_name}")
-    seed = None
+    seed = 2
     np.random.seed(seed)
-    K = 50
+    K = 500
     dt = 0.01
     qc = 0.01
     qw = 10
@@ -50,17 +51,23 @@ def main():
     states, measurements, ss_xf = get_specific_states_from_file(Path.cwd())
     states = states[:K, :]
     measurements = measurements[:K, :]
+    ss_xf = ss_xf[:K, :]
     # filter_ = Ekf(motion_model, meas_model)
     # xf, Pf, xp, Pp = filter_.filter_seq(measurements[:K, :], prior_mean, prior_cov)
-    analytical_smooth = Eks(motion_model, meas_model)
-    xf, Pf, xs, Ps = analytical_smooth.filter_and_smooth(measurements, prior_mean, prior_cov)
+    eks = Eks(motion_model, meas_model)
+    xf, Pf, xs, Ps = eks.filter_and_smooth(measurements, prior_mean, prior_cov)
+    num_iter = 5
+    ieks = Ieks(motion_model, meas_model, num_iter)
+    ixf, iPf, ixs, iPs = ieks.filter_and_smooth(measurements, prior_mean, prior_cov)
     vis.plot_nees_and_2d_est(
         states, measurements, xf[:, :-1], Pf[:, :-1, :-1], xs[:, :-1], Ps[:, :-1, :-1], sigma_level=0, skip_cov=20
     )
+    print(np.allclose(ixf, xf))
     # _, ax = plt.subplots()
-    # tid = 200
-    # # ax.plot(ss_xf[:tid, 0], ss_xf[:tid, 1])
-    # ax.plot(xf[:tid, 0], xf[:tid, 1])
+    # ax.plot(states[:K, 0], states[:K, 1], label="true")
+    # ax.plot(ss_xf[:K, 0], ss_xf[:K, 1], label="matlab")
+    # ax.plot(xf[:K, 0], xf[:K, 1], label="python")
+    # ax.legend()
     # plt.show()
 
 
