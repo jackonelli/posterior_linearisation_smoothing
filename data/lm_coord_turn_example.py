@@ -69,20 +69,25 @@ def gen_data(sens_pos_1, sens_pos_2, std, dt, x_0, time_steps, seed=None) -> (np
 
 def get_specific_states_from_file(root: Path) -> np.ndarray:
     # seed = 4
-    file_ = root / "data/lm_ieks_coord_turn_states.csv"
-    if file_.exists():
-        states = np.genfromtxt(file_, dtype=float, delimiter=";", comments="#")
+    states_file = root / "data/lm_ieks_coord_turn_states.csv"
+    if states_file.exists():
+        states = np.genfromtxt(states_file, dtype=float, delimiter=";", comments="#")
     else:
-        raise FileNotFoundError(f"No data file at '{file_}'")
+        raise FileNotFoundError(f"No states data file at '{states_file}'")
 
-    # Values taken from Simos code
-    sens_pos_1 = np.array([-1.5, 0.5])
-    sens_pos_2 = np.array([1, 1])  # Position of sensor 2
-    std = 0.5  # Standard deviation of measurements
-    R = std ** 2 * np.eye(2)
-    meas_model = MultiSensorRange(np.row_stack((sens_pos_1, sens_pos_2)), R)
-    measurements = meas_model.sample(states)
-    return states, measurements
+    meas_file = root / "data/lm_ieks_coord_turn_meas.csv"
+    if meas_file.exists():
+        measurements = np.genfromtxt(meas_file, dtype=float, delimiter=";", comments="#")
+    else:
+        raise FileNotFoundError(f"No meas data file at '{meas_file}'")
+
+    xf_file = root / "data/lm_ieks_xf.csv"
+    if xf_file.exists():
+        xf = np.genfromtxt(xf_file, dtype=float, delimiter=";", comments="#")
+    else:
+        raise FileNotFoundError(f"No xf data file at '{xf_file}'")
+
+    return states, measurements, xf
 
 
 if __name__ == "__main__":

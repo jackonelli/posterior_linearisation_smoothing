@@ -29,10 +29,10 @@ class Filter(ABC):
             P_0_0 (D_x, D_x): Prior covariance for time 0
 
         Returns:
-            filter_means (K, D_x): Filtered estimates for times 1,..., K
-            filter_covs (K, D_x, D_x): Filter error covariance
-            pred_means (K, D_x): Predicted estimates for times 1,..., K
-            pred_covs (K, D_x, D_x): Filter error covariance
+            filter_means (K+1, D_x): Filtered estimates for times 0,..., K
+            filter_covs (K+1, D_x, D_x): Filter error covariance
+            pred_means (K+1, D_x): Predicted estimates for times 0,..., K
+            pred_covs (K+1, D_x, D_x): Filter error covariance
         """
 
         K = measurements.shape[0]
@@ -44,9 +44,6 @@ class Filter(ABC):
         P_kminus1_kminus1 = P_0_0
         for k in np.arange(1, K + 1):
             LOGGER.debug("Time step: %s", k)
-            # measurement vec is zero-indexed
-            # this really gives y_k
-            y_k = measurements[k - 1]
             x_k_kminus1, P_k_kminus1 = self._predict(
                 x_kminus1_kminus1,
                 P_kminus1_kminus1,
@@ -54,6 +51,9 @@ class Filter(ABC):
                 self._motion_lin(x_kminus1_kminus1, P_kminus1_kminus1, k - 1),
             )
 
+            # measurement vec is zero-indexed
+            # this really gives y_k
+            y_k = measurements[k - 1]
             x_k_k, P_k_k = self._update(
                 y_k, x_k_kminus1, P_k_kminus1, self._meas_noise(k), self._meas_lin(x_k_kminus1, P_k_kminus1, k)
             )
