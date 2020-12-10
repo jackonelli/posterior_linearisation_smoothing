@@ -60,9 +60,8 @@ def main():
     ieks = Ieks(motion_model, meas_model, num_iter)
     ixf, iPf, ixs, iPs = ieks.filter_and_smooth(measurements, prior_mean, prior_cov)
     vis.plot_nees_and_2d_est(
-        states, measurements, xf[:, :-1], Pf[:, :-1, :-1], xs[:, :-1], Ps[:, :-1, :-1], sigma_level=0, skip_cov=20
+        states, measurements, ixf[:, :-1], iPf[:, :-1, :-1], ixs[:, :-1], iPs[:, :-1, :-1], sigma_level=0, skip_cov=20
     )
-    print(np.allclose(ixf, xf))
     # _, ax = plt.subplots()
     # ax.plot(states[:K, 0], states[:K, 1], label="true")
     # ax.plot(ss_xf[:K, 0], ss_xf[:K, 1], label="matlab")

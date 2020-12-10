@@ -10,6 +10,7 @@ from src.filter.slr import SigmaPointSlrFilter
 
 # from src.smoother.slr import SigmaPointSlrSmoother
 from src.smoother.ipls import Ipls
+from src.smoother.ieks import Ieks
 from src import visualization as vis
 from src.utils import setup_logger
 from data.coord_turn import get_tricky_data
