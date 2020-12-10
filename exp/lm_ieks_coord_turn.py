@@ -6,7 +6,7 @@ from scipy.stats import multivariate_normal as mvn
 from src import visualization as vis
 from src.filter.ekf import Ekf
 from src.smoother.eks import Eks
-from src.smoother.ieks import Ieks
+from src.smoother.ieks import GnIeks
 from src.utils import setup_logger
 from src.models.range_bearing import MultiSensorRange
 from src.models.coord_turn import CoordTurn
@@ -57,7 +57,7 @@ def main():
     eks = Eks(motion_model, meas_model)
     xf, Pf, xs, Ps = eks.filter_and_smooth(measurements, prior_mean, prior_cov)
     num_iter = 5
-    ieks = Ieks(motion_model, meas_model, num_iter)
+    ieks = GnIeks(motion_model, meas_model, num_iter)
     ixf, iPf, ixs, iPs = ieks.filter_and_smooth(measurements, prior_mean, prior_cov)
     vis.plot_nees_and_2d_est(
         states, measurements, ixf[:, :-1], iPf[:, :-1, :-1], ixs[:, :-1], iPs[:, :-1, :-1], sigma_level=0, skip_cov=20

@@ -48,7 +48,12 @@ class Ieks(Smoother):
 
 
 class GnIeks(Smoother):
-    """Gauss-Newton Iterated Extended Kalman Smoother (IEKS)"""
+    """Gauss-Newton Iterated Extended Kalman Smoother (GN-IEKS)
+    Depends on choice of line search algorithm
+
+    TODO: Implement more sophisticated line search.
+    With no line search, this algorithm is equivalent to IEKS
+    """
 
     def __init__(self, motion_model, meas_model, num_iter):
         super().__init__()
@@ -87,3 +92,6 @@ class GnIeks(Smoother):
 
     def _update_estimates(self, means):
         self._current_means = means
+
+
+# TODO: GN Params data class
