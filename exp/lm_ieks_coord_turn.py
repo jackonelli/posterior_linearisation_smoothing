@@ -22,7 +22,7 @@ def main():
     seed = 2
     np.random.seed(seed)
     # num_iter = 10
-    K = 100
+    K = 500
     dt = 0.01
     qc = 0.01
     qw = 10
@@ -57,17 +57,18 @@ def main():
     # xf, Pf, xp, Pp = filter_.filter_seq(measurements[:K, :], prior_mean, prior_cov)
     ekf = Ekf(motion_model, meas_model)
     xf, Pf, xs, Ps = ekf.filter_seq(measurements, prior_mean, prior_cov)
-    # ieks = LmIeks(motion_model, meas_model, num_iter)
-    # ixf, iPf, ixs, iPs = ieks.filter_and_smooth(measurements, prior_mean, prior_cov)
-    vis.plot_nees_and_2d_est(
-        states, measurements, xf[:, :-1], Pf[:, :-1, :-1], ss_xf[:, :-1], Pf[:, :-1, :-1], sigma_level=0, skip_cov=20
-    )
+    assert np.allclose(xf, ss_xf)
+    # vis.plot_nees_and_2d_est(
+    #     states, measurements, xf[:, :-1], Pf[:, :-1, :-1], ss_xf[:, :-1], Pf[:, :-1, :-1], sigma_level=0, skip_cov=20
+    # )
     # _, ax = plt.subplots()
     # ax.plot(states[:K, 0], states[:K, 1], label="true")
     # ax.plot(ss_xf[:K, 0], ss_xf[:K, 1], label="matlab")
     # ax.plot(xf[:K, 0], xf[:K, 1], label="python")
     # ax.legend()
     # plt.show()
+    # ieks = LmIeks(motion_model, meas_model, num_iter)
+    # ixf, iPf, ixs, iPs = ieks.filter_and_smooth(measurements, prior_mean, prior_cov)
 
 
 if __name__ == "__main__":

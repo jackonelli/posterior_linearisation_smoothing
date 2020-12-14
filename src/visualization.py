@@ -15,7 +15,7 @@ def plot_nees_comp(true_x, x_1, P_1, x_2, P_2):
 
 
 def plot_nees_and_2d_est(true_x, meas, xf, Pf, xs, Ps, sigma_level=3, skip_cov=1):
-    filter_nees = nees(true_x, xf[1:, :], Pf[1:, :, :])
+    filter_nees = nees(true_x, xf, Pf)
 
     _, (ax_1, ax_2) = plt.subplots(1, 2)
     ax_1.plot(filter_nees, "-b", label="filter")
@@ -23,10 +23,10 @@ def plot_nees_and_2d_est(true_x, meas, xf, Pf, xs, Ps, sigma_level=3, skip_cov=1
     ax_1.plot([0, K], [D_x, D_x], "--k", label="ref")
 
     ax_2.plot(true_x[:, 0], true_x[:, 1], ".k", label="true")
-    ax_2.plot(meas[:, 0], meas[:, 1], ".r", label="meas")
+    # ax_2.plot(meas[:, 0], meas[:, 1], ".r", label="meas")
     plot_mean_and_cov(ax_2, xf[:, :2], Pf[:, :2, :2], sigma_level, "$x_f$", "b", skip_cov)
     if xs is not None and Ps is not None:
-        smooth_nees = nees(true_x, xs[1:, :], Ps[1:, :, :])
+        smooth_nees = nees(true_x, xs, Ps)
         plot_mean_and_cov(ax_2, xs[:, :2], Ps[:, :2, :2], sigma_level, "$x_s$", "g", skip_cov)
         ax_1.plot(smooth_nees, "--g", label="smooth")
 

@@ -40,20 +40,19 @@ class Filter(ABC):
         filter_means, filter_covs = self._init_estimates(x_0_0, P_0_0, K)
         pred_means, pred_covs = self._init_estimates(x_0_0, P_0_0, K)
 
-        x_kminus1_kminus1 = x_0_0
-        P_kminus1_kminus1 = P_0_0
-        for k in np.arange(1, K + 1):
+        x_k_kminus1 = x_0_0
+        P_k_kminus1 = P_0_0
+        for k in np.arange(0, K):
             LOGGER.debug("Time step: %s", k)
-            x_k_kminus1, P_k_kminus1 = self._predict(
-                x_kminus1_kminus1,
-                P_kminus1_kminus1,
-                self._proc_noise(k),
-                self._motion_lin(x_kminus1_kminus1, P_kminus1_kminus1, k - 1),
-            )
+            if k != 0:
+                x_k_kminus1, P_k_kminus1 = self._predict(
+                    x_kminus1_kminus1,
+                    P_kminus1_kminus1,
+                    self._proc_noise(k),
+                    self._motion_lin(x_kminus1_kminus1, P_kminus1_kminus1, k - 1),
+                )
 
-            # measurement vec is zero-indexed
-            # this really gives y_k
-            y_k = measurements[k - 1]
+            y_k = measurements[k]
             x_k_k, P_k_k = self._update(
                 y_k, x_k_kminus1, P_k_kminus1, self._meas_noise(k), self._meas_lin(x_k_kminus1, P_k_kminus1, k), k
             )
@@ -132,8 +131,6 @@ class Filter(ABC):
     @staticmethod
     def _init_estimates(x_0_0, P_0_0, K):
         D_x = x_0_0.shape[0]
-        est_means = np.empty((K + 1, D_x))
-        est_covs = np.empty((K + 1, D_x, D_x))
-        est_means[0, :] = x_0_0
-        est_covs[0, :, :] = P_0_0
+        est_means = np.empty((K, D_x))
+        est_covs = np.empty((K, D_x, D_x))
         return est_means, est_covs
