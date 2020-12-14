@@ -52,6 +52,7 @@ class Filter(ABC):
         # Shift to next time step
         x_kminus1_kminus1 = x_1_1
         P_kminus1_kminus1 = P_1_1
+        pk = 2
         for k in np.arange(1, K):
             LOGGER.debug("Time step: %s", k)
             x_k_kminus1, P_k_kminus1 = self._predict(
@@ -65,6 +66,8 @@ class Filter(ABC):
             x_k_k, P_k_k = self._update(
                 y_k, x_k_kminus1, P_k_kminus1, self._meas_noise(k), self._meas_lin(x_k_kminus1, P_k_kminus1, k), k
             )
+            if k == pk - 1:
+                print("x_pk: ", x_k_k)
 
             pred_means[k, :] = x_k_kminus1
             pred_covs[k, :, :] = P_k_kminus1

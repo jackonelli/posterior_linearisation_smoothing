@@ -47,7 +47,7 @@ def plot_nees_and_2d_est(true_x, meas, xf, Pf, xs, Ps, sigma_level=3, skip_cov=1
 
 def plot_mean_and_cov(ax, means, covs, sigma_level, label, color, skip_cov):
     ax.plot(means[0, 0], means[0, 1], "gX")
-    fmt = "{}-*".format(color)
+    fmt = "{}-".format(color)
     ax.plot(means[:, 0], means[:, 1], fmt, label=label)
     for k in np.arange(0, len(means), skip_cov):
         (last_handle,) = plot_sigma_level(ax, means[k, :], covs[k, :, :], sigma_level, "", color)

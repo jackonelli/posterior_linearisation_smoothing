@@ -7,7 +7,6 @@ Reproducing the experiment in the paper:
 import logging
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.stats import multivariate_normal as mvn
 from src import visualization as vis
 from src.filter.ekf import Ekf
 from src.smoother.eks import Eks
@@ -15,7 +14,7 @@ from src.smoother.ieks import Ieks
 from src.utils import setup_logger
 from src.models.range_bearing import MultiSensorRange
 from src.models.coord_turn import LmCoordTurn
-from data.lm_coord_turn_example import gen_data, get_specific_states_from_file
+from data.lm_ieks_paper.coord_turn_example import Type, get_specific_states_from_file
 from pathlib import Path
 
 
@@ -54,7 +53,7 @@ def main():
 
     # states, measurements = gen_data(sens_pos_1, sens_pos_2, std, dt, prior_mean[:-1], K, seed)
 
-    states, measurements, ss_xf, ss_xs = get_specific_states_from_file(Path.cwd())
+    states, measurements, ss_xf, ss_xs = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.GN)
     states = states[:K, :]
     measurements = measurements[:K, :]
     ss_xf = ss_xf[:K, :]
@@ -62,14 +61,16 @@ def main():
     # xf, Pf, xp, Pp = filter_.filter_seq(measurements[:K, :], prior_mean, prior_cov)
     eks = Ieks(motion_model, meas_model, num_iter)
     xf, Pf, xs, Ps = eks.filter_and_smooth(measurements, prior_mean, prior_cov)
+    assert np.allclose(xf, ss_xf)
+    assert np.allclose(xs, ss_xs)
     vis.plot_nees_and_2d_est(
         true_x=states,
         meas=None,
-        xf=None,
-        Pf=None,
+        xf=xf[:, :-1],
+        Pf=Pf[:, :-1, :-1],
         xs=xs[:, :-1],
         Ps=Ps[:, :-1, :-1],
-        sigma_level=2,
+        sigma_level=0,
         skip_cov=50,
     )
 
