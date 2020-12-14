@@ -29,10 +29,10 @@ class Filter(ABC):
             P_0_0 (D_x, D_x): Prior covariance for time 0
 
         Returns:
-            filter_means (K+1, D_x): Filtered estimates for times 0,..., K
-            filter_covs (K+1, D_x, D_x): Filter error covariance
-            pred_means (K+1, D_x): Predicted estimates for times 0,..., K
-            pred_covs (K+1, D_x, D_x): Filter error covariance
+            filter_means (K, D_x): Filtered estimates for times 1,..., K
+            filter_covs (K, D_x, D_x): Filter error covariance
+            pred_means (K, D_x): Predicted estimates for times 1,..., K
+            pred_covs (K, D_x, D_x): Filter error covariance
         """
 
         K = measurements.shape[0]

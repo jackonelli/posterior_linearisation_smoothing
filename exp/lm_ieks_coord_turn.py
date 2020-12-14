@@ -49,15 +49,19 @@ def main():
 
     # states, measurements = gen_data(sens_pos_1, sens_pos_2, std, dt, prior_mean[:-1], K, seed)
 
-    states, measurements, ss_xf = get_specific_states_from_file(Path.cwd())
+    states, measurements, ss_xf, ss_xs = get_specific_states_from_file(Path.cwd())
     states = states[:K, :]
     measurements = measurements[:K, :]
     ss_xf = ss_xf[:K, :]
     # filter_ = Ekf(motion_model, meas_model)
     # xf, Pf, xp, Pp = filter_.filter_seq(measurements[:K, :], prior_mean, prior_cov)
     ekf = Ekf(motion_model, meas_model)
-    xf, Pf, xs, Ps = ekf.filter_seq(measurements, prior_mean, prior_cov)
+    xf, Pf, xp, Pp = ekf.filter_seq(measurements, prior_mean, prior_cov)
     assert np.allclose(xf, ss_xf)
+    eks = Eks(motion_model, meas_model)
+    xf_s, Pf_s, xs, Ps = eks.filter_and_smooth(measurements, prior_mean, prior_cov)
+    assert np.allclose(xf_s, ss_xf)
+    assert np.allclose(xs, ss_xs)
     # vis.plot_nees_and_2d_est(
     #     states, measurements, xf[:, :-1], Pf[:, :-1, :-1], ss_xf[:, :-1], Pf[:, :-1, :-1], sigma_level=0, skip_cov=20
     # )

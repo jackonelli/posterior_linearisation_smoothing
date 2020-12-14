@@ -87,7 +87,13 @@ def get_specific_states_from_file(root: Path) -> np.ndarray:
     else:
         raise FileNotFoundError(f"No xf data file at '{xf_file}'")
 
-    return states, measurements, xf
+    xs_file = root / "data/lm_ieks_xs.csv"
+    if xs_file.exists():
+        xs = np.genfromtxt(xs_file, dtype=float, delimiter=";", comments="#")
+    else:
+        raise FileNotFoundError(f"No xs data file at '{xs_file}'")
+
+    return states, measurements, xf, xs
 
 
 if __name__ == "__main__":

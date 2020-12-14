@@ -24,8 +24,8 @@ class Smoother(ABC):
         Returns:
             filter_means (K, D_x): Filtered estimates for times 1,..., K
             filter_covs (K, D_x, D_x): Filter error covariance
-            smooth_means (K+1, D_x): Smooth estimates for times 0,..., K
-            smooth_covs (K+1, D_x, D_x): Smooth error covariance for times 0,..., K
+            smooth_means (K, D_x): Smooth estimates for times 0,..., K
+            smooth_covs (K, D_x, D_x): Smooth error covariance for times 0,..., K
         """
 
         filter_means, filter_covs, pred_means, pred_covs = self._filter_seq(measurements, x_0_0, P_0_0)
@@ -36,19 +36,19 @@ class Smoother(ABC):
         """Smooths the outputs from a filter.
 
         Args:
-            filter_means (K+1, D_x): Filtered estimates for times 0,..., K
-            filter_covs (K+1, D_x, D_x): Filter error covariance
-            pred_means (K+1, D_x): Predicted estimates for times 0,..., K
-            pred_covs (K+1, D_x, D_x): Filter error covariance
+            filter_means (K, D_x): Filtered estimates for times 1,..., K
+            filter_covs (K, D_x, D_x): Filter error covariance
+            pred_means (K, D_x): Predicted estimates for times 1,..., K
+            pred_covs (K, D_x, D_x): Filter error covariance
 
         Returns:
-            smooth_means (K+1, D_x): Smooth estimates for times 0,..., K
-            smooth_covs (K+1, D_x, D_x): Smooth error covariance for times 0,..., K
+            smooth_means (K, D_x): Smooth estimates for times 1,..., K
+            smooth_covs (K, D_x, D_x): Smooth error covariance for times 1,..., K
         """
 
-        K = filter_means.shape[0] - 1
+        K = filter_means.shape[0]
         smooth_means, smooth_covs = self._init_smooth_estimates(filter_means, filter_covs)
-        for k in np.flip(np.arange(1, K + 1)):
+        for k in np.flip(np.arange(1, K)):
             x_kminus1_kminus1 = filter_means[k - 1, :]
             P_kminus_kminus1 = filter_covs[k - 1, :, :]
             x_k_K, P_k_K = smooth_means[k, :], smooth_covs[k, :, :]
@@ -104,9 +104,9 @@ class Smoother(ABC):
 
     @staticmethod
     def _init_smooth_estimates(filter_means, filter_covs):
-        K_plus_1, D_x = filter_means.shape
-        smooth_means = np.empty((K_plus_1, D_x))
-        smooth_covs = np.empty((K_plus_1, D_x, D_x))
+        K, D_x = filter_means.shape
+        smooth_means = np.empty((K, D_x))
+        smooth_covs = np.empty((K, D_x, D_x))
         smooth_means[-1, :] = filter_means[-1, :]
         smooth_covs[-1, :, :] = filter_covs[-1, :, :]
         return smooth_means, smooth_covs
