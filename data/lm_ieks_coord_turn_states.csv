@@ -1,6 +1,3 @@
-# Realisation of simulated data created in the matlab code of the paper
-# Levenberg-marquardt and line-search extended kalman smoother
-# A ported datagenerator is in data/lm_ieks_coord_turn_example.py
 0.109999745965192;0.199938271122116;0.9999237899447;-0.0123456187624343
 0.119997958570595;0.199752647621355;0.999692963281103;-0.0247786029922548
 0.129992716394098;0.199431666864788;0.999222871707252;-0.0394164008645198

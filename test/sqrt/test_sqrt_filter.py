@@ -1,7 +1,8 @@
 import unittest
 import numpy as np
-from src import filtering as filter_ref
-from src import sqrt_filtering as filter_sqrt
+from src.filter.kalman import KalmanFilter
+from src.models.affine import AffineModel
+from src.sqrt import sqrt_filtering as filter_sqrt
 from hypothesis.extra.numpy import arrays
 from hypothesis import given
 from hypothesis.strategies import composite, floats, integers
@@ -49,10 +50,10 @@ class SqrtImpl(unittest.TestCase):
 
         Q = Q_sqrt @ Q_sqrt.T
 
-        ref_lin = (A, b, Q)
         sqrt_lin = (A, b, Q_sqrt)
+        filter_ref = KalmanFilter(None, None)
 
-        x_ref, P_ref = filter_ref._predict(x, P, ref_lin)
+        x_ref, P_ref = filter_ref._predict(x, P, Q, (A, b, Q))
         x_sqrt, P_sqrt_new, _ = filter_sqrt._predict(x, P_sqrt, sqrt_lin)
 
         self.assertTrue(np.allclose(x_ref, x_sqrt))
@@ -68,6 +69,7 @@ class SqrtImpl(unittest.TestCase):
         ref_lin = (H, c, R)
         sqrt_lin = (H, c, R_sqrt)
 
+        filter_ref = KalmanFilter(None, AffineModel(H, c, R))
         x_ref, P_ref = filter_ref._update(y, x, P, ref_lin)
         x_sqrt, P_sqrt_new = filter_sqrt._update(y, x, P_sqrt, sqrt_lin)
 
