@@ -20,7 +20,7 @@ class Filter(ABC):
     The method of linearisation is specified in the concrete implementations of this class.
     """
 
-    def filter_seq(self, measurements, x_0_0, P_0_0):
+    def filter_seq(self, measurements, x_1_0, P_1_0):
         """Filters a measurement sequence
 
         Args:
@@ -37,20 +37,29 @@ class Filter(ABC):
 
         K = measurements.shape[0]
 
-        filter_means, filter_covs = self._init_estimates(x_0_0, P_0_0, K)
-        pred_means, pred_covs = self._init_estimates(x_0_0, P_0_0, K)
+        filter_means, filter_covs = self._init_estimates(x_1_0, P_1_0, K)
+        pred_means, pred_covs = self._init_estimates(x_1_0, P_1_0, K)
 
-        x_k_kminus1 = x_0_0
-        P_k_kminus1 = P_0_0
-        for k in np.arange(0, K):
+        # first step
+        y_1 = measurements[0]
+        x_1_1, P_1_1 = self._update(y_1, x_1_0, P_1_0, self._meas_noise(0), self._meas_lin(x_1_0, P_1_0, 0), 0)
+
+        pred_means[0, :] = x_1_0
+        pred_covs[0, :, :] = P_1_0
+        filter_means[0, :] = x_1_1
+        filter_covs[0, :, :] = P_1_1
+
+        # Shift to next time step
+        x_kminus1_kminus1 = x_1_1
+        P_kminus1_kminus1 = P_1_1
+        for k in np.arange(1, K):
             LOGGER.debug("Time step: %s", k)
-            if k != 0:
-                x_k_kminus1, P_k_kminus1 = self._predict(
-                    x_kminus1_kminus1,
-                    P_kminus1_kminus1,
-                    self._proc_noise(k),
-                    self._motion_lin(x_kminus1_kminus1, P_kminus1_kminus1, k - 1),
-                )
+            x_k_kminus1, P_k_kminus1 = self._predict(
+                x_kminus1_kminus1,
+                P_kminus1_kminus1,
+                self._proc_noise(k),
+                self._motion_lin(x_kminus1_kminus1, P_kminus1_kminus1, k - 1),
+            )
 
             y_k = measurements[k]
             x_k_k, P_k_k = self._update(
