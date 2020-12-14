@@ -5,11 +5,18 @@ Levenberg-marquardt and line-search extended kalman smoother
 The particular realisation used in the paper is data/lm_ieks_coord_turn_states.csv
 """
 
+from enum import Enum
 from pathlib import Path
 import numpy as np
 from scipy.linalg import expm
 from matplotlib import pyplot as plt
 from src.models.range_bearing import RangeBearing, MultiSensorRange
+
+
+class Type(Enum):
+    Extended = "ext"
+    GN = "gn"
+    LM = "lm"
 
 
 def gen_data(sens_pos_1, sens_pos_2, std, dt, x_0, time_steps, seed=None) -> (np.ndarray, np.ndarray):
@@ -67,27 +74,26 @@ def gen_data(sens_pos_1, sens_pos_2, std, dt, x_0, time_steps, seed=None) -> (np
     return states, range_meas
 
 
-def get_specific_states_from_file(root: Path) -> np.ndarray:
-    # seed = 4
-    states_file = root / "data/lm_ieks_coord_turn_states.csv"
+def get_specific_states_from_file(data_root: Path, type_: Type) -> np.ndarray:
+    states_file = data_root / "states.csv"
     if states_file.exists():
         states = np.genfromtxt(states_file, dtype=float, delimiter=";", comments="#")
     else:
         raise FileNotFoundError(f"No states data file at '{states_file}'")
 
-    meas_file = root / "data/lm_ieks_coord_turn_meas.csv"
+    meas_file = data_root / "meas.csv"
     if meas_file.exists():
         measurements = np.genfromtxt(meas_file, dtype=float, delimiter=";", comments="#")
     else:
         raise FileNotFoundError(f"No meas data file at '{meas_file}'")
 
-    xf_file = root / "data/lm_ieks_xf.csv"
+    xf_file = data_root / type_.value / "xf.csv"
     if xf_file.exists():
         xf = np.genfromtxt(xf_file, dtype=float, delimiter=";", comments="#")
     else:
         raise FileNotFoundError(f"No xf data file at '{xf_file}'")
 
-    xs_file = root / "data/lm_ieks_xs.csv"
+    xs_file = data_root / type_.value / "xs.csv"
     if xs_file.exists():
         xs = np.genfromtxt(xs_file, dtype=float, delimiter=";", comments="#")
     else:
