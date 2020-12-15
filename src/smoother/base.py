@@ -16,7 +16,7 @@ class Smoother(ABC):
     def __init__(self):
         self._log = logging.getLogger(self.__class__.__name__)
 
-    def filter_and_smooth(self, measurements, x_0_0, P_0_0):
+    def filter_and_smooth(self, measurements, x_1_0, P_1_0):
         """Filters and smooths a measurement sequence.
 
         Args:
@@ -28,7 +28,7 @@ class Smoother(ABC):
             smooth_covs (K, D_x, D_x): Smooth error covariance for times 0,..., K
         """
 
-        filter_means, filter_covs, pred_means, pred_covs = self._filter_seq(measurements, x_0_0, P_0_0)
+        filter_means, filter_covs, pred_means, pred_covs = self._filter_seq(measurements, x_1_0, P_1_0)
         smooth_means, smooth_covs = self.smooth_seq_pre_comp_filter(filter_means, filter_covs, pred_means, pred_covs)
         return filter_means, filter_covs, smooth_means, smooth_covs
 
@@ -64,6 +64,7 @@ class Smoother(ABC):
             )
             smooth_means[k - 1, :] = x_kminus1_K
             smooth_covs[k - 1, :, :] = P_kminus1_K
+        print(k)
         return smooth_means, smooth_covs
 
     @abstractmethod

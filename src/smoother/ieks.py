@@ -16,8 +16,8 @@ class Ieks(Smoother):
         self._current_means = None
         self.num_iter = num_iter
 
-    def _motion_lin(self, state, _cov, time_step):
-        mean = self._current_means[time_step]
+    def _motion_lin(self, _state, _cov, time_step):
+        mean = self._current_means[time_step, :]
         F, b = ekf_lin(self._motion_model, mean)
         return (F, b, 0)
 
@@ -35,19 +35,13 @@ class Ieks(Smoother):
             self._update_estimates(current_xs)
         return xf, Pf, current_xs, current_Ps
 
-    # def _first_iter(self, measurements, x_0_0, P_0_0):
-    #     self._log.info("Iter: 1")
-    #     smoother = Eks(self._motion_model, self._meas_model)
-    #     return smoother.filter_and_smooth(measurements, x_0_0, P_0_0)
-
     def _filter_seq(self, measurements, x_0_0, P_0_0):
-        means = self._current_means
         iekf = Iekf(self._motion_model, self._meas_model)
-        iekf._update_estimates(means)
+        iekf._update_estimates(self._current_means)
         return iekf.filter_seq(measurements, x_0_0, P_0_0)
 
     def _update_estimates(self, means):
-        self._current_means = means
+        self._current_means = means.copy()
 
 
 class LmIeks(Smoother):
@@ -64,7 +58,7 @@ class LmIeks(Smoother):
         self._store_cost_fn = list()
 
     def _motion_lin(self, state, _cov, time_step):
-        mean = self._current_means[time_step]
+        mean = self._current_means[time_step, :]
         F, b = ekf_lin(self._motion_model, mean)
         return (F, b, 0)
 
@@ -100,7 +94,7 @@ class LmIeks(Smoother):
         return lm_iekf.filter_seq(measurements, x_0_0, P_0_0)
 
     def _update_estimates(self, means):
-        self._current_means = means
+        self._current_means = means.copy()
 
 
 class _LmIekf(Iekf):
@@ -121,7 +115,7 @@ class _LmIekf(Iekf):
         x_k_k, P_k_k = super()._update(y_k, x_k_kminus1, P_k_kminus1, R, linearization, time_step)
         S = P_k_k + 1 / self._lambda * np.eye(D_x)
         K = P_k_k @ np.linalg.inv(S)
-        x_k_K = self._current_means[time_step]
+        x_k_K = self._current_means[time_step, :]
         x_k_k = x_k_k + (K @ (x_k_K - x_k_k)).reshape(x_k_k.shape)
         P_k_k = P_k_k - K @ S @ K.T
 

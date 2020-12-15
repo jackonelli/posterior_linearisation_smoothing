@@ -10,11 +10,13 @@ pylint = "*"
 jedi = "*"
 rope = "*"
 hypothesis = "*"
+jupyter = "*"
 
 [packages]
 numpy = "*"
 scipy = "*"
 matplotlib = "*"
+jupyter = "*"
 
 [requires]
 python_version = "3.8"

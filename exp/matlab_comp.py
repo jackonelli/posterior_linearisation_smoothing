@@ -47,7 +47,7 @@ def main():
     )
     assert np.allclose(ss_xf, MM)
     assert np.allclose(ss_xs, MMS)
-    MMS, PPS, MM, PP = gn_eks(
+    MM, PP, MMS, PPS = gn_eks(
         Z,
         m1,
         P1,
@@ -76,18 +76,18 @@ def vis(states, meas, loc, ss):
     plt.show()
 
 
-def gn_eks(Z, m1, P1, Q, R, f_fun, df_fun, h_fun, dh_fun, niter, MN0):
+def gn_eks(measurements, prior_mean, prior_cov, Q, R, f_fun, df_fun, h_fun, dh_fun, niter, MN0):
     MN = MN0
     # JJ = np.zeros((niter, 1))
     # J = ss_cost(MN,Z,m1,P1,Q,R,f_fun,h_fun)
-    D_x = m1.shape[0]
-    ts_fin = Z.shape[0]
+    D_x = prior_mean.shape[0]
+    ts_fin = measurements.shape[0]
     for iter_ in range(1, niter + 1):
         print("Iter: ", iter_)
-        m = m1
-        P = P1
-        MM = np.zeros((ts_fin, D_x))
-        PP = np.zeros((ts_fin, D_x, D_x))
+        m = prior_mean
+        P = prior_cov
+        xf = np.zeros((ts_fin, D_x))
+        Pf = np.zeros((ts_fin, D_x, D_x))
         for k in range(ts_fin):
             if k > 0:
                 # Fix the nominal distribution for prediction
@@ -105,22 +105,22 @@ def gn_eks(Z, m1, P1, Q, R, f_fun, df_fun, h_fun, dh_fun, niter, MN0):
 
             S = H @ P @ H.T + R
             K = P @ H.T @ np.linalg.inv(S)
-            m = m + K @ (Z[k, :] - h)
+            m = m + K @ (measurements[k, :] - h)
             P = P - K @ S @ K.T
 
-            MM[k, :] = m
-            PP[k, :, :] = P
-        ms = MM[-1, :]
-        Ps = PP[-1, :, :]
+            xf[k, :] = m
+            Pf[k, :, :] = P
+        ms_K = xf[-1, :]
+        Ps_K = Pf[-1, :, :]
 
-        MMS = np.empty(MM.shape)
-        PPS = np.empty(PP.shape)
-        MMS[-1, :] = ms
-        PPS[-1, :, :] = Ps
+        xs = np.empty(xf.shape)
+        Ps = np.empty(Pf.shape)
+        xs[-1, :] = ms_K
+        Ps[-1, :, :] = Ps_K
 
         for k in np.flip(np.arange(0, ts_fin - 1)):
-            m = MM[k, :]
-            P = PP[k, :, :]
+            m = xf[k, :]
+            P = Pf[k, :, :]
 
             mn = MN[k, :]
 
@@ -131,14 +131,14 @@ def gn_eks(Z, m1, P1, Q, R, f_fun, df_fun, h_fun, dh_fun, niter, MN0):
             Pp = F @ P @ F.T + Q
             Ck = P @ F.T @ np.linalg.inv(Pp)
 
-            ms = m + Ck @ (ms - mp)
-            Ps = P + Ck @ (Ps - Pp) @ Ck.T
-            MMS[k, :] = ms
-            PPS[k, :, :] = Ps
+            ms_K = m + Ck @ (ms_K - mp)
+            Ps_K = P + Ck @ (Ps_K - Pp) @ Ck.T
+            xs[k, :] = ms_K
+            Ps[k, :, :] = Ps_K
 
         # % No line search
-        MN = MMS.copy()
-    return MMS, PPS, MM, PP
+        MN = xs.copy()
+    return xf, Pf, xs, Ps
 
 
 def basic_eks(Z, m1, P1, Q, R, f_fun, df_fun, h_fun, dh_fun):
