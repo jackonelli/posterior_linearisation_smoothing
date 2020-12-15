@@ -25,7 +25,7 @@ def main():
     log.info(f"Running experiment: {experiment_name}")
     seed = 2
     np.random.seed(seed)
-    num_iter = 1
+    num_iter = 2
     K = 500
     dt = 0.01
     qc = 0.01
@@ -61,14 +61,14 @@ def main():
     # xf, Pf, xp, Pp = filter_.filter_seq(measurements[:K, :], prior_mean, prior_cov)
     eks = Ieks(motion_model, meas_model, num_iter)
     xf, Pf, xs, Ps = eks.filter_and_smooth(measurements, prior_mean, prior_cov)
-    assert np.allclose(xf, ss_xf)
-    assert np.allclose(xs, ss_xs)
-    vis.plot_nees_and_2d_est(
+    # assert np.allclose(xf, ss_xf)
+    # assert np.allclose(xs, ss_xs)
+    vis.plot_2d_est(
         true_x=states,
         meas=None,
         xf=xf[:, :-1],
         Pf=Pf[:, :-1, :-1],
-        xs=xs[:, :-1],
+        xs=ss_xf[:, :-1],
         Ps=Ps[:, :-1, :-1],
         sigma_level=0,
         skip_cov=50,

@@ -22,9 +22,9 @@ def main():
     experiment_name = "coord_turn"
     setup_logger(f"logs/{experiment_name}.log", logging.INFO)
     log.info(f"Running experiment: {experiment_name}")
-    # np.random.seed(1)
+    np.random.seed(2)
     range_ = (0, 200)
-    num_iter = 10
+    num_iter = 2
 
     # Motion model
     sampling_period = 0.1

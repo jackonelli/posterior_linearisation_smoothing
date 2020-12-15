@@ -35,10 +35,10 @@ class Ieks(Smoother):
             self._update_estimates(current_xs)
         return xf, Pf, current_xs, current_Ps
 
-    def _first_iter(self, measurements, x_0_0, P_0_0):
-        self._log.info("Iter: 1")
-        smoother = Eks(self._motion_model, self._meas_model)
-        return smoother.filter_and_smooth(measurements, x_0_0, P_0_0)
+    # def _first_iter(self, measurements, x_0_0, P_0_0):
+    #     self._log.info("Iter: 1")
+    #     smoother = Eks(self._motion_model, self._meas_model)
+    #     return smoother.filter_and_smooth(measurements, x_0_0, P_0_0)
 
     def _filter_seq(self, measurements, x_0_0, P_0_0):
         means = self._current_means
@@ -48,56 +48,6 @@ class Ieks(Smoother):
 
     def _update_estimates(self, means):
         self._current_means = means
-
-
-class GnIeks(Smoother):
-    """Gauss-Newton Iterated Extended Kalman Smoother (GN-IEKS)
-    Depends on choice of line search algorithm
-
-    TODO: Implement more sophisticated line search.
-    With no line search, this algorithm is equivalent to IEKS
-    """
-
-    def __init__(self, motion_model, meas_model, num_iter):
-        super().__init__()
-        self._motion_model = motion_model
-        self._meas_model = meas_model
-        self._current_means = None
-        self.num_iter = num_iter
-
-    def _motion_lin(self, state, _cov, time_step):
-        mean = self._current_means[time_step]
-        F, b = ekf_lin(self._motion_model, mean)
-        return (F, b, 0)
-
-    def filter_and_smooth(self, measurements, x_0_0, P_0_0):
-        """Overrides (extends) the base class default implementation"""
-        initial_xs, initial_Ps, xf, Pf = self._first_iter(measurements, x_0_0, P_0_0)
-        self._update_estimates(initial_xs)
-
-        current_xs, current_Ps = initial_xs, initial_Ps
-        for iter_ in range(2, self.num_iter):
-            self._log.info(f"Iter: {iter_}")
-            current_xs, current_Ps, xf, Pf = super().filter_and_smooth(measurements, current_xs[0], current_Ps[0])
-            self._update_estimates(current_xs)
-        return current_xs, current_Ps, xf, Pf
-
-    def _first_iter(self, measurements, x_0_0, P_0_0):
-        self._log.info("Iter: 1")
-        smoother = Eks(self._motion_model, self._meas_model)
-        return smoother.filter_and_smooth(measurements, x_0_0, P_0_0)
-
-    def _filter_seq(self, measurements, x_0_0, P_0_0):
-        means = self._current_means
-        iekf = Iekf(self._motion_model, self._meas_model)
-        iekf._update_estimates(means)
-        return iekf.filter_seq(measurements, x_0_0, P_0_0)
-
-    def _update_estimates(self, means):
-        self._current_means = means
-
-
-# TODO: GN Params data class
 
 
 class LmIeks(Smoother):
@@ -120,7 +70,7 @@ class LmIeks(Smoother):
 
     def filter_and_smooth(self, measurements, x_0_0, P_0_0):
         """Overrides (extends) the base class default implementation"""
-        initial_xs, initial_Ps, xf, Pf = self._first_iter(measurements, x_0_0, P_0_0)
+        _, _, initial_xs, initial_Ps = self._first_iter(measurements, x_0_0, P_0_0)
         self._update_estimates(initial_xs)
         cost_fn = _CostFn(x_0_0, P_0_0, self._motion_model, self._meas_model)
         self._store_cost_fn.append(cost_fn.cost(initial_xs, initial_Ps, measurements))
@@ -128,7 +78,7 @@ class LmIeks(Smoother):
         current_xs, current_Ps = initial_xs, initial_Ps
         for iter_ in range(2, self.num_iter):
             self._log.info(f"Iter: {iter_}")
-            current_xs, current_Ps, xf, Pf = super().filter_and_smooth(measurements, current_xs[0], current_Ps[0])
+            xf, Pf, current_xs, current_Ps = super().filter_and_smooth(measurements, current_xs[0], current_Ps[0])
             new_cost = cost_fn.cost(current_xs, current_Ps, measurements)
             if new_cost < self._store_cost_fn[-1]:
                 self._store_cost_fn.append(new_cost)

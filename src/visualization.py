@@ -14,6 +14,27 @@ def plot_nees_comp(true_x, x_1, P_1, x_2, P_2):
     plt.show()
 
 
+def plot_2d_est(true_x, meas, xf, Pf, xs, Ps, sigma_level=3, skip_cov=1):
+    K, D_x = true_x.shape
+    _, ax = plt.subplots()
+    ax.plot(true_x[:, 0], true_x[:, 1], ".k", label="true")
+
+    if meas is not None:
+        ax.plot(meas[:, 0], meas[:, 1], ".r", label="meas")
+
+    if xf is not None and Pf is not None:
+        plot_mean_and_cov(ax, xf[:, :2], Pf[:, :2, :2], sigma_level, "$x_f$", "b", skip_cov)
+
+    if xs is not None and Ps is not None:
+        plot_mean_and_cov(ax, xs[:, :2], Ps[:, :2, :2], sigma_level, "$x_s$", "g", skip_cov)
+
+    ax.set_title("Estimates")
+    ax.set_xlabel("$pos_x$")
+    ax.set_ylabel("$pos_y$")
+    ax.legend()
+    plt.show()
+
+
 def plot_nees_and_2d_est(true_x, meas, xf, Pf, xs, Ps, sigma_level=3, skip_cov=1):
     K, D_x = true_x.shape
     _, (ax_1, ax_2) = plt.subplots(1, 2)

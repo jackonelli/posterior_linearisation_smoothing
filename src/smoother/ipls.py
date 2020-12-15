@@ -23,15 +23,15 @@ class Ipls(Smoother):
 
     def filter_and_smooth(self, measurements, x_0_0, P_0_0):
         """Overrides (extends) the base class default implementation"""
-        initial_xs, initial_Ps, xf, Pf = self._first_iter(measurements, x_0_0, P_0_0)
+        xf, Pf, initial_xs, initial_Ps = self._first_iter(measurements, x_0_0, P_0_0)
         self._update_estimates(initial_xs, initial_Ps)
 
         current_xs, current_Ps = initial_xs, initial_Ps
         for iter_ in range(2, self.num_iter + 1):
             self._log.info(f"Iter: {iter_}")
-            current_xs, current_Ps, xf, Pf = super().filter_and_smooth(measurements, current_xs[0], current_Ps[0])
+            xf, Pf, current_xs, current_Ps = super().filter_and_smooth(measurements, x_0_0, P_0_0)
             self._update_estimates(current_xs, current_Ps)
-        return current_xs, current_Ps, xf, Pf
+        return xf, Pf, current_xs, current_Ps
 
     def _first_iter(self, measurements, x_0_0, P_0_0):
         self._log.info("Iter: 1")
