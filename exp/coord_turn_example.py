@@ -24,7 +24,7 @@ def main():
     log.info(f"Running experiment: {experiment_name}")
     np.random.seed(2)
     range_ = (0, 200)
-    num_iter = 2
+    num_iter = 4
 
     # Motion model
     sampling_period = 0.1

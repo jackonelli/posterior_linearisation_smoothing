@@ -45,4 +45,4 @@ class Ipls(Smoother):
         return iplf.filter_seq(measurements, x_0_0, P_0_0)
 
     def _update_estimates(self, means, covs):
-        self._current_estimates = (means, covs)
+        self._current_estimates = (means.copy(), covs.copy())

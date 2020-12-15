@@ -13,8 +13,7 @@ class Iplf(Filter):
         self._current_estimates = None
 
     def _update_estimates(self, means, covs):
-        assert False, "Fix np copy"
-        self._current_estimates = (means, covs)
+        self._current_estimates = (means.copy(), covs.copy())
 
     def _motion_lin(self, _state, _cov, time_step):
         means, covs = self._current_estimates

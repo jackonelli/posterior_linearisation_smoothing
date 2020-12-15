@@ -12,6 +12,7 @@ from src import visualization as vis
 from src.filter.ekf import Ekf
 from src.smoother.eks import Eks
 from src.smoother.ieks import Ieks
+from src.smoother.ipls import Ipls
 from src.utils import setup_logger
 from src.models.range_bearing import MultiSensorRange
 from src.models.coord_turn import LmCoordTurn
@@ -51,43 +52,23 @@ def main():
     prior_mean = np.array([0, 0, 1, 0, 0])
     prior_cov = np.diag([0.1, 0.1, 1, 1, 1])
 
-    # states, measurements = gen_data(sens_pos_1, sens_pos_2, std, dt, prior_mean[:-1], K, seed)
-
     states, measurements, ss_xf, ss_xs = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.GN)
     states = states[:K, :]
     measurements = measurements[:K, :]
-    # ss_xf = ss_xf[:K, :]
-    # filter_ = Ekf(motion_model, meas_model)
-    # xf, Pf, xp, Pp = filter_.filter_seq(measurements[:K, :], prior_mean, prior_cov)
     num_iter = 10
-    eks = Ieks(motion_model, meas_model, num_iter)
-    xf, Pf, xs, Ps = eks.filter_and_smooth(measurements, prior_mean, prior_cov)
-    # ss_xf, ss_Pf, ss_xs, ss_Ps = gn_eks(
-    #    measurements,
-    #    prior_mean,
-    #    prior_cov,
-    #    Q,
-    #    R,
-    #    motion_model.mapping,
-    #    motion_model.jacobian,
-    #    meas_model.mapping,
-    #    meas_model.jacobian,
-    #    num_iter,
-    #    np.zeros((K, prior_mean.shape[0])),
-    # )
+    smoother = Ipls(motion_model, meas_model, num_iter)
+    xf, Pf, xs, Ps = smoother.filter_and_smooth(measurements, prior_mean, prior_cov)
 
-    assert np.allclose(xf, ss_xf, rtol=1e-3)
-    # assert np.allclose(xs, ss_xs)
-    # vis.plot_2d_est(
-    #    true_x=states,
-    #    meas=None,
-    #    xf=xs[:, :-1],
-    #    Pf=Ps[:, :-1, :-1],
-    #    xs=ss_xs[:, :-1],
-    #    Ps=Ps[:, :-1, :-1],
-    #    sigma_level=0,
-    #    skip_cov=50,
-    # )
+    vis.plot_2d_est(
+        true_x=states,
+        meas=None,
+        xf=xs[:, :-1],
+        Pf=Ps[:, :-1, :-1],
+        xs=ss_xs[:, :-1],
+        Ps=Ps[:, :-1, :-1],
+        sigma_level=0,
+        skip_cov=50,
+    )
 
 
 if __name__ == "__main__":
