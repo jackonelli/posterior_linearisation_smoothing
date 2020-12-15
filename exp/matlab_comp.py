@@ -62,16 +62,16 @@ def main():
     )
     _, _, ss_ixf, ss_ixs = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.GN)
     # vis(X, Z, loc=MM, ss=ss_ixf)
-    # assert np.allclose(ss_ixf, MM)
-    vis(X, Z, MMS, ss_ixs)
+    assert np.allclose(ss_ixf, MM)
+    # vis(X, Z, MMS, ss_ixs)
     assert np.allclose(ss_ixs, MMS)
 
 
 def vis(states, meas, loc, ss):
     _, ax = plt.subplots()
     ax.plot(states[:, 0], states[:, 1], label="true")
-    ax.plot(ss[:, 0], ss[:, 1], label="matlab")
-    ax.plot(loc[:, 0], loc[:, 1], label="python")
+    # ax.plot(ss[:, 0], ss[:, 1], label="matlab")
+    ax.plot(loc[:, 0], loc[:, 1], label="GN-IEKS")
     ax.legend()
     plt.show()
 
@@ -138,7 +138,6 @@ def gn_eks(Z, m1, P1, Q, R, f_fun, df_fun, h_fun, dh_fun, niter, MN0):
 
         # % No line search
         MN = MMS.copy()
-        print("last k", k)
     return MMS, PPS, MM, PP
 
 
