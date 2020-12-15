@@ -64,7 +64,6 @@ class Smoother(ABC):
             )
             smooth_means[k - 1, :] = x_kminus1_K
             smooth_covs[k - 1, :, :] = P_kminus1_K
-        print(k)
         return smooth_means, smooth_covs
 
     @abstractmethod

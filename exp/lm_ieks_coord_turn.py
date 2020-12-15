@@ -53,7 +53,7 @@ def main():
 
     # states, measurements = gen_data(sens_pos_1, sens_pos_2, std, dt, prior_mean[:-1], K, seed)
 
-    states, measurements, _, _ = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.GN)
+    states, measurements, ss_xf, ss_xs = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.GN)
     states = states[:K, :]
     measurements = measurements[:K, :]
     # ss_xf = ss_xf[:K, :]
@@ -62,33 +62,32 @@ def main():
     num_iter = 10
     eks = Ieks(motion_model, meas_model, num_iter)
     xf, Pf, xs, Ps = eks.filter_and_smooth(measurements, prior_mean, prior_cov)
-    ss_xf, ss_Pf, ss_xs, ss_Ps = gn_eks(
-        measurements,
-        prior_mean,
-        prior_cov,
-        Q,
-        R,
-        motion_model.mapping,
-        motion_model.jacobian,
-        meas_model.mapping,
-        meas_model.jacobian,
-        num_iter,
-        np.zeros((K, prior_mean.shape[0])),
-    )
+    # ss_xf, ss_Pf, ss_xs, ss_Ps = gn_eks(
+    #    measurements,
+    #    prior_mean,
+    #    prior_cov,
+    #    Q,
+    #    R,
+    #    motion_model.mapping,
+    #    motion_model.jacobian,
+    #    meas_model.mapping,
+    #    meas_model.jacobian,
+    #    num_iter,
+    #    np.zeros((K, prior_mean.shape[0])),
+    # )
 
-    # assert np.allclose(eks._current_means, ss_xs)
-    # assert np.allclose(xf, ss_xf)
+    assert np.allclose(xf, ss_xf, rtol=1e-3)
     # assert np.allclose(xs, ss_xs)
-    vis.plot_2d_est(
-        true_x=states,
-        meas=None,
-        xf=xs[:, :-1],
-        Pf=Ps[:, :-1, :-1],
-        xs=ss_xs[:, :-1],
-        Ps=Ps[:, :-1, :-1],
-        sigma_level=0,
-        skip_cov=50,
-    )
+    # vis.plot_2d_est(
+    #    true_x=states,
+    #    meas=None,
+    #    xf=xs[:, :-1],
+    #    Pf=Ps[:, :-1, :-1],
+    #    xs=ss_xs[:, :-1],
+    #    Ps=Ps[:, :-1, :-1],
+    #    sigma_level=0,
+    #    skip_cov=50,
+    # )
 
 
 if __name__ == "__main__":
