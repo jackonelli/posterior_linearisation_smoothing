@@ -20,12 +20,12 @@ class Filter(ABC):
     The method of linearisation is specified in the concrete implementations of this class.
     """
 
-    def filter_seq(self, measurements, x_1_0, P_1_0):
+    def filter_seq(self, measurements, m_1_0, P_1_0):
         """Filters a measurement sequence
 
         Args:
             measurements (K, D_y): Measurement sequence for times 1,..., K
-            x_0_0 (D_x,): Prior mean for time 0
+            m_0_0 (D_x,): Prior mean for time 0
             P_0_0 (D_x, D_x): Prior covariance for time 0
 
         Returns:
@@ -37,69 +37,69 @@ class Filter(ABC):
 
         K = measurements.shape[0]
 
-        filter_means, filter_covs = self._init_estimates(x_1_0, P_1_0, K)
-        pred_means, pred_covs = self._init_estimates(x_1_0, P_1_0, K)
+        filter_means, filter_covs = self._init_estimates(m_1_0, K)
+        pred_means, pred_covs = self._init_estimates(m_1_0, K)
 
         # first step
         y_1 = measurements[0]
-        x_1_1, P_1_1 = self._update(y_1, x_1_0, P_1_0, self._meas_noise(0), self._meas_lin(x_1_0, P_1_0, 0), 0)
+        m_1_1, P_1_1 = self._update(y_1, m_1_0, P_1_0, self._meas_noise(0), self._meas_lin(m_1_0, P_1_0, 0), 0)
 
-        pred_means[0, :] = x_1_0
+        pred_means[0, :] = m_1_0
         pred_covs[0, :, :] = P_1_0
-        filter_means[0, :] = x_1_1
+        filter_means[0, :] = m_1_1
         filter_covs[0, :, :] = P_1_1
 
         # Shift to next time step
-        x_kminus1_kminus1 = x_1_1
+        m_kminus1_kminus1 = m_1_1
         P_kminus1_kminus1 = P_1_1
         for k_minus_1 in np.arange(1, K):
             LOGGER.debug("Time step: %s", k_minus_1)
-            x_k_kminus1, P_k_kminus1 = self._predict(
-                x_kminus1_kminus1,
+            m_k_kminus1, P_k_kminus1 = self._predict(
+                m_kminus1_kminus1,
                 P_kminus1_kminus1,
                 self._proc_noise(k_minus_1),
-                self._motion_lin(x_kminus1_kminus1, P_kminus1_kminus1, k_minus_1 - 1),
+                self._motion_lin(m_kminus1_kminus1, P_kminus1_kminus1, k_minus_1 - 1),
             )
 
             y_k = measurements[k_minus_1]
-            x_k_k, P_k_k = self._update(
+            m_k_k, P_k_k = self._update(
                 y_k,
-                x_k_kminus1,
+                m_k_kminus1,
                 P_k_kminus1,
                 self._meas_noise(k_minus_1),
-                self._meas_lin(x_k_kminus1, P_k_kminus1, k_minus_1),
+                self._meas_lin(m_k_kminus1, P_k_kminus1, k_minus_1),
                 k_minus_1,
             )
-            pred_means[k_minus_1, :] = x_k_kminus1
+            pred_means[k_minus_1, :] = m_k_kminus1
             pred_covs[k_minus_1, :, :] = P_k_kminus1
-            filter_means[k_minus_1, :] = x_k_k
+            filter_means[k_minus_1, :] = m_k_k
             filter_covs[k_minus_1, :, :] = P_k_k
             # Shift to next time step
-            x_kminus1_kminus1 = x_k_k
+            m_kminus1_kminus1 = m_k_k
             P_kminus1_kminus1 = P_k_k
 
         return filter_means, filter_covs, pred_means, pred_covs
 
     @staticmethod
-    def _predict(x_kminus1_kminus1, P_kminus1_kminus1, Q, linearization):
+    def _predict(m_kminus1_kminus1, P_kminus1_kminus1, Q, linearization):
         """KF prediction step
 
         Args:
-            x_kminus1_kminus1: x_{k-1 | k-1}
+            m_kminus1_kminus1: m_{k-1 | k-1}
             P_kminus1_kminus1: P_{k-1 | k-1}
             linearization (tuple): (A, b, Omega) param's for linear (affine) approx
 
         Returns:
-            x_k_kminus1: x_{k | k-1}
+            m_k_kminus1: m_{k | k-1}
             P_k_kminus1: P_{k | k-1}
         """
         A, b, Omega = linearization
-        x_k_kminus1 = A @ x_kminus1_kminus1 + b
+        m_k_kminus1 = A @ m_kminus1_kminus1 + b
         P_k_kminus1 = A @ P_kminus1_kminus1 @ A.T + Omega + Q
         P_k_kminus1 = (P_k_kminus1 + P_k_kminus1.T) / 2
-        return x_k_kminus1, P_k_kminus1
+        return m_k_kminus1, P_k_kminus1
 
-    def _update(_self, y_k, x_k_kminus1, P_k_kminus1, R, linearization, _time_step):
+    def _update(_self, y_k, m_k_kminus1, P_k_kminus1, R, linearization, _time_step):
         """KF update step
 
         This is a static method in almost all cases, but e.g. LM-IEKS needs the context of self, and time_step
@@ -107,23 +107,23 @@ class Filter(ABC):
 
         Args:
             y_k
-            x_k_kminus1: x_{k | k-1}
+            m_k_kminus1: m_{k | k-1}
             P_k_kminus1: P_{k | k-1}
             linearization (tuple): (H, c, Lambda) param's for linear (affine) approx
 
         Returns:
-            x_k_k: x_{k | k}
+            m_k_k: m_{k | k}
             P_k_k: P_{k | k}
         """
         H, c, Lambda = linearization
-        y_mean = H @ x_k_kminus1 + c
+        y_mean = H @ m_k_kminus1 + c
         S = H @ P_k_kminus1 @ H.T + R + Lambda
         K = P_k_kminus1 @ H.T @ np.linalg.inv(S)
 
-        x_k_k = x_k_kminus1 + (K @ (y_k - y_mean)).reshape(x_k_kminus1.shape)
+        m_k_k = m_k_kminus1 + (K @ (y_k - y_mean)).reshape(m_k_kminus1.shape)
         P_k_k = P_k_kminus1 - K @ S @ K.T
 
-        return x_k_k, P_k_k
+        return m_k_k, P_k_k
 
     @abstractmethod
     def _motion_lin(self, state, cov, time_step):
@@ -142,8 +142,8 @@ class Filter(ABC):
         pass
 
     @staticmethod
-    def _init_estimates(x_0_0, P_0_0, K):
-        D_x = x_0_0.shape[0]
+    def _init_estimates(m_1_0, K):
+        D_x = m_1_0.shape[0]
         est_means = np.empty((K, D_x))
         est_covs = np.empty((K, D_x, D_x))
         return est_means, est_covs

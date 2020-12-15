@@ -52,19 +52,19 @@ def main():
     prior_mean = np.array([0, 0, 1, 0, 0])
     prior_cov = np.diag([0.1, 0.1, 1, 1, 1])
 
-    states, measurements, ss_xf, ss_xs = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.GN)
+    states, measurements, ss_mf, ss_ms = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.GN)
     states = states[:K, :]
     measurements = measurements[:K, :]
     num_iter = 10
     smoother = Ipls(motion_model, meas_model, num_iter)
-    xf, Pf, xs, Ps = smoother.filter_and_smooth(measurements, prior_mean, prior_cov)
+    mf, Pf, ms, Ps = smoother.filter_and_smooth(measurements, prior_mean, prior_cov)
 
     vis.plot_2d_est(
         true_x=states,
         meas=None,
-        xf=xs[:, :-1],
+        mf=ms[:, :-1],
         Pf=Ps[:, :-1, :-1],
-        xs=ss_xs[:, :-1],
+        ms=ss_ms[:, :-1],
         Ps=Ps[:, :-1, :-1],
         sigma_level=0,
         skip_cov=50,

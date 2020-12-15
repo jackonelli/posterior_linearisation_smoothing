@@ -60,11 +60,11 @@ def main():
         10,
         np.zeros((ts_fin, m1.shape[0])),
     )
-    _, _, ss_ixf, ss_ixs = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.GN)
+    _, _, ss_imf, ss_ims = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.GN)
     # vis(X, Z, loc=MM, ss=ss_ixf)
-    assert np.allclose(ss_ixf, MM)
+    assert np.allclose(ss_imf, MM)
     # vis(X, Z, MMS, ss_ixs)
-    assert np.allclose(ss_ixs, MMS)
+    assert np.allclose(ss_ims, MMS)
 
 
 def vis(states, meas, loc, ss):

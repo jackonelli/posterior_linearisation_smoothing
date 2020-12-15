@@ -17,32 +17,32 @@ class Ipls(Smoother):
         self._current_estimates = None
         self.num_iter = num_iter
 
-    def _motion_lin(self, _state, _cov, time_step):
+    def _motion_lin(self, _mean, _cov, time_step):
         means, covs = self._current_estimates
         return self._slr.linear_params(self._motion_model.map_set, means[time_step], covs[time_step])
 
-    def filter_and_smooth(self, measurements, x_0_0, P_0_0):
+    def filter_and_smooth(self, measurements, m_1_0, P_1_0):
         """Overrides (extends) the base class default implementation"""
-        xf, Pf, initial_xs, initial_Ps = self._first_iter(measurements, x_0_0, P_0_0)
-        self._update_estimates(initial_xs, initial_Ps)
+        mf, Pf, initial_ms, initial_Ps = self._first_iter(measurements, m_1_0, P_1_0)
+        self._update_estimates(initial_ms, initial_Ps)
 
-        current_xs, current_Ps = initial_xs, initial_Ps
+        current_ms, current_Ps = initial_ms, initial_Ps
         for iter_ in range(2, self.num_iter + 1):
             self._log.info(f"Iter: {iter_}")
-            xf, Pf, current_xs, current_Ps = super().filter_and_smooth(measurements, x_0_0, P_0_0)
-            self._update_estimates(current_xs, current_Ps)
-        return xf, Pf, current_xs, current_Ps
+            mf, Pf, current_ms, current_Ps = super().filter_and_smooth(measurements, m_1_0, P_1_0)
+            self._update_estimates(current_ms, current_Ps)
+        return mf, Pf, current_ms, current_Ps
 
-    def _first_iter(self, measurements, x_0_0, P_0_0):
+    def _first_iter(self, measurements, m_1_0, P_1_0):
         self._log.info("Iter: 1")
         smoother = SigmaPointSlrSmoother(self._motion_model, self._meas_model)
-        return smoother.filter_and_smooth(measurements, x_0_0, P_0_0)
+        return smoother.filter_and_smooth(measurements, m_1_0, P_1_0)
 
-    def _filter_seq(self, measurements, x_0_0, P_0_0):
+    def _filter_seq(self, measurements, m_1_0, P_1_0):
         means, covs = self._current_estimates
         iplf = Iplf(self._motion_model, self._meas_model)
         iplf._update_estimates(means, covs)
-        return iplf.filter_seq(measurements, x_0_0, P_0_0)
+        return iplf.filter_seq(measurements, m_1_0, P_1_0)
 
     def _update_estimates(self, means, covs):
         self._current_estimates = (means.copy(), covs.copy())

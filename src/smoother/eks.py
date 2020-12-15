@@ -12,13 +12,13 @@ class Eks(Smoother):
         self._motion_model = motion_model
         self._meas_model = meas_model
 
-    def _motion_lin(self, state, _cov, _time_step):
-        F, b = ekf_lin(self._motion_model, state)
+    def _motion_lin(self, mean, _cov, _time_step):
+        F, b = ekf_lin(self._motion_model, mean)
         return (F, b, 0)
 
-    def _meas_lin(self, state, _cov, _time_step):
-        H, c = ekf_lin(self._meas_model, state)
+    def _meas_lin(self, mean, _cov, _time_step):
+        H, c = ekf_lin(self._meas_model, mean)
         return (H, c, 0)
 
-    def _filter_seq(self, measurements, x_0_0, P_0_0):
-        return Ekf(self._motion_model, self._meas_model).filter_seq(measurements, x_0_0, P_0_0)
+    def _filter_seq(self, measurements, m_1_0, P_1_0):
+        return Ekf(self._motion_model, self._meas_model).filter_seq(measurements, m_1_0, P_1_0)

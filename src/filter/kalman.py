@@ -10,10 +10,10 @@ class KalmanFilter(Filter):
         self._motion_model = motion_model
         self._meas_model = meas_model
 
-    def _motion_lin(self, _state, _cov, _time_step):
+    def _motion_lin(self, _mean, _cov, _time_step):
         return (self._motion_model.linear_map, self._motion_model.offset, 0)
 
-    def _meas_lin(self, _state, _cov, _time_step):
+    def _meas_lin(self, _mean, _cov, _time_step):
         return (self._meas_model.linear_map, self._meas_model.offset, 0)
 
     def _proc_noise(self, time_step):

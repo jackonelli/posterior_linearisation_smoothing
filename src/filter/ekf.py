@@ -16,12 +16,12 @@ class Ekf(Filter):
         self._motion_model = motion_model
         self._meas_model = meas_model
 
-    def _motion_lin(self, state, _cov, _time_step):
-        F, b = ekf_lin(self._motion_model, state)
+    def _motion_lin(self, mean, _cov, _time_step):
+        F, b = ekf_lin(self._motion_model, mean)
         return (F, b, 0)
 
-    def _meas_lin(self, state, _cov, _time_step):
-        H, c = ekf_lin(self._meas_model, state)
+    def _meas_lin(self, mean, _cov, _time_step):
+        H, c = ekf_lin(self._meas_model, mean)
         return (H, c, 0)
 
     def _proc_noise(self, time_step):
@@ -31,7 +31,7 @@ class Ekf(Filter):
         return self._meas_model.meas_noise(time_step)
 
 
-def ekf_lin(model: Union[Model, Differentiable], state):
-    jac = model.jacobian(state)
-    offset = model.mapping(state) - jac @ state
+def ekf_lin(model: Union[Model, Differentiable], mean):
+    jac = model.jacobian(mean)
+    offset = model.mapping(mean) - jac @ mean
     return jac, offset

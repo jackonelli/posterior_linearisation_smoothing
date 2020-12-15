@@ -49,18 +49,18 @@ def main():
     cartes_meas = np.apply_along_axis(partial(to_cartesian_coords, pos=pos), 1, measurements)
 
     # Prior distr.
-    x_0 = np.array([4.4, 0, 4, 0, 0])
-    P_0 = np.diag([1 ** 2, 1 ** 2, 1 ** 2, (5 * np.pi / 180) ** 2, (1 * np.pi / 180) ** 2])
+    x_1_0 = np.array([4.4, 0, 4, 0, 0])
+    P_1_0 = np.diag([1 ** 2, 1 ** 2, 1 ** 2, (5 * np.pi / 180) ** 2, (1 * np.pi / 180) ** 2])
 
     smoother = Ipls(motion_model, meas_model, num_iter)
-    xf, Pf, xs, Ps = smoother.filter_and_smooth(measurements, x_0, P_0)
+    mf, Pf, ms, Ps = smoother.filter_and_smooth(measurements, x_1_0, P_1_0)
 
     vis.plot_nees_and_2d_est(
         true_states[range_[0] : range_[1], :],
         cartes_meas,
-        xf[:, :obs_dims],
+        mf[:, :obs_dims],
         Pf[:, :obs_dims, :obs_dims],
-        xs[:, :obs_dims],
+        ms[:, :obs_dims],
         Ps[:, :obs_dims, :obs_dims],
         sigma_level=3,
         skip_cov=5,

@@ -42,8 +42,8 @@ def main():
     true_x = sim_affine_state_seq(prior_mean, prior_cov, motion_model, K)
     y = sim_affine_meas_seq(true_x, H, R)
 
-    xf, Pf, xs, Ps = analytical_smooth.filter_and_smooth(y, prior_mean, prior_cov)
-    vis.plot_nees_and_2d_est(true_x, y, xf, Pf, xs, Ps, sigma_level=3, skip_cov=2)
+    mf, Pf, ms, Ps = analytical_smooth.filter_and_smooth(y, prior_mean, prior_cov)
+    vis.plot_nees_and_2d_est(true_x, y, mf, Pf, ms, Ps, sigma_level=3, skip_cov=2)
 
 
 if __name__ == "__main__":

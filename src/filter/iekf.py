@@ -14,12 +14,12 @@ class Iekf(Filter):
     def _update_estimates(self, means):
         self._current_means = means.copy()
 
-    def _motion_lin(self, _state, _cov, time_step):
+    def _motion_lin(self, _mean, _cov, time_step):
         mean = self._current_means[time_step, :]
         F, b = ekf_lin(self._motion_model, mean)
         return (F, b, 0)
 
-    def _meas_lin(self, _state, _cov, time_step):
+    def _meas_lin(self, _mean, _cov, time_step):
         mean = self._current_means[time_step, :]
         H, c = ekf_lin(self._meas_model, mean)
         return (H, c, 0)

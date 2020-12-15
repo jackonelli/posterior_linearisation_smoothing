@@ -15,11 +15,11 @@ class Iplf(Filter):
     def _update_estimates(self, means, covs):
         self._current_estimates = (means.copy(), covs.copy())
 
-    def _motion_lin(self, _state, _cov, time_step):
+    def _motion_lin(self, _mean, _cov, time_step):
         means, covs = self._current_estimates
         return self._slr.linear_params(self._motion_model.map_set, means[time_step, :], covs[time_step, :])
 
-    def _meas_lin(self, _state, _cov, time_step):
+    def _meas_lin(self, _mean, _cov, time_step):
         means, covs = self._current_estimates
         return self._slr.linear_params(self._meas_model.map_set, means[time_step, :], covs[time_step, :])
 

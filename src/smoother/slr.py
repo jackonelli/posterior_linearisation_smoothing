@@ -13,8 +13,8 @@ class SigmaPointSlrSmoother(Smoother):
         self._meas_model = meas_model
         self._slr = SigmaPointSlr()
 
-    def _motion_lin(self, state, cov, _time_step):
-        return self._slr.linear_params(self._motion_model.map_set, state, cov)
+    def _motion_lin(self, mean, cov, _time_step):
+        return self._slr.linear_params(self._motion_model.map_set, mean, cov)
 
     def _filter_seq(self, measurements, x_0_0, P_0_0):
         return SigmaPointSlrFilter(self._motion_model, self._meas_model).filter_seq(measurements, x_0_0, P_0_0)
