@@ -7,7 +7,7 @@ Runs EKS and compares with stored matlab output.
 """
 import unittest
 import numpy as np
-from src.smoother.ieks import Ieks
+from src.smoother.ext.ieks import Ieks
 from src.models.range_bearing import MultiSensorRange
 from src.models.coord_turn import LmCoordTurn
 from data.lm_ieks_paper.coord_turn_example import get_specific_states_from_file, Type
@@ -42,6 +42,6 @@ class TestIeks(unittest.TestCase):
 
         _, measurements, ss_mf, ss_ms = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.GN)
         ieks = Ieks(motion_model, meas_model, num_iter=10)
-        mf, Pf, ms, Ps = ieks.filter_and_smooth(measurements, prior_mean, prior_cov)
-        np.allclose(mf, ss_mf, rtol=1e-5, atol=1)
-        np.allclose(ms, ss_ms, rtol=1e-2, atol=1)
+        mf, Pf, ms, Ps = ieks.filter_and_smooth_with_init_traj(measurements, prior_mean, prior_cov, np.zeros((500, 5)))
+        self.assertTrue(np.allclose(mf, ss_mf, rtol=1e-5, atol=1))
+        self.assertTrue(np.allclose(ms, ss_ms, rtol=1e-2, atol=1))

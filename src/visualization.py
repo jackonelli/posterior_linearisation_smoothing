@@ -5,6 +5,21 @@ import matplotlib.pyplot as plt
 from src.analytics import nees
 
 
+def plot_states(ax, x, label):
+    D_x = x.shape[1]
+    for d in range(D_x):
+        ax.plot(x[:, d], label=f"x_{d}")
+
+
+def cmp_states(seq_1, seq_2):
+    D_x = seq_1.shape[1]
+    _, ax = plt.subplots()
+    for d in range(D_x):
+        ax.plot(seq_1[:, d], "-", label=f"x_{d}")
+        ax.plot(seq_2[:, d], "--", label=f"x_{d}")
+    plt.show()
+
+
 def plot_nees_comp(true_x, m_1, P_1, m_2, P_2):
     nees_1 = nees(true_x, m_1, P_1)
     nees_2 = nees(true_x, m_2, P_2)

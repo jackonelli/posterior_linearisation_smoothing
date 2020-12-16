@@ -6,43 +6,6 @@ from src.filter.ekf import ekf_lin
 from src.filter.iekf import Iekf, ekf_lin
 
 
-class Ieks(Smoother):
-    """Iterated Extended Kalman Smoother (IEKS)"""
-
-    def __init__(self, motion_model, meas_model, num_iter):
-        super().__init__()
-        self._motion_model = motion_model
-        self._meas_model = meas_model
-        self._current_means = None
-        self.num_iter = num_iter
-
-    def _motion_lin(self, _mean, _cov, time_step):
-        mean = self._current_means[time_step, :]
-        F, b = ekf_lin(self._motion_model, mean)
-        return (F, b, 0)
-
-    def filter_and_smooth(self, measurements, m_1_0, P_1_0):
-        """Overrides (extends) the base class default implementation"""
-        D_x = m_1_0.shape[0]
-        K = measurements.shape[0]
-
-        current_ms = np.zeros((K, D_x))
-        self._update_estimates(current_ms)
-        for iter_ in range(1, self.num_iter + 1):
-            self._log.info(f"Iter: {iter_}")
-            mf, Pf, current_ms, current_Ps = super().filter_and_smooth(measurements, m_1_0, P_1_0)
-            self._update_estimates(current_ms)
-        return mf, Pf, current_ms, current_Ps
-
-    def _filter_seq(self, measurements, m_1_0, P_1_0):
-        iekf = Iekf(self._motion_model, self._meas_model)
-        iekf._update_estimates(self._current_means)
-        return iekf.filter_seq(measurements, m_1_0, P_1_0)
-
-    def _update_estimates(self, means):
-        self._current_means = means.copy()
-
-
 class LmIeks(Smoother):
     """Levenberg-Marquardt Iterated Extended Kalman Smoother (LM-IEKS)"""
 
@@ -129,11 +92,9 @@ class _CostFn:
         self._meas_model = meas_model
 
     def cost(self, means, covs, measurements):
-        diff = means[1, :] - self._m_1_0
+        diff = means[0, :] - self._m_1_0
         _cost = diff.T @ self._P_1_0 @ diff
-        # TODO: means should be in R^K, but are in R^K+1 (including zero).
-        # TODO: vectorise with map sets
-        for k in range(1, means.shape[0] - 1):
+        for k in range(0, means.shape[0] - 1):
             diff = means[k + 1, :] - self._motion_model.mapping(means[k, :])
             _cost += diff.T @ self._motion_model.proc_noise(k) @ diff
             # measurements are zero indexed, i.e. k-1 --> y_k
