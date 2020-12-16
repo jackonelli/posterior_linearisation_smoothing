@@ -6,15 +6,15 @@ Check that the EKS implementation matches the one in the paper:
 Runs EKS and compares with stored matlab output.
 """
 import unittest
+from pathlib import Path
 import numpy as np
-from src.smoother.ext.ieks import Ieks
+from src.smoother.ext.cost import cost
 from src.models.range_bearing import MultiSensorRange
 from src.models.coord_turn import LmCoordTurn
 from data.lm_ieks_paper.coord_turn_example import get_specific_states_from_file, Type
-from pathlib import Path
 
 
-class TestIeks(unittest.TestCase):
+class TestCost(unittest.TestCase):
     def test_cmp_with_ss_impl(self):
         dt = 0.01
         qc = 0.01
@@ -40,10 +40,7 @@ class TestIeks(unittest.TestCase):
         prior_mean = np.array([0, 0, 1, 0, 0])
         prior_cov = np.diag([0.1, 0.1, 1, 1, 1])
 
-        _, measurements, ss_mf, ss_ms = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.GN)
-        ieks = Ieks(motion_model, meas_model, num_iter=10)
-        mf, Pf, ms, Ps = ieks.filter_and_smooth_with_init_traj(
-            measurements, prior_mean, prior_cov, np.zeros((500, 5)), 1
+        _, measurements, _, ss_ms = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.GN)
+        self.assertAlmostEqual(
+            cost(ss_ms, measurements, prior_mean, prior_cov, motion_model, meas_model), 1.039569495177240e03
         )
-        self.assertTrue(np.allclose(mf, ss_mf, rtol=1e-5, atol=1))
-        self.assertTrue(np.allclose(ms, ss_ms, rtol=1e-2, atol=1))

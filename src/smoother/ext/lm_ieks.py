@@ -82,25 +82,3 @@ class _LmIekf(Iekf):
         P_k_k = P_k_k - K @ S @ K.T
 
         return m_k_k, P_k_k
-
-
-class _CostFn:
-    def __init__(self, prior_mean, prior_cov, motion_model, meas_model):
-        self._m_1_0 = prior_mean
-        self._P_1_0 = prior_cov
-        self._motion_model = motion_model
-        self._meas_model = meas_model
-
-    def cost(self, means, covs, measurements):
-        diff = means[0, :] - self._m_1_0
-        _cost = diff.T @ self._P_1_0 @ diff
-        for k in range(0, means.shape[0] - 1):
-            diff = means[k + 1, :] - self._motion_model.mapping(means[k, :])
-            _cost += diff.T @ self._motion_model.proc_noise(k) @ diff
-            # measurements are zero indexed, i.e. k-1 --> y_k
-            diff = measurements[k - 1, :] - self._meas_model.mapping(means[k, :])
-            _cost += diff.T @ self._meas_model.meas_noise(k) @ diff
-        diff = measurements[-1, :] - self._meas_model.mapping(means[-1, :])
-        _cost += diff.T @ self._meas_model.meas_noise(k) @ diff
-
-        return _cost

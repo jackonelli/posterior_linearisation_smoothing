@@ -4,13 +4,13 @@ from functools import partial
 import numpy as np
 from scipy.stats import multivariate_normal as mvn
 from src.models.range_bearing import to_cartesian_coords
-from src.models.coord_turn import CoordTurn
+from src.models.coord_turn import LmCoordTurn, CoordTurn
 from src.models.range_bearing import RangeBearing
 from src.filter.slr import SigmaPointSlrFilter
 
 # from src.smoother.slr import SigmaPointSlrSmoother
 from src.smoother.ipls import Ipls
-from src.smoother.ieks import Ieks
+from src.smoother.ext.ieks import Ieks
 from src import visualization as vis
 from src.utils import setup_logger
 from data.coord_turn import get_tricky_data
@@ -24,7 +24,7 @@ def main():
     log.info(f"Running experiment: {experiment_name}")
     np.random.seed(2)
     range_ = (0, 200)
-    num_iter = 4
+    num_iter = 3
 
     # Motion model
     sampling_period = 0.1
@@ -58,10 +58,10 @@ def main():
     vis.plot_nees_and_2d_est(
         true_states[range_[0] : range_[1], :],
         cartes_meas,
-        mf[:, :obs_dims],
-        Pf[:, :obs_dims, :obs_dims],
-        ms[:, :obs_dims],
-        Ps[:, :obs_dims, :obs_dims],
+        [
+            (mf[:, :obs_dims], Pf[:, :obs_dims, :obs_dims], "filter"),
+            (ms[:, :obs_dims], Ps[:, :obs_dims, :obs_dims], "smoother"),
+        ],
         sigma_level=3,
         skip_cov=5,
     )

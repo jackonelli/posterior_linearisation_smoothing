@@ -47,7 +47,7 @@ def plot_2d_est(true_x, meas, means_and_covs, sigma_level=3, skip_cov=1):
     plt.show()
 
 
-def plot_nees_and_2d_est(true_x, meas, mf, Pf, ms, Ps, sigma_level=3, skip_cov=1):
+def plot_nees_and_2d_est(true_x, meas, means_and_covs, sigma_level=3, skip_cov=1):
     K, D_x = true_x.shape
     _, (ax_1, ax_2) = plt.subplots(1, 2)
     ax_1.plot([0, K], [D_x, D_x], "--k", label="ref")
@@ -56,15 +56,11 @@ def plot_nees_and_2d_est(true_x, meas, mf, Pf, ms, Ps, sigma_level=3, skip_cov=1
     if meas is not None:
         ax_2.plot(meas[:, 0], meas[:, 1], ".r", label="meas")
 
-    if mf is not None and Pf is not None:
-        filter_nees = nees(true_x, mf, Pf)
-        ax_1.plot(filter_nees, "-b", label="filter")
-        plot_mean_and_cov(ax_2, mf[:, :2], Pf[:, :2, :2], sigma_level, "$x_f$", "b", skip_cov)
-
-    if ms is not None and Ps is not None:
-        smooth_nees = nees(true_x, ms, Ps)
-        plot_mean_and_cov(ax_2, ms[:, :2], Ps[:, :2, :2], sigma_level, "$x_s$", "g", skip_cov)
-        ax_1.plot(smooth_nees, "--g", label="smooth")
+    for m, P, label in means_and_covs:
+        traj_handle = plot_mean_and_cov(ax_2, m[:, :2], P[:, :2, :2], sigma_level, label, skip_cov)
+        filter_nees = nees(true_x, m, P)
+        (nees_handle,) = ax_1.plot(filter_nees, "-b", label=label)
+        nees_handle.set_color(traj_handle.get_color())
 
     ax_1.set_title("NEES")
     ax_1.set_xlabel("k")
@@ -80,12 +76,12 @@ def plot_nees_and_2d_est(true_x, meas, mf, Pf, ms, Ps, sigma_level=3, skip_cov=1
 
 def plot_mean_and_cov(ax, means, covs, sigma_level, label, skip_cov):
     fmt = "-"
-    handle = ax.plot(means[:, 0], means[:, 1], fmt, label=label)
-    color = handle[0].get_color()
-    print(color)
+    (handle,) = ax.plot(means[:, 0], means[:, 1], fmt, label=label)
+    color = handle.get_color()
     for k in np.arange(0, len(means), skip_cov):
         last_handle = plot_sigma_level(ax, means[k, :], covs[k, :, :], sigma_level, "", color)
     last_handle.set_label(r"${} \sigma$".format(sigma_level))
+    return handle
 
 
 def plot_mean_and_cov_1d(ax, means, covs, sigma_level, label, color, skip_cov):
@@ -103,7 +99,7 @@ def plot_mean_and_cov_1d(ax, means, covs, sigma_level, label, color, skip_cov):
 def plot_sigma_level(ax, means, covs, level, label, color, resolution=50):
     fmt = "--"
     ellips = ellips_points(means, covs, level, resolution)
-    handle = ax.plot(ellips[:, 0], ellips[:, 1], fmt)[0]
+    (handle,) = ax.plot(ellips[:, 0], ellips[:, 1], fmt)
     handle.set_color(color)
     return handle
 
