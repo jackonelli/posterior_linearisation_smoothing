@@ -36,13 +36,6 @@ class Ieks(Smoother):
         smoother = Eks(self._motion_model, self._meas_model)
         return smoother.filter_and_smooth(measurements, m_1_0, P_1_0)
 
-    def _run_iters(self, measurements, m_1_0, P_1_0, start_iter):
-        for iter_ in range(start_iter, self.num_iter + 1):
-            self._log.info(f"Iter: {iter_}")
-            mf, Pf, current_ms, Ps = super().filter_and_smooth(measurements, m_1_0, P_1_0)
-            self._update_estimates(current_ms)
-        return mf, Pf, current_ms, Ps
-
     def filter_and_smooth_with_init_traj(self, measurements, m_1_0, P_1_0, init_traj, start_iter):
         """Filter and smoothing given an initial trajectory"""
         current_ms = init_traj

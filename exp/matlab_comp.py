@@ -86,7 +86,7 @@ def gn_eks(measurements, prior_mean, prior_cov, Q, R, f_fun, df_fun, h_fun, dh_f
     D_x = prior_mean.shape[0]
     ts_fin = measurements.shape[0]
     for iter_ in range(1, niter + 1):
-        print("Iter: ", iter_)
+        print("Matlab iter: ", iter_)
         m = prior_mean
         P = prior_cov
         xf = np.zeros((ts_fin, D_x))
@@ -141,7 +141,6 @@ def gn_eks(measurements, prior_mean, prior_cov, Q, R, f_fun, df_fun, h_fun, dh_f
 
         # % No line search
         MN = xs.copy()
-        print(Ps.sum())
     return xf, Pf, xs, Ps
 
 

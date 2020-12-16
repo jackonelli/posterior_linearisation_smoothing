@@ -80,16 +80,13 @@ def main():
     # assert np.allclose(ms, ss_ms)
     print("Ieks: ", cost(ms, measurements, prior_mean, prior_cov, motion_model.mapping, meas_model.mapping, Q, R))
     print("Matl: ", cost(ss_ms, measurements, prior_mean, prior_cov, motion_model.mapping, meas_model.mapping, Q, R))
-    print("Comp: ", acost(ss_ms, measurements, prior_mean, prior_cov, motion_model, meas_model))
+    # print("Comp: ", acost(ss_ms, measurements, prior_mean, prior_cov, motion_model, meas_model))
     # vis.cmp_states(ms, ss_ms)
     vis.plot_2d_est(
         true_x=states,
         meas=None,
-        mf=ms[:, :-1],
-        Pf=Ps[:, :-1, :-1],
-        ms=ss_ms[:, :-1],
-        Ps=Ps[:, :-1, :-1],
-        sigma_level=0,
+        means_and_covs=[(ms, Ps, f"ms_{num_iter}"), (ss_ms, ss_Ps, f"ss_ms_{num_iter}")],
+        sigma_level=2,
         skip_cov=50,
     )
 

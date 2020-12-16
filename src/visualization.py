@@ -29,7 +29,7 @@ def plot_nees_comp(true_x, m_1, P_1, m_2, P_2):
     plt.show()
 
 
-def plot_2d_est(true_x, meas, mf, Pf, ms, Ps, sigma_level=3, skip_cov=1):
+def plot_2d_est(true_x, meas, means_and_covs, sigma_level=3, skip_cov=1):
     K, D_x = true_x.shape
     _, ax = plt.subplots()
     ax.plot(true_x[:, 0], true_x[:, 1], ".k", label="true")
@@ -37,11 +37,8 @@ def plot_2d_est(true_x, meas, mf, Pf, ms, Ps, sigma_level=3, skip_cov=1):
     if meas is not None:
         ax.plot(meas[:, 0], meas[:, 1], ".r", label="meas")
 
-    if mf is not None and Pf is not None:
-        plot_mean_and_cov(ax, mf[:, :2], Pf[:, :2, :2], sigma_level, "$x_f$", "b", skip_cov)
-
-    if ms is not None and Ps is not None:
-        plot_mean_and_cov(ax, ms[:, :2], Ps[:, :2, :2], sigma_level, "$x_s$", "g", skip_cov)
+    for m, P, label in means_and_covs:
+        plot_mean_and_cov(ax, m[:, :2], P[:, :2, :2], sigma_level, label, skip_cov)
 
     ax.set_title("Estimates")
     ax.set_xlabel("$pos_x$")
@@ -81,12 +78,13 @@ def plot_nees_and_2d_est(true_x, meas, mf, Pf, ms, Ps, sigma_level=3, skip_cov=1
     plt.show()
 
 
-def plot_mean_and_cov(ax, means, covs, sigma_level, label, color, skip_cov):
-    ax.plot(means[0, 0], means[0, 1], "gX")
-    fmt = "{}-".format(color)
-    ax.plot(means[:, 0], means[:, 1], fmt, label=label)
+def plot_mean_and_cov(ax, means, covs, sigma_level, label, skip_cov):
+    fmt = "-"
+    handle = ax.plot(means[:, 0], means[:, 1], fmt, label=label)
+    color = handle[0].get_color()
+    print(color)
     for k in np.arange(0, len(means), skip_cov):
-        (last_handle,) = plot_sigma_level(ax, means[k, :], covs[k, :, :], sigma_level, "", color)
+        last_handle = plot_sigma_level(ax, means[k, :], covs[k, :, :], sigma_level, "", color)
     last_handle.set_label(r"${} \sigma$".format(sigma_level))
 
 
@@ -103,9 +101,11 @@ def plot_mean_and_cov_1d(ax, means, covs, sigma_level, label, color, skip_cov):
 
 
 def plot_sigma_level(ax, means, covs, level, label, color, resolution=50):
-    fmt = "{}--".format(color)
+    fmt = "--"
     ellips = ellips_points(means, covs, level, resolution)
-    return ax.plot(ellips[:, 0], ellips[:, 1], fmt)
+    handle = ax.plot(ellips[:, 0], ellips[:, 1], fmt)[0]
+    handle.set_color(color)
+    return handle
 
 
 def ellips_points(center, transf, scale, resolution):
