@@ -12,20 +12,21 @@ from src import visualization as vis
 from src.filter.ekf import Ekf
 from src.smoother.ext.eks import Eks
 from src.smoother.ext.ieks import Ieks
+from src.smoother.ext.lm_ieks import LmIeks
 from src.smoother.ipls import Ipls
 from src.utils import setup_logger
 from src.models.range_bearing import MultiSensorRange
 from src.models.coord_turn import LmCoordTurn
 from data.lm_ieks_paper.coord_turn_example import Type, get_specific_states_from_file
 from exp.matlab_comp import gn_eks, basic_eks
-from src.smoother.ext.cost import ml_cost as cost
-from src.smoother.ext.cost import cost as acost
+
+from src.smoother.ext.cost import cost
 
 
 def main():
     log = logging.getLogger(__name__)
     experiment_name = "lm_ieks"
-    setup_logger(f"logs/{experiment_name}.log", logging.WARNING)
+    setup_logger(f"logs/{experiment_name}.log", logging.INFO)
     log.info(f"Running experiment: {experiment_name}")
     seed = 2
     np.random.seed(seed)
@@ -57,35 +58,41 @@ def main():
     states, measurements, ss_mf, ss_ms = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.GN)
     states = states[:K, :]
     measurements = measurements[:K, :]
-    num_iter = 10
-    smoother = Ieks(motion_model, meas_model, num_iter)
+    num_iter = 3
+    # smoother = Ieks(motion_model, meas_model, num_iter)
+    lambda_ = 1e-2
+    nu = 10
+    smoother = LmIeks(motion_model, meas_model, num_iter, lambda_, nu)
     # mf, Pf, ms, Ps = smoother.filter_and_smooth(measurements, prior_mean, prior_cov)
     mf, Pf, ms, Ps = smoother.filter_and_smooth_with_init_traj(
         measurements, prior_mean, prior_cov, np.zeros((K, prior_mean.shape[0])), 1
     )
-    ss_mf, ss_Pf, ss_ms, ss_Ps = gn_eks(
-        measurements,
-        prior_mean,
-        prior_cov,
-        Q,
-        R,
-        motion_model.mapping,
-        motion_model.jacobian,
-        meas_model.mapping,
-        meas_model.jacobian,
-        num_iter,
-        np.zeros((K, prior_mean.shape[0])),
-    )
+    # ss_mf, ss_Pf, ss_ms, ss_Ps = gn_eks(
+    #     measurements,
+    #     prior_mean,
+    #     prior_cov,
+    #     Q,
+    #     R,
+    #     motion_model.mapping,
+    #     motion_model.jacobian,
+    #     meas_model.mapping,
+    #     meas_model.jacobian,
+    #     num_iter,
+    #     np.zeros((K, prior_mean.shape[0])),
+    # )
 
     # assert np.allclose(ms, ss_ms)
-    print("Ieks: ", cost(ms, measurements, prior_mean, prior_cov, motion_model.mapping, meas_model.mapping, Q, R))
-    print("Matl: ", cost(ss_ms, measurements, prior_mean, prior_cov, motion_model.mapping, meas_model.mapping, Q, R))
+    # print("Ieks: ", cost(ms, measurements, prior_mean, prior_cov, motion_model.mapping, meas_model.mapping, Q, R))
+    # print("Matl: ", cost(ss_ms, measurements, prior_mean, prior_cov, motion_model.mapping, meas_model.mapping, Q, R))
     # print("Comp: ", acost(ss_ms, measurements, prior_mean, prior_cov, motion_model, meas_model))
     # vis.cmp_states(ms, ss_ms)
     vis.plot_2d_est(
         true_x=states,
         meas=None,
-        means_and_covs=[(ms, Ps, f"ms_{num_iter}"), (ss_ms, ss_Ps, f"ss_ms_{num_iter}")],
+        means_and_covs=[
+            (ms, Ps, f"ms_{num_iter}"),
+            # (ss_ms, ss_Ps, f"ss_ms_{num_iter}")
+        ],
         sigma_level=2,
         skip_cov=50,
     )

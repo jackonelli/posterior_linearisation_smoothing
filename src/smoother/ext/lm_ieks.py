@@ -1,7 +1,9 @@
 """Iterated Extended Kalman Smoother (IEKS)"""
+from functools import partial
 import numpy as np
 from src.smoother.base import Smoother
-from src.smoother.eks import Eks
+from src.smoother.ext.eks import Eks
+from src.smoother.ext.cost import cost
 from src.filter.ekf import ekf_lin
 from src.filter.iekf import Iekf, ekf_lin
 
@@ -9,50 +11,71 @@ from src.filter.iekf import Iekf, ekf_lin
 class LmIeks(Smoother):
     """Levenberg-Marquardt Iterated Extended Kalman Smoother (LM-IEKS)"""
 
-    def __init__(self, motion_model, meas_model, num_iter):
+    def __init__(self, motion_model, meas_model, num_iter, lambda_, nu):
         super().__init__()
-        self._lambda = 1e-2
-        self._nu = 10
         self._motion_model = motion_model
         self._meas_model = meas_model
+        self._lambda = lambda_
+        self._nu = nu
         self._current_means = None
+        self.store_cost = np.zeros((num_iter,))
         self.num_iter = num_iter
-        self._store_cost_fn = list()
 
-    def _motion_lin(self, mean, _cov, time_step):
+    def _motion_lin(self, _mean, _cov, time_step):
         mean = self._current_means[time_step, :]
         F, b = ekf_lin(self._motion_model, mean)
         return (F, b, 0)
 
     def filter_and_smooth(self, measurements, m_1_0, P_1_0):
         """Overrides (extends) the base class default implementation"""
-        _, _, initial_ms, initial_Ps = self._first_iter(measurements, m_1_0, P_1_0)
-        self._update_estimates(initial_ms)
-        cost_fn = _CostFn(m_1_0, P_1_0, self._motion_model, self._meas_model)
-        self._store_cost_fn.append(cost_fn.cost(initial_ms, initial_Ps, measurements))
 
-        current_ms, current_Ps = initial_ms, initial_Ps
-        for iter_ in range(2, self.num_iter):
-            self._log.info(f"Iter: {iter_}")
-            mf, Pf, current_ms, current_Ps = super().filter_and_smooth(measurements, current_ms[0], current_Ps[0])
-            new_cost = cost_fn.cost(current_ms, current_Ps, measurements)
-            if new_cost < self._store_cost_fn[-1]:
-                self._store_cost_fn.append(new_cost)
-                self._lambda /= self._nu
-                self._update_estimates(current_ms)
-            else:
-                self._lambda *= self._nu
-        return current_ms, current_Ps, mf, Pf
+        mf, Pf, current_ms, current_Ps = self._first_iter(measurements, m_1_0, P_1_0)
+        if self.num_iter > 1:
+            return self.filter_and_smooth_with_init_traj(measurements, m_1_0, P_1_0, current_ms, 2)
+        else:
+            return mf, Pf, current_ms, current_Ps
 
     def _first_iter(self, measurements, m_1_0, P_1_0):
         self._log.info("Iter: 1")
         smoother = Eks(self._motion_model, self._meas_model)
         return smoother.filter_and_smooth(measurements, m_1_0, P_1_0)
 
+    def filter_and_smooth_with_init_traj(self, measurements, m_1_0, P_1_0, init_traj, start_iter):
+        """Filter and smoothing given an initial trajectory"""
+        current_ms = init_traj
+        self._update_estimates(current_ms)
+        cost_fn = partial(
+            cost,
+            measurements=measurements,
+            m_1_0=m_1_0,
+            P_1_0=P_1_0,
+            motion_model=self._motion_model,
+            meas_model=self._meas_model,
+        )
+        prev_cost = cost_fn(init_traj)
+        self._log.info(f"Initial cost: {prev_cost}")
+        for iter_ in range(start_iter, self.num_iter + 1):
+            self._log.info(f"Iter: {iter_}")
+            inner_iter = 0
+            has_improved = False
+            while has_improved is False and inner_iter < 10:
+                mf, Pf, current_ms, current_Ps = super().filter_and_smooth(measurements, m_1_0, P_1_0)
+                _cost = cost_fn(current_ms)
+                self._log.info(f"Cost: {_cost}, lambda: {self._lambda}")
+                if _cost < prev_cost:
+                    self._lambda /= self._nu
+                    has_improved = True
+                    prev_cost = _cost
+                else:
+                    self._lambda *= self._nu
+                inner_iter += 1
+            self._update_estimates(current_ms)
+            # _cost = cost(current_ms, measurements, m_1_0, P_1_0, self._motion_model, self._meas_model)
+        return mf, Pf, current_ms, current_Ps
+
     def _filter_seq(self, measurements, m_1_0, P_1_0):
-        means = self._current_means
         lm_iekf = _LmIekf(self._motion_model, self._meas_model, self._lambda)
-        lm_iekf._update_estimates(means)
+        lm_iekf._update_estimates(self._current_means)
         return lm_iekf.filter_seq(measurements, m_1_0, P_1_0)
 
     def _update_estimates(self, means):
@@ -73,8 +96,8 @@ class _LmIekf(Iekf):
         Overrides (extends) the ordinary KF update with an extra pseudo-measurement of the previous state
         See base class for full docs
         """
-        D_x = m_k_kminus1.shape[0]
         m_k_k, P_k_k = super()._update(y_k, m_k_kminus1, P_k_kminus1, R, linearization, time_step)
+        D_x = m_k_kminus1.shape[0]
         S = P_k_k + 1 / self._lambda * np.eye(D_x)
         K = P_k_k @ np.linalg.inv(S)
         m_k_K = self._current_means[time_step, :]

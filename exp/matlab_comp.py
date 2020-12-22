@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from data.lm_ieks_paper.coord_turn_example import get_specific_states_from_file, Type
 from src.models.range_bearing import MultiSensorRange
 from src.models.coord_turn import LmCoordTurn
-from src.smoother.ext.cost import ml_cost as cost
+from src.smoother.ext.cost import cost
 
 
 def main():
@@ -50,7 +50,7 @@ def main():
     # assert np.allclose(ss_xs, MMS)
     _, _, ss_imf, ss_ims = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.GN)
     # vis(X, Z, loc=MM, ss=ss_ixf)
-    print("Cost: ", cost(ss_ims, Z, m1, P1, motion_model.mapping, meas_model.mapping, Q, R))
+    print("Cost: ", cost(ss_ims, Z, m1, P1, motion_model, meas_model))
     return
     MM, PP, MMS, PPS = gn_eks(
         Z,
