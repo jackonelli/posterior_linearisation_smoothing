@@ -1,4 +1,4 @@
-"""Stochastic coordinated turn motion model"""
+"""Non-stationary growth motion model"""
 import numpy as np
 from src.models.base import MotionModel, Differentiable
 
@@ -6,8 +6,8 @@ from src.models.base import MotionModel, Differentiable
 class NonStationaryGrowth(MotionModel, Differentiable):
     """
     state is
-        x_k = actual state at time k
-        k = state index, i.e. time_step
+        x_k = actual state at time step k
+        k = state index, i.e. time step
     """
 
     def __init__(self, a: float, b: float, c: float, proc_noise):
