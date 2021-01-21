@@ -19,7 +19,7 @@ from src.utils import setup_logger
 from src.models.range_bearing import MultiSensorRange
 from src.models.coord_turn import LmCoordTurn
 from data.lm_ieks_paper.coord_turn_example import Type, get_specific_states_from_file
-from exp.matlab_comp import gn_eks, basic_eks
+from exp.matlab_comp import gn_ieks, basic_eks
 
 from src.smoother.ext.cost import cost
 
