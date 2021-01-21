@@ -10,6 +10,7 @@ def lm_ieks(measurements, prior_mean, prior_cov, Q, R, f_fun, df_fun, h_fun, dh_
     MN = MN0
     # JJ = np.zeros((niter, 1))
     J = ss_cost(MN, measurements, prior_mean, prior_cov, Q, R, f_fun, h_fun)
+    print(f"Cost: {J}")
     D_x = prior_mean.shape[0]
     ts_fin = measurements.shape[0]
 
@@ -19,8 +20,7 @@ def lm_ieks(measurements, prior_mean, prior_cov, Q, R, f_fun, df_fun, h_fun, dh_
     for iter_ in range(1, niter + 1):
         done = False
         j = 0
-        while done and j < 10:
-            print("Matlab iter: ", iter_)
+        while not done and j < 10:
             m = prior_mean
             P = prior_cov
             xf = np.zeros((ts_fin, D_x))
@@ -46,7 +46,7 @@ def lm_ieks(measurements, prior_mean, prior_cov, Q, R, f_fun, df_fun, h_fun, dh_
                 P = P - K @ S @ K.T
 
                 # Reg. update step
-                S = P + 1 / lambda_ * np.eye(P.shape)
+                S = P + 1 / lambda_ * np.eye(D_x)
                 K = P @ np.linalg.inv(S)
                 m = m + K @ (mn - m)
                 P = P - K @ S @ K.T
@@ -80,12 +80,14 @@ def lm_ieks(measurements, prior_mean, prior_cov, Q, R, f_fun, df_fun, h_fun, dh_
                 Ps[k, :, :] = Ps_K
 
             Jp = ss_cost(xs, measurements, prior_mean, prior_cov, Q, R, f_fun, h_fun)
+            print(f"Cost: {Jp}, lambda: {lambda_}, j: {j}")
             if Jp < J:
                 lambda_ /= nu
                 done = True
             else:
                 lambda_ *= nu
             j += 1
+        J = Jp
 
         # % No line search
         MN = xs.copy()

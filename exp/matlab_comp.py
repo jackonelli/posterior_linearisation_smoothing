@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from data.lm_ieks_paper.coord_turn_example import get_specific_states_from_file, Type
 from src.models.range_bearing import MultiSensorRange
 from src.models.coord_turn import LmCoordTurn
-from src.smoother.ext.cost import cost
+from src.smoother.ext.cost import cost, ss_cost
 from src.ss.gn import gn_ieks
 from src.ss.eks import basic_eks
 from src.ss.lm import lm_ieks
@@ -36,7 +36,7 @@ def main():
 
     m1 = np.array([0, 0, 1, 0, 0])
     P1 = np.diag([0.1, 0.1, 1, 1, 1])
-    num_iter = 1
+    num_iter = 10
     # X, Z, ss_xf, ss_xs = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.Extended, None)
     # X, Z, ss_xf, ss_xs = X[:ts_fin, :], Z[:ts_fin, :], ss_xf[:ts_fin, :], ss_xs[:ts_fin, :]
     # MMS, PPS, MM, PP = basic_eks(
@@ -52,9 +52,9 @@ def main():
     # )
     # assert np.allclose(ss_xf, MM)
     # assert np.allclose(ss_xs, MMS)
-    X, Z, ss_imf, ss_ims = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.GN, num_iter)
+    X, Z, ss_imf, ss_ims = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.LM, num_iter)
     # vis(X, Z, loc=MM, ss=ss_ixf)
-    print("Cost: ", cost(ss_ims, Z, m1, P1, motion_model, meas_model))
+    # print("Cost: ", cost(ss_ims, Z, m1, P1, motion_model, meas_model))
     MM, PP, MMS, PPS = lm_ieks(
         Z,
         m1,
@@ -68,6 +68,8 @@ def main():
         num_iter,
         np.zeros((ts_fin, m1.shape[0])),
     )
+    print("Cost py: ", cost(MMS, Z, m1, P1, motion_model, meas_model))
+    print("Cost: ", ss_cost(MMS, Z, m1, P1, Q, R, motion_model.mapping, meas_model.mapping))
     assert np.allclose(ss_imf, MM)
     # vis(X, Z, MMS, ss_ixs)
     assert np.allclose(ss_ims, MMS)
