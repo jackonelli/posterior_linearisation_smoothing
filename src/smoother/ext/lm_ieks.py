@@ -54,6 +54,7 @@ class LmIeks(Smoother):
         )
         prev_cost = cost_fn(init_traj)
         self._log.info(f"Initial cost: {prev_cost}")
+        print("Init cost:", prev_cost)
         for iter_ in range(start_iter, self.num_iter + 1):
             self._log.info(f"Iter: {iter_}")
             inner_iter = 0
@@ -62,14 +63,15 @@ class LmIeks(Smoother):
                 mf, Pf, current_ms, current_Ps = super().filter_and_smooth(measurements, m_1_0, P_1_0)
                 _cost = cost_fn(current_ms)
                 self._log.info(f"Cost: {_cost}, lambda: {self._lambda}")
+                print(f"Cost: {_cost}, lambda: {self._lambda}, iter: {iter_}, inner: {inner_iter}")
                 if _cost < prev_cost:
                     self._lambda /= self._nu
                     has_improved = True
-                    prev_cost = _cost
                 else:
                     self._lambda *= self._nu
                 inner_iter += 1
             self._update_estimates(current_ms)
+            prev_cost = _cost
             # _cost = cost(current_ms, measurements, m_1_0, P_1_0, self._motion_model, self._meas_model)
         return mf, Pf, current_ms, current_Ps
 

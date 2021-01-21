@@ -19,7 +19,9 @@ from src.utils import setup_logger
 from src.models.range_bearing import MultiSensorRange
 from src.models.coord_turn import LmCoordTurn
 from data.lm_ieks_paper.coord_turn_example import Type, get_specific_states_from_file
-from exp.matlab_comp import gn_ieks, basic_eks
+from src.ss.gn import gn_ieks
+from src.ss.eks import basic_eks
+from src.ss.lm import lm_ieks
 
 from src.smoother.ext.cost import cost
 
@@ -56,18 +58,32 @@ def main():
     prior_mean = np.array([0, 0, 1, 0, 0])
     prior_cov = np.diag([0.1, 0.1, 1, 1, 1])
 
-    states, measurements, ss_mf, ss_ms = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.LM)
+    num_iter = 10
+    states, measurements, _, _ = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.LM, num_iter)
     states = states[:K, :]
     measurements = measurements[:K, :]
-    num_iter = 10
-    smoother = Ieks(motion_model, meas_model, num_iter)
-    # lambda_ = 1e-2
-    # nu = 10
-    # smoother = LmIeks(motion_model, meas_model, num_iter, lambda_, nu)
-    # mf, Pf, ms, Ps = smoother.filter_and_smooth(measurements, prior_mean, prior_cov)
-    mf, Pf, ms, Ps = smoother.filter_and_smooth_with_init_traj(
-        measurements, prior_mean, prior_cov, np.zeros((K, prior_mean.shape[0])), 1
+    # smoother = Ieks(motion_model, meas_model, num_iter)
+    lambda_ = 1e-2
+    nu = 10
+    smoother = LmIeks(motion_model, meas_model, num_iter, lambda_, nu)
+    mf, Pf, ms, Ps = smoother.filter_and_smooth(measurements, prior_mean, prior_cov)
+
+    mf_ss, Pf_ss, ms_ss, Ps_ss = lm_ieks(
+        measurements,
+        prior_mean,
+        prior_cov,
+        Q,
+        R,
+        motion_model.mapping,
+        motion_model.jacobian,
+        meas_model.mapping,
+        meas_model.jacobian,
+        num_iter,
+        np.zeros((K, prior_mean.shape[0])),
     )
+    # mf, Pf, ms, Ps = smoother.filter_and_smooth_with_init_traj(
+    #     measurements, prior_mean, prior_cov, np.zeros((K, prior_mean.shape[0])), 1
+    # )
     # ss_mf, ss_Pf, ss_ms, ss_Ps = gn_eks(
     #     measurements,
     #     prior_mean,
@@ -90,7 +106,7 @@ def main():
     vis.plot_2d_est(
         true_x=states,
         meas=None,
-        means_and_covs=[(ms, Ps, f"ms_{num_iter}"), (ss_ms, ss_Ps, f"ss_ms_{num_iter}")],
+        means_and_covs=[(ms, Ps, f"ms_{num_iter}"), (ms_ss, Ps_ss, f"ss_ms_{num_iter}")],
         sigma_level=2,
         skip_cov=50,
     )

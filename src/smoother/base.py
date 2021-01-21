@@ -50,17 +50,17 @@ class Smoother(ABC):
         smooth_means, smooth_covs = self._init_smooth_estimates(filter_means[-1, :], filter_covs[-1, :, :], K)
         for k in np.flip(np.arange(1, K)):
             m_kminus1_kminus1 = filter_means[k - 1, :]
-            P_kminus_kminus1 = filter_covs[k - 1, :, :]
+            P_kminus1_kminus1 = filter_covs[k - 1, :, :]
             m_k_K, P_k_K = smooth_means[k, :], smooth_covs[k, :, :]
             m_k_kminus1, P_k_kminus1 = pred_means[k, :], pred_covs[k, :, :]
             m_kminus1_K, P_kminus1_K = self._rts_update(
                 m_k_K,
                 P_k_K,
                 m_kminus1_kminus1,
-                P_kminus_kminus1,
+                P_kminus1_kminus1,
                 m_k_kminus1,
                 P_k_kminus1,
-                self._motion_lin(m_kminus1_kminus1, P_kminus_kminus1, k),
+                self._motion_lin(m_kminus1_kminus1, P_kminus1_kminus1, k - 1),
             )
             smooth_means[k - 1, :] = m_kminus1_K
             smooth_covs[k - 1, :, :] = P_kminus1_K
@@ -80,7 +80,7 @@ class Smoother(ABC):
         """
         pass
 
-    def _rts_update(self, m_k_K, P_k_K, m_kminus1_kminus1, P_kminus_kminus1, m_k_kminus1, P_k_kminus1, linear_params):
+    def _rts_update(self, m_k_K, P_k_K, m_kminus1_kminus1, P_kminus1_kminus1, m_k_kminus1, P_k_kminus1, linear_params):
         """RTS update step
         Args:
             m_k_K: m_{k|K}
@@ -97,9 +97,9 @@ class Smoother(ABC):
         """
         A, _, Q = linear_params
 
-        G_k = P_kminus_kminus1 @ A.T @ np.linalg.inv(P_k_kminus1)
+        G_k = P_kminus1_kminus1 @ A.T @ np.linalg.inv(P_k_kminus1)
         m_kminus1_K = m_kminus1_kminus1 + G_k @ (m_k_K - m_k_kminus1)
-        P_kminus1_K = P_kminus_kminus1 + G_k @ (P_k_K - P_k_kminus1) @ G_k.T
+        P_kminus1_K = P_kminus1_kminus1 + G_k @ (P_k_K - P_k_kminus1) @ G_k.T
         return m_kminus1_K, P_kminus1_K
 
     @staticmethod

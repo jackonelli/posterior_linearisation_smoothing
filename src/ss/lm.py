@@ -10,7 +10,7 @@ def lm_ieks(measurements, prior_mean, prior_cov, Q, R, f_fun, df_fun, h_fun, dh_
     MN = MN0
     # JJ = np.zeros((niter, 1))
     J = ss_cost(MN, measurements, prior_mean, prior_cov, Q, R, f_fun, h_fun)
-    print(f"Cost: {J}")
+    print("Init cost:", J)
     D_x = prior_mean.shape[0]
     ts_fin = measurements.shape[0]
 
@@ -80,7 +80,7 @@ def lm_ieks(measurements, prior_mean, prior_cov, Q, R, f_fun, df_fun, h_fun, dh_
                 Ps[k, :, :] = Ps_K
 
             Jp = ss_cost(xs, measurements, prior_mean, prior_cov, Q, R, f_fun, h_fun)
-            print(f"Cost: {Jp}, lambda: {lambda_}, j: {j}")
+            print(f"Cost: {Jp}, lambda: {lambda_}, iter: {iter_}, inner: {j}")
             if Jp < J:
                 lambda_ /= nu
                 done = True
