@@ -40,7 +40,9 @@ class TestEks(unittest.TestCase):
         prior_mean = np.array([0, 0, 1, 0, 0])
         prior_cov = np.diag([0.1, 0.1, 1, 1, 1])
 
-        _, measurements, ss_mf, ss_ms = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.Extended)
+        _, measurements, ss_mf, ss_ms = get_specific_states_from_file(
+            Path.cwd() / "data/lm_ieks_paper", Type.Extended, None
+        )
         eks = Eks(motion_model, meas_model)
         mf, Pf, ms, Ps = eks.filter_and_smooth(measurements, prior_mean, prior_cov)
         self.assertTrue(np.allclose(mf, ss_mf))

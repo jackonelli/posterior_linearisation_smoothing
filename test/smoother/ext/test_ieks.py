@@ -40,7 +40,7 @@ class TestIeks(unittest.TestCase):
         prior_mean = np.array([0, 0, 1, 0, 0])
         prior_cov = np.diag([0.1, 0.1, 1, 1, 1])
 
-        _, measurements, ss_mf, ss_ms = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.GN)
+        _, measurements, ss_mf, ss_ms = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.GN, 10)
         ieks = Ieks(motion_model, meas_model, num_iter=10)
         mf, Pf, ms, Ps = ieks.filter_and_smooth_with_init_traj(
             measurements, prior_mean, prior_cov, np.zeros((500, 5)), 1

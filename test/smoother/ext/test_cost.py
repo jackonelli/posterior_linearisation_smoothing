@@ -1,5 +1,5 @@
-"""Test EKS
-Check that the EKS implementation matches the one in the paper:
+"""Test (GN-)IEKS
+Check that the (GN-)IEKS implementation matches the one in the paper:
 
 "Levenberg-marquardt and line-search extended kalman smoother"
 
@@ -40,7 +40,7 @@ class TestCost(unittest.TestCase):
         prior_mean = np.array([0, 0, 1, 0, 0])
         prior_cov = np.diag([0.1, 0.1, 1, 1, 1])
 
-        _, measurements, _, ss_ms = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.GN)
+        _, measurements, _, ss_ms = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.GN, 10)
         self.assertAlmostEqual(
             cost(ss_ms, measurements, prior_mean, prior_cov, motion_model, meas_model), 1.039569495177240e03
         )

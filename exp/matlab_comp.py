@@ -33,8 +33,8 @@ def main():
 
     m1 = np.array([0, 0, 1, 0, 0])
     P1 = np.diag([0.1, 0.1, 1, 1, 1])
-    X, Z, ss_xf, ss_xs = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.Extended)
-    X, Z, ss_xf, ss_xs = X[:ts_fin, :], Z[:ts_fin, :], ss_xf[:ts_fin, :], ss_xs[:ts_fin, :]
+    # X, Z, ss_xf, ss_xs = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.Extended)
+    # X, Z, ss_xf, ss_xs = X[:ts_fin, :], Z[:ts_fin, :], ss_xf[:ts_fin, :], ss_xs[:ts_fin, :]
     # MMS, PPS, MM, PP = basic_eks(
     #     Z,
     #     m1,
@@ -48,7 +48,7 @@ def main():
     # )
     # assert np.allclose(ss_xf, MM)
     # assert np.allclose(ss_xs, MMS)
-    _, _, ss_imf, ss_ims = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.GN)
+    X, Z, ss_imf, ss_ims = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.GN)
     # vis(X, Z, loc=MM, ss=ss_ixf)
     print("Cost: ", cost(ss_ims, Z, m1, P1, motion_model, meas_model))
     return

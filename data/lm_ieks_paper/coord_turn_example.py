@@ -6,6 +6,7 @@ The particular realisation used in the paper is data/lm_ieks_coord_turn_states.c
 """
 
 from enum import Enum
+from typing import Optional
 from pathlib import Path
 import numpy as np
 from scipy.linalg import expm
@@ -74,7 +75,7 @@ def gen_data(sens_pos_1, sens_pos_2, std, dt, x_0, time_steps, seed=None) -> (np
     return states, range_meas
 
 
-def get_specific_states_from_file(data_root: Path, type_: Type) -> np.ndarray:
+def get_specific_states_from_file(data_root: Path, type_: Type, num_iter: Optional[int]) -> np.ndarray:
     states_file = data_root / "states.csv"
     if states_file.exists():
         states = np.genfromtxt(states_file, dtype=float, delimiter=";", comments="#")
@@ -87,19 +88,33 @@ def get_specific_states_from_file(data_root: Path, type_: Type) -> np.ndarray:
     else:
         raise FileNotFoundError(f"No meas data file at '{meas_file}'")
 
-    xf_file = data_root / type_.value / "xf.csv"
+    xf_file = data_root / type_.value / xf_name(num_iter)
     if xf_file.exists():
         xf = np.genfromtxt(xf_file, dtype=float, delimiter=";", comments="#")
     else:
         raise FileNotFoundError(f"No xf data file at '{xf_file}'")
 
-    xs_file = data_root / type_.value / "xs.csv"
+    xs_file = data_root / type_.value / xs_name(num_iter)
     if xs_file.exists():
         xs = np.genfromtxt(xs_file, dtype=float, delimiter=";", comments="#")
     else:
         raise FileNotFoundError(f"No xs data file at '{xs_file}'")
 
     return states, measurements, xf, xs
+
+
+def xf_name(num_iter: Optional[int]) -> str:
+    if num_iter is not None:
+        return f"xf_{num_iter}.csv"
+    else:
+        return f"xf.csv"
+
+
+def xs_name(num_iter: Optional[int]) -> str:
+    if num_iter is not None:
+        return f"xs_{num_iter}.csv"
+    else:
+        return f"xs.csv"
 
 
 if __name__ == "__main__":
@@ -113,7 +128,7 @@ if __name__ == "__main__":
         seed=4,
     )
 
-    data = get_specific_states_from_file(Path.cwd())
+    data = get_specific_states_from_file(Path.cwd(), Type.Extended, None)
 
     plt.plot(data[:, 0], data[:, 1])
     plt.show()

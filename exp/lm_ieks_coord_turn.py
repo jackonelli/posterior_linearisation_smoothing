@@ -56,14 +56,14 @@ def main():
     prior_mean = np.array([0, 0, 1, 0, 0])
     prior_cov = np.diag([0.1, 0.1, 1, 1, 1])
 
-    states, measurements, ss_mf, ss_ms = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.GN)
+    states, measurements, ss_mf, ss_ms = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.LM)
     states = states[:K, :]
     measurements = measurements[:K, :]
-    num_iter = 3
-    # smoother = Ieks(motion_model, meas_model, num_iter)
-    lambda_ = 1e-2
-    nu = 10
-    smoother = LmIeks(motion_model, meas_model, num_iter, lambda_, nu)
+    num_iter = 10
+    smoother = Ieks(motion_model, meas_model, num_iter)
+    # lambda_ = 1e-2
+    # nu = 10
+    # smoother = LmIeks(motion_model, meas_model, num_iter, lambda_, nu)
     # mf, Pf, ms, Ps = smoother.filter_and_smooth(measurements, prior_mean, prior_cov)
     mf, Pf, ms, Ps = smoother.filter_and_smooth_with_init_traj(
         measurements, prior_mean, prior_cov, np.zeros((K, prior_mean.shape[0])), 1
@@ -90,10 +90,7 @@ def main():
     vis.plot_2d_est(
         true_x=states,
         meas=None,
-        means_and_covs=[
-            (ms, Ps, f"ms_{num_iter}"),
-            # (ss_ms, ss_Ps, f"ss_ms_{num_iter}")
-        ],
+        means_and_covs=[(ms, Ps, f"ms_{num_iter}"), (ss_ms, ss_Ps, f"ss_ms_{num_iter}")],
         sigma_level=2,
         skip_cov=50,
     )
