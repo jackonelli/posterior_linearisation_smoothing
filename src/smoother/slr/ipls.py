@@ -1,6 +1,6 @@
 """Sigma point Iterated posterior linearisation smoother (IPLS)"""
 from src.smoother.base import IteratedSmoother
-from src.smoother.slr import SigmaPointPrLs
+from src.smoother.slr.prls import SigmaPointPrLs
 from src.filter.iplf import Iplf
 from src.slr.sigma_points import SigmaPointSlr
 import numpy as np

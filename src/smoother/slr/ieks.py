@@ -21,10 +21,10 @@ class Ieks(IteratedSmoother):
         F, b = ekf_lin(self._motion_model, mean)
         return (F, b, 0)
 
-    def _first_iter(self, measurements, m_1_0, P_1_0, cost_fn):
+    def _first_iter(self, measurements, m_1_0, P_1_0):
         self._log.info("Iter: 1")
         smoother = Eks(self._motion_model, self._meas_model)
-        return smoother.filter_and_smooth(measurements, m_1_0, P_1_0, cost_fn)
+        return smoother.filter_and_smooth(measurements, m_1_0, P_1_0)
 
     def _filter_seq(self, measurements, m_1_0, P_1_0):
         iekf = Iekf(self._motion_model, self._meas_model)

@@ -7,11 +7,14 @@ The particular realisation used in the paper is data/lm_ieks_coord_turn_states.c
 
 from enum import Enum
 from typing import Optional
+import logging
 from pathlib import Path
 import numpy as np
 from scipy.linalg import expm
 from matplotlib import pyplot as plt
 from src.models.range_bearing import RangeBearing, MultiSensorRange
+
+LOGGER = logging.getLogger(__name__)
 
 
 class Type(Enum):
@@ -92,13 +95,15 @@ def get_specific_states_from_file(data_root: Path, type_: Type, num_iter: Option
     if xf_file.exists():
         xf = np.genfromtxt(xf_file, dtype=float, delimiter=";", comments="#")
     else:
-        raise FileNotFoundError(f"No xf data file at '{xf_file}'")
+        LOGGER.warn(f"No xf data file at '{xf_file}'")
+        xf = None
 
     xs_file = data_root / type_.value / xs_name(num_iter)
     if xs_file.exists():
         xs = np.genfromtxt(xs_file, dtype=float, delimiter=";", comments="#")
     else:
-        raise FileNotFoundError(f"No xs data file at '{xs_file}'")
+        LOGGER.warn(f"No xs data file at '{xs_file}'")
+        xs = None
 
     return states, measurements, xf, xs
 

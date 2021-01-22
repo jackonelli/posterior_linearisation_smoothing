@@ -1,8 +1,10 @@
 """Example: Levenberg-Marquardt regularised IPLS smoothing
 
-Reproducing the experiment in the paper but with the Reg-IPLS rather than LM-IEKS:
+Reproducing the experiment in the paper:
 
-"Levenberg-Marquardt and line-search extended Kalman smoother"
+    "Levenberg-Marquardt and line-search extended Kalman smoother"
+
+but with the Reg-IPLS rather than the LM-IEKS:
 """
 
 import logging
@@ -16,7 +18,7 @@ from src.smoother.ext.eks import Eks
 from src.smoother.ext.ieks import Ieks
 from src.smoother.ext.lm_ieks import LmIeks
 from src.smoother.ext.cost import cost
-from src.smoother.ipls import SigmaPointIpls
+from src.smoother.slr.ipls import SigmaPointIpls
 from src.utils import setup_logger
 from src.models.range_bearing import MultiSensorRange
 from src.models.coord_turn import LmCoordTurn
@@ -56,8 +58,8 @@ def main():
     prior_mean = np.array([0, 0, 1, 0, 0])
     prior_cov = np.diag([0.1, 0.1, 1, 1, 1])
 
-    num_iter = 10
-    states, measurements, _, _ = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.LM, 10)
+    num_iter = 2
+    states, measurements, _, _ = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.LM, num_iter)
 
     cost_fn = partial(
         cost,

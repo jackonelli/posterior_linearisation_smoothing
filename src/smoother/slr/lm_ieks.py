@@ -27,10 +27,10 @@ class LmIeks(IteratedSmoother):
         return (F, b, 0)
 
     # TODO: This should also has inner LM check
-    def _first_iter(self, measurements, m_1_0, P_1_0, cost_fn):
+    def _first_iter(self, measurements, m_1_0, P_1_0):
         self._log.info("Iter: 1")
         smoother = Eks(self._motion_model, self._meas_model)
-        return smoother.filter_and_smooth(measurements, m_1_0, P_1_0, cost_fn)
+        return smoother.filter_and_smooth(measurements, m_1_0, P_1_0)
 
     def filter_and_smooth_with_init_traj(self, measurements, m_1_0, P_1_0, init_traj, start_iter, cost_fn):
         """Filter and smoothing given an initial trajectory"""
