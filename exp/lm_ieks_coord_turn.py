@@ -16,7 +16,7 @@ from src.smoother.ext.eks import Eks
 from src.smoother.ext.ieks import Ieks
 from src.smoother.ext.lm_ieks import LmIeks
 from src.smoother.ext.cost import cost
-from src.smoother.ipls import Ipls
+from src.smoother.ipls import SigmaPointIpls
 from src.utils import setup_logger
 from src.models.range_bearing import MultiSensorRange
 from src.models.coord_turn import LmCoordTurn
@@ -59,8 +59,6 @@ def main():
     num_iter = 10
     states, measurements, _, _ = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.LM, num_iter)
 
-    lambda_ = 1e-2
-    nu = 10
     cost_fn = partial(
         cost,
         measurements=measurements,
@@ -69,41 +67,57 @@ def main():
         motion_model=motion_model,
         meas_model=meas_model,
     )
+    ms_gn, Ps_gn, cost_gn = gn_ieks(motion_model, meas_model, num_iter, measurements, prior_mean, prior_cov, cost_fn)
+    ms_lm, Ps_lm, cost_lm = lm_ieks(motion_model, meas_model, num_iter, measurements, prior_mean, prior_cov, cost_fn)
+    plot_results(states, [(ms_gn, Ps_gn, cost_gn[1:], "GN-IEKS"), (ms_lm, Ps_lm, cost_lm[1:], "LM-IEKS")])
+
+
+def gn_ieks(motion_model, meas_model, num_iter, measurements, prior_mean, prior_cov, cost_fn):
+    K = measurements.shape[0]
+    smoother = Ieks(motion_model, meas_model, num_iter)
+    # Note that the paper uses m_k = 0, k = 1, ..., K as the initial trajectory
+    # This is the reason for not using the ordinary `filter_and_smooth` method.
+    _, _, ms, Ps, iter_cost = smoother.filter_and_smooth_with_init_traj(
+        measurements, prior_mean, prior_cov, np.zeros((K, prior_mean.shape[0])), 1, cost_fn
+    )
+    return ms, Ps, iter_cost
+
+
+def lm_ieks(motion_model, meas_model, num_iter, measurements, prior_mean, prior_cov, cost_fn):
+    lambda_ = 1e-2
+    nu = 10
+    K = measurements.shape[0]
     smoother = LmIeks(motion_model, meas_model, num_iter, lambda_, nu)
     # Note that the paper uses m_k = 0, k = 1, ..., K as the initial trajectory
     # This is the reason for not using the ordinary `filter_and_smooth` method.
-    mf, Pf, ms, Ps, iter_cost = smoother.filter_and_smooth_with_init_traj(
+    _, _, ms, Ps, iter_cost = smoother.filter_and_smooth_with_init_traj(
         measurements, prior_mean, prior_cov, np.zeros((K, prior_mean.shape[0])), 1, cost_fn
     )
+    return ms, Ps, iter_cost
 
-    plot_results(states, ms, Ps, iter_cost[1:])
 
-
-def plot_results(states, ms, Ps, iter_cost):
+def plot_results(states, trajs_and_costs):
+    means_and_covs = [(ms, Ps, f"{label}-{len(cost)}") for (ms, Ps, cost, label) in trajs_and_costs]
+    costs = [(cost, f"{label}-{len(cost)}") for (_, _, cost, label) in trajs_and_costs]
     _, (ax_1, ax_2) = plt.subplots(1, 2)
-    plot_smooth_traj(ax_1, states, ms, Ps, f"LM-IEKS-{len(iter_cost)}")
-    plot_cost(ax_2, iter_cost[1:])
+    vis.plot_2d_est(
+        states,
+        meas=None,
+        means_and_covs=means_and_covs,
+        sigma_level=2,
+        skip_cov=50,
+        ax=ax_1,
+    )
+    plot_cost(ax_2, costs)
     plt.show()
 
 
-def plot_cost(ax, iter_cost):
-    ax.plot(iter_cost)
+def plot_cost(ax, costs):
+    for (iter_cost, label) in costs:
+        ax.semilogy(iter_cost, label=label)
     ax.set_xlabel("Iteration number i")
     ax.set_ylabel("$L_{LM}$")
     ax.set_title("Cost function")
-
-
-def plot_smooth_traj(ax, true_x, ms, Ps, label):
-    vis.plot_2d_est(
-        true_x,
-        meas=None,
-        means_and_covs=[
-            (ms, Ps, label),
-        ],
-        sigma_level=2,
-        skip_cov=50,
-        ax=ax,
-    )
 
 
 if __name__ == "__main__":
