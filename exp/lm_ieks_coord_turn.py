@@ -2,7 +2,7 @@
 
 Reproducing the experiment in the paper:
 
-"Levenberg-marquardt and line-search extended Kalman smoother"
+"Levenberg-Marquardt and line-search extended Kalman smoother"
 """
 
 import logging
