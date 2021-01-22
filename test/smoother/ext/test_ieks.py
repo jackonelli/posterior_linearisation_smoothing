@@ -56,9 +56,11 @@ class TestIeks(unittest.TestCase):
             meas_model=meas_model,
         )
 
+        K = measurements.shape[0]
+        init_traj = (np.zeros((K, prior_mean.shape[0])), None)
         ieks = Ieks(motion_model, meas_model, num_iter=num_iter)
         mf, Pf, ms, Ps, _iter_cost = ieks.filter_and_smooth_with_init_traj(
-            measurements, prior_mean, prior_cov, np.zeros((500, 5)), 1, cost_fn
+            measurements, prior_mean, prior_cov, init_traj, 1, cost_fn
         )
         self.assertTrue(np.allclose(mf, ss_mf))
         self.assertTrue(np.allclose(ms, ss_ms))
@@ -69,7 +71,7 @@ class TestIeks(unittest.TestCase):
         )
         ieks = Ieks(motion_model, meas_model, num_iter=num_iter)
         mf, Pf, ms, Ps, _iter_cost = ieks.filter_and_smooth_with_init_traj(
-            measurements, prior_mean, prior_cov, np.zeros((500, 5)), 1, cost_fn
+            measurements, prior_mean, prior_cov, init_traj, 1, cost_fn
         )
         self.assertTrue(np.allclose(mf, ss_mf))
         self.assertTrue(np.allclose(ms, ss_ms))

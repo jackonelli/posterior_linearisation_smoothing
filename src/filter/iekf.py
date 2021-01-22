@@ -11,7 +11,7 @@ class Iekf(Filter):
         self._meas_model = meas_model
         self._current_means = None
 
-    def _update_estimates(self, means):
+    def _update_estimates(self, means, _covs):
         self._current_means = means.copy()
 
     def _motion_lin(self, _mean, _cov, time_step):

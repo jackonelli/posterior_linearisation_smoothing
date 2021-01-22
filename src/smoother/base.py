@@ -139,11 +139,11 @@ class IteratedSmoother(Smoother):
     def filter_and_smooth(self, measurements, m_1_0, P_1_0, cost_fn):
         """Overrides (extends) the base class default implementation"""
 
-        mf, Pf, current_ms, current_Ps = self._first_iter(measurements, m_1_0, P_1_0)
-        iter_cost = np.array(cost_fn(current_ms))
+        mf, Pf, current_ms, current_Ps, first_cost = self._first_iter(measurements, m_1_0, P_1_0, cost_fn)
+        iter_cost = np.array([first_cost])
         if self.num_iter > 1:
-            mf, Pf, ms, Ps, filter_cost, tmp_cost = self.filter_and_smooth_with_init_traj(
-                measurements, m_1_0, P_1_0, current_ms, 2, cost_fn
+            mf, Pf, ms, Ps, tmp_cost = self.filter_and_smooth_with_init_traj(
+                measurements, m_1_0, P_1_0, (current_ms, current_Ps), 2, cost_fn
             )
             return mf, Pf, ms, Ps, np.concatenate((iter_cost, tmp_cost))
         else:
@@ -155,18 +155,26 @@ class IteratedSmoother(Smoother):
         Override if more complex iteration behaviour decided (e.g. reject iter based on cost fn increase)
         TODO: Can this be made to make overrides unnec? Adding rejection predicate perhaps.
         """
-        current_ms = init_traj
-        self._update_estimates(current_ms)
-        cost_iter = [cost_fn(init_traj)]
+        current_ms, current_Ps = init_traj
+        self._update_estimates(current_ms, current_Ps)
+        cost_iter = [cost_fn(current_ms)]
         for iter_ in range(start_iter, self.num_iter + 1):
             self._log.info(f"Iter: {iter_}")
             mf, Pf, current_ms, current_Ps, cost = super().filter_and_smooth(measurements, m_1_0, P_1_0, cost_fn)
-            self._update_estimates(current_ms)
+            self._update_estimates(current_ms, current_Ps)
             cost_iter.append(cost)
-        return mf, Pf, current_ms, current_Ps, cost_iter
+        return mf, Pf, current_ms, current_Ps, np.array(cost_iter)
 
     @abstractmethod
-    def _first_iter(measurements, m_1_0, P_1_0):
+    def _update_estimates(means, covs):
+        """First, special, iter to initialise the 'previous estimates'
+
+        Time step k gives required context for some linearisations (Posterior SLR).
+        """
+        pass
+
+    @abstractmethod
+    def _first_iter(measurements, m_1_0, P_1_0, cost_fn):
         """First, special, iter to initialise the 'previous estimates'
 
         Time step k gives required context for some linearisations (Posterior SLR).

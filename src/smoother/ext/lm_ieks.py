@@ -34,9 +34,9 @@ class LmIeks(IteratedSmoother):
 
     def filter_and_smooth_with_init_traj(self, measurements, m_1_0, P_1_0, init_traj, start_iter, cost_fn):
         """Filter and smoothing given an initial trajectory"""
-        current_ms = init_traj
-        self._update_estimates(current_ms)
-        prev_cost = cost_fn(init_traj)
+        current_ms, _ = init_traj
+        self._update_estimates(current_ms, None)
+        prev_cost = cost_fn(current_ms)
         cost_iter = [prev_cost]
         self._log.debug(f"Initial cost: {prev_cost}")
         for iter_ in range(start_iter, self.num_iter + 1):
@@ -56,7 +56,7 @@ class LmIeks(IteratedSmoother):
                 else:
                     self._lambda *= self._nu
                 inner_iter += 1
-            self._update_estimates(current_ms)
+            self._update_estimates(current_ms, None)
             prev_cost = _cost
             cost_iter.append(_cost)
             # _cost = cost(current_ms, measurements, m_1_0, P_1_0, self._motion_model, self._meas_model)
@@ -64,10 +64,10 @@ class LmIeks(IteratedSmoother):
 
     def _filter_seq(self, measurements, m_1_0, P_1_0):
         lm_iekf = _LmIekf(self._motion_model, self._meas_model, self._lambda)
-        lm_iekf._update_estimates(self._current_means)
+        lm_iekf._update_estimates(self._current_means, None)
         return lm_iekf.filter_seq(measurements, m_1_0, P_1_0)
 
-    def _update_estimates(self, means):
+    def _update_estimates(self, means, _covs):
         self._current_means = means.copy()
 
 
@@ -77,7 +77,7 @@ class _LmIekf(Iekf):
         self._lambda = lambda_
         self._current_means = None
 
-    def _update_estimates(self, means):
+    def _update_estimates(self, means, _covs):
         self._current_means = means
 
     def _update(self, y_k, m_k_kminus1, P_k_kminus1, R, linearization, time_step):
