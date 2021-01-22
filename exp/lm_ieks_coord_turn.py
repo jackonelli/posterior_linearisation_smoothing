@@ -65,8 +65,6 @@ def main():
     # smoother = Ieks(motion_model, meas_model, num_iter)
     lambda_ = 1e-2
     nu = 10
-    smoother = LmIeks(motion_model, meas_model, num_iter, lambda_, nu)
-    mf, Pf, ms, Ps = smoother.filter_and_smooth(measurements, prior_mean, prior_cov)
 
     mf_ss, Pf_ss, ms_ss, Ps_ss = lm_ieks(
         measurements,
@@ -81,9 +79,11 @@ def main():
         num_iter,
         np.zeros((K, prior_mean.shape[0])),
     )
-    # mf, Pf, ms, Ps = smoother.filter_and_smooth_with_init_traj(
-    #     measurements, prior_mean, prior_cov, np.zeros((K, prior_mean.shape[0])), 1
-    # )
+    # mf, Pf, ms, Ps = smoother.filter_and_smooth(measurements, prior_mean, prior_cov)
+    smoother = LmIeks(motion_model, meas_model, num_iter, lambda_, nu)
+    mf, Pf, ms, Ps = smoother.filter_and_smooth_with_init_traj(
+        measurements, prior_mean, prior_cov, np.zeros((K, prior_mean.shape[0])), 1
+    )
     # ss_mf, ss_Pf, ss_ms, ss_Ps = gn_eks(
     #     measurements,
     #     prior_mean,

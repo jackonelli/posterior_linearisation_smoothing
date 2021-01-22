@@ -52,28 +52,28 @@ class Filter(ABC):
         # Shift to next time step
         m_kminus1_kminus1 = m_1_1
         P_kminus1_kminus1 = P_1_1
-        for k_minus_1 in np.arange(1, K):
-            LOGGER.debug("Time step: %s", k_minus_1)
+        for k in np.arange(1, K):
+            LOGGER.debug("Time step: %s", k)
             m_k_kminus1, P_k_kminus1 = self._predict(
                 m_kminus1_kminus1,
                 P_kminus1_kminus1,
-                self._proc_noise(k_minus_1),
-                self._motion_lin(m_kminus1_kminus1, P_kminus1_kminus1, k_minus_1 - 1),
+                self._proc_noise(k - 1),
+                self._motion_lin(m_kminus1_kminus1, P_kminus1_kminus1, k - 1),
             )
 
-            y_k = measurements[k_minus_1]
+            y_k = measurements[k]
             m_k_k, P_k_k = self._update(
                 y_k,
                 m_k_kminus1,
                 P_k_kminus1,
-                self._meas_noise(k_minus_1),
-                self._meas_lin(m_k_kminus1, P_k_kminus1, k_minus_1),
-                k_minus_1,
+                self._meas_noise(k),
+                self._meas_lin(m_k_kminus1, P_k_kminus1, k),
+                k,
             )
-            pred_means[k_minus_1, :] = m_k_kminus1
-            pred_covs[k_minus_1, :, :] = P_k_kminus1
-            filter_means[k_minus_1, :] = m_k_k
-            filter_covs[k_minus_1, :, :] = P_k_k
+            pred_means[k, :] = m_k_kminus1
+            pred_covs[k, :, :] = P_k_kminus1
+            filter_means[k, :] = m_k_k
+            filter_covs[k, :, :] = P_k_k
             # Shift to next time step
             m_kminus1_kminus1 = m_k_k
             P_kminus1_kminus1 = P_k_k

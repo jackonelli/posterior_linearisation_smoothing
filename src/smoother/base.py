@@ -20,6 +20,9 @@ class Smoother(ABC):
         """Filters and smooths a measurement sequence.
 
         Args:
+            measurements (K, D_y): Measurement sequence for times 1,..., K
+            m_0_0 (D_x,): Prior mean for time 0
+            P_0_0 (D_x, D_x): Prior covariance for time 0
 
         Returns:
             filter_means (K, D_x): Filtered mean estimates for times 1,..., K

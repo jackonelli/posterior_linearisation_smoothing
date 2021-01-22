@@ -1,20 +1,20 @@
-"""Test (GN-)IEKS
-Check that the (GN-)IEKS implementation matches the one in the paper:
+"""Test LM-IEKS
+Check that the LM-IEKS implementation matches the one in the paper:
 
 "Levenberg-marquardt and line-search extended kalman smoother"
 
-Runs (GN-)IEKS and compares with stored matlab output.
+Runs LM-IEKS and compares with stored matlab output.
 """
 import unittest
 from pathlib import Path
 import numpy as np
-from src.smoother.ext.ieks import Ieks
+from src.smoother.ext.lm_ieks import LmIeks
 from src.models.range_bearing import MultiSensorRange
 from src.models.coord_turn import LmCoordTurn
 from data.lm_ieks_paper.coord_turn_example import get_specific_states_from_file, Type
 
 
-class TestIeks(unittest.TestCase):
+class TestLmIeks(unittest.TestCase):
     def test_cmp_with_ss_impl(self):
         dt = 0.01
         qc = 0.01
@@ -42,9 +42,11 @@ class TestIeks(unittest.TestCase):
 
         num_iter = 1
         _, measurements, ss_mf, ss_ms = get_specific_states_from_file(
-            Path.cwd() / "data/lm_ieks_paper", Type.GN, num_iter
+            Path.cwd() / "data/lm_ieks_paper", Type.LM, num_iter
         )
-        ieks = Ieks(motion_model, meas_model, num_iter=num_iter)
+        lambda_ = 1e-2
+        nu = 10
+        ieks = LmIeks(motion_model, meas_model, num_iter, lambda_, nu)
         mf, Pf, ms, Ps = ieks.filter_and_smooth_with_init_traj(
             measurements, prior_mean, prior_cov, np.zeros((500, 5)), 1
         )
@@ -53,9 +55,9 @@ class TestIeks(unittest.TestCase):
 
         num_iter = 10
         _, measurements, ss_mf, ss_ms = get_specific_states_from_file(
-            Path.cwd() / "data/lm_ieks_paper", Type.GN, num_iter
+            Path.cwd() / "data/lm_ieks_paper", Type.LM, num_iter
         )
-        ieks = Ieks(motion_model, meas_model, num_iter=num_iter)
+        ieks = LmIeks(motion_model, meas_model, num_iter, lambda_, nu)
         mf, Pf, ms, Ps = ieks.filter_and_smooth_with_init_traj(
             measurements, prior_mean, prior_cov, np.zeros((500, 5)), 1
         )
