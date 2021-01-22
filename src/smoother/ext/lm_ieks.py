@@ -3,7 +3,6 @@ from functools import partial
 import numpy as np
 from src.smoother.base import Smoother
 from src.smoother.ext.eks import Eks
-from src.smoother.ext.cost import cost
 from src.filter.ekf import ekf_lin
 from src.filter.iekf import Iekf, ekf_lin
 
@@ -26,7 +25,7 @@ class LmIeks(Smoother):
         F, b = ekf_lin(self._motion_model, mean)
         return (F, b, 0)
 
-    def filter_and_smooth_iter(self, measurements, m_1_0, P_1_0, num_iter, cost_fn):
+    def filter_and_smooth(self, measurements, m_1_0, P_1_0, num_iter, cost_fn):
         """Overrides (extends) the base class default implementation"""
 
         mf, Pf, current_ms, current_Ps = self._first_iter(measurements, m_1_0, P_1_0)
@@ -57,8 +56,7 @@ class LmIeks(Smoother):
             inner_iter = 0
             has_improved = False
             while has_improved is False and inner_iter < 10:
-                mf, Pf, current_ms, current_Ps = super().filter_and_smooth(measurements, m_1_0, P_1_0)
-                _cost = cost_fn(current_ms)
+                mf, Pf, current_ms, current_Ps, _cost = super().filter_and_smooth(measurements, m_1_0, P_1_0, cost_fn)
                 self._log.debug(f"Cost: {_cost}, lambda: {self._lambda}")
                 if _cost < prev_cost:
                     self._lambda /= self._nu

@@ -2,7 +2,6 @@
 import numpy as np
 from src.smoother.base import Smoother
 from src.smoother.ext.eks import Eks
-from src.smoother.ext.cost import cost
 from src.filter.ekf import ekf_lin
 from src.filter.iekf import Iekf, ekf_lin
 
@@ -22,7 +21,7 @@ class Ieks(Smoother):
         F, b = ekf_lin(self._motion_model, mean)
         return (F, b, 0)
 
-    def filter_and_smooth_iter(self, measurements, m_1_0, P_1_0, num_iter, cost_fn):
+    def filter_and_smooth(self, measurements, m_1_0, P_1_0, num_iter, cost_fn):
         """Overrides (extends) the base class default implementation"""
 
         mf, Pf, current_ms, current_Ps = self._first_iter(measurements, m_1_0, P_1_0)
@@ -47,10 +46,9 @@ class Ieks(Smoother):
         cost_iter = [cost_fn(init_traj)]
         for iter_ in range(start_iter, self.num_iter + 1):
             self._log.info(f"Iter: {iter_}")
-            mf, Pf, current_ms, current_Ps = super().filter_and_smooth(measurements, m_1_0, P_1_0)
+            mf, Pf, current_ms, current_Ps, cost = super().filter_and_smooth(measurements, m_1_0, P_1_0, cost_fn)
             self._update_estimates(current_ms)
-            cost_iter.append(cost_fn(current_ms))
-            # _cost = cost(current_ms, measurements, m_1_0, P_1_0, self._motion_model, self._meas_model)
+            cost_iter.append(cost)
         return mf, Pf, current_ms, current_Ps, cost_iter
 
     def _filter_seq(self, measurements, m_1_0, P_1_0):

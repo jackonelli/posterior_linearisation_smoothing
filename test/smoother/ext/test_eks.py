@@ -44,6 +44,6 @@ class TestEks(unittest.TestCase):
             Path.cwd() / "data/lm_ieks_paper", Type.Extended, None
         )
         eks = Eks(motion_model, meas_model)
-        mf, Pf, ms, Ps = eks.filter_and_smooth(measurements, prior_mean, prior_cov)
+        mf, Pf, ms, Ps, _cost = eks.filter_and_smooth(measurements, prior_mean, prior_cov)
         self.assertTrue(np.allclose(mf, ss_mf))
         self.assertTrue(np.allclose(ms, ss_ms))

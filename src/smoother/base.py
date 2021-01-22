@@ -16,13 +16,16 @@ class Smoother(ABC):
     def __init__(self):
         self._log = logging.getLogger(self.__class__.__name__)
 
-    def filter_and_smooth(self, measurements, m_1_0, P_1_0):
+    def filter_and_smooth(self, measurements, m_1_0, P_1_0, cost_fn=None):
         """Filters and smooths a measurement sequence.
 
         Args:
             measurements (K, D_y): Measurement sequence for times 1,..., K
             m_0_0 (D_x,): Prior mean for time 0
             P_0_0 (D_x, D_x): Prior covariance for time 0
+            cost_fn: optional fn mapping estimated traj to cost: R^(K x D_x) --> R
+                useful to track progress for iterated smoother and needs to be included here
+                to get a uniform api.
 
         Returns:
             filter_means (K, D_x): Filtered mean estimates for times 1,..., K
@@ -33,7 +36,10 @@ class Smoother(ABC):
 
         filter_means, filter_covs, pred_means, pred_covs = self._filter_seq(measurements, m_1_0, P_1_0)
         smooth_means, smooth_covs = self.smooth_seq_pre_comp_filter(filter_means, filter_covs, pred_means, pred_covs)
-        return filter_means, filter_covs, smooth_means, smooth_covs
+        cost = None
+        if cost_fn is not None:
+            cost = cost_fn(smooth_means)
+        return filter_means, filter_covs, smooth_means, smooth_covs, cost
 
     def smooth_seq_pre_comp_filter(self, filter_means, filter_covs, pred_means, pred_covs):
         """Smooths the outputs from a filter.
@@ -121,3 +127,13 @@ class Smoother(ABC):
         Time step k gives required context for some linearisations (Posterior SLR).
         """
         pass
+
+
+class IteratedSmoother(Smoother):
+    """Abstract iterated smoother class
+
+    The purpose is to provide a default impl. for the high level method
+    `smooth_and_filter_iter`
+    """
+
+    pass
