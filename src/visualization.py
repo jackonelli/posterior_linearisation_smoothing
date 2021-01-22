@@ -29,9 +29,10 @@ def plot_nees_comp(true_x, m_1, P_1, m_2, P_2):
     plt.show()
 
 
-def plot_2d_est(true_x, meas, means_and_covs, sigma_level=3, skip_cov=1):
+def plot_2d_est(true_x, meas, means_and_covs, sigma_level=3, skip_cov=1, ax=None):
     K, D_x = true_x.shape
-    _, ax = plt.subplots()
+    if ax is None:
+        _, ax = plt.subplots()
     ax.plot(true_x[:, 0], true_x[:, 1], ".k", label="true")
 
     if meas is not None:
@@ -44,7 +45,6 @@ def plot_2d_est(true_x, meas, means_and_covs, sigma_level=3, skip_cov=1):
     ax.set_xlabel("$pos_x$")
     ax.set_ylabel("$pos_y$")
     ax.legend()
-    plt.show()
 
 
 def plot_nees_and_2d_est(true_x, meas, means_and_covs, sigma_level=3, skip_cov=1):

@@ -2,7 +2,7 @@
 
 Reproducing the experiment in the paper:
 
-"Levenberg-marquardt and line-search extended kalman smoother"
+"Levenberg-marquardt and line-search extended Kalman smoother"
 """
 
 import logging
@@ -76,19 +76,34 @@ def main():
         measurements, prior_mean, prior_cov, np.zeros((K, prior_mean.shape[0])), 1, cost_fn
     )
 
+    plot_results(states, ms, Ps, iter_cost[1:])
+
+
+def plot_results(states, ms, Ps, iter_cost):
+    _, (ax_1, ax_2) = plt.subplots(1, 2)
+    plot_smooth_traj(ax_1, states, ms, Ps, f"LM-IEKS-{len(iter_cost)}")
+    plot_cost(ax_2, iter_cost[1:])
+    plt.show()
+
+
+def plot_cost(ax, iter_cost):
+    ax.plot(iter_cost)
+    ax.set_xlabel("Iteration number i")
+    ax.set_ylabel("$L_{LM}$")
+    ax.set_title("Cost function")
+
+
+def plot_smooth_traj(ax, true_x, ms, Ps, label):
     vis.plot_2d_est(
-        true_x=states,
+        true_x,
         meas=None,
         means_and_covs=[
-            (ms, Ps, f"ms_{num_iter}"),
+            (ms, Ps, label),
         ],
         sigma_level=2,
         skip_cov=50,
+        ax=ax,
     )
-
-
-def plot_smooth_traj():
-    pass
 
 
 if __name__ == "__main__":
