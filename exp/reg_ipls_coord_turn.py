@@ -28,6 +28,7 @@ from src.smoother.ext.cost import cost
 
 
 def main():
+    logging.getLogger("matplotlib").setLevel(logging.WARNING)
     log = logging.getLogger(__name__)
     experiment_name = "lm_ieks"
     setup_logger(f"logs/{experiment_name}.log", logging.INFO)
@@ -58,7 +59,7 @@ def main():
     prior_mean = np.array([0, 0, 1, 0, 0])
     prior_cov = np.diag([0.1, 0.1, 1, 1, 1])
 
-    num_iter = 2
+    num_iter = 10
     states, measurements, _, _ = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.LM, num_iter)
 
     cost_fn = partial(

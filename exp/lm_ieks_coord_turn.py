@@ -16,7 +16,6 @@ from src.smoother.ext.eks import Eks
 from src.smoother.ext.ieks import Ieks
 from src.smoother.ext.lm_ieks import LmIeks
 from src.smoother.ext.cost import cost
-from src.smoother.ipls import SigmaPointIpls
 from src.utils import setup_logger
 from src.models.range_bearing import MultiSensorRange
 from src.models.coord_turn import LmCoordTurn
@@ -26,9 +25,10 @@ from src.smoother.ext.cost import cost
 
 
 def main():
+    logging.getLogger("matplotlib").setLevel(logging.WARNING)
     log = logging.getLogger(__name__)
     experiment_name = "lm_ieks"
-    setup_logger(f"logs/{experiment_name}.log", logging.INFO)
+    setup_logger(f"logs/{experiment_name}.log", logging.DEBUG)
     log.info(f"Running experiment: {experiment_name}")
     K = 500
 

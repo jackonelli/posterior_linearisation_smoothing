@@ -53,7 +53,6 @@ class Filter(ABC):
         m_kminus1_kminus1 = m_1_1
         P_kminus1_kminus1 = P_1_1
         for k in np.arange(1, K):
-            LOGGER.debug("Time step: %s", k)
             m_k_kminus1, P_k_kminus1 = self._predict(
                 m_kminus1_kminus1,
                 P_kminus1_kminus1,
