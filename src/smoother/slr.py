@@ -1,11 +1,11 @@
-"""SLR Smoother"""
+"""Sigma point Prior linearisation smoother (PrLS)"""
 from src.smoother.base import Smoother
 from src.filter.slr import SigmaPointSlrFilter
 from src.slr.sigma_points import SigmaPointSlr
 
 
-class SigmaPointSlrSmoother(Smoother):
-    """Sigma point SLR smoother"""
+class SigmaPointPrLs(Smoother):
+    """Sigma point PrLs smoother"""
 
     def __init__(self, motion_model, meas_model):
         super().__init__()

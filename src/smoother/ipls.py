@@ -1,12 +1,12 @@
-"""Iterated posterior linearisation filter"""
+"""Sigma point Iterated posterior linearisation smoother (IPLS)"""
 from src.smoother.base import Smoother
-from src.smoother.slr import SigmaPointSlrSmoother
+from src.smoother.slr import SigmaPointPrLs
 from src.filter.iplf import Iplf
 from src.slr.sigma_points import SigmaPointSlr
 import numpy as np
 
 
-class Ipls(Smoother):
+class SigmaPointIpls(Smoother):
     """Iterated posterior linearisation filter"""
 
     def __init__(self, motion_model, meas_model, num_iter):
@@ -35,7 +35,7 @@ class Ipls(Smoother):
 
     def _first_iter(self, measurements, m_1_0, P_1_0):
         self._log.info("Iter: 1")
-        smoother = SigmaPointSlrSmoother(self._motion_model, self._meas_model)
+        smoother = SigmaPointPrLs(self._motion_model, self._meas_model)
         return smoother.filter_and_smooth(measurements, m_1_0, P_1_0)
 
     def _filter_seq(self, measurements, m_1_0, P_1_0):

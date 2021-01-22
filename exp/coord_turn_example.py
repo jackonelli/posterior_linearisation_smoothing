@@ -9,7 +9,7 @@ from src.models.range_bearing import RangeBearing
 from src.filter.slr import SigmaPointSlrFilter
 
 # from src.smoother.slr import SigmaPointSlrSmoother
-from src.smoother.ipls import Ipls
+from src.smoother.ipls import SigmaPointIpls
 from src.smoother.ext.ieks import Ieks
 from src import visualization as vis
 from src.utils import setup_logger
@@ -24,7 +24,7 @@ def main():
     log.info(f"Running experiment: {experiment_name}")
     np.random.seed(2)
     range_ = (0, 200)
-    num_iter = 3
+    num_iter = 10
 
     # Motion model
     sampling_period = 0.1
@@ -52,7 +52,7 @@ def main():
     x_1_0 = np.array([4.4, 0, 4, 0, 0])
     P_1_0 = np.diag([1 ** 2, 1 ** 2, 1 ** 2, (5 * np.pi / 180) ** 2, (1 * np.pi / 180) ** 2])
 
-    smoother = Ipls(motion_model, meas_model, num_iter)
+    smoother = SigmaPointIpls(motion_model, meas_model, num_iter)
     mf, Pf, ms, Ps = smoother.filter_and_smooth(measurements, x_1_0, P_1_0)
 
     vis.plot_nees_and_2d_est(

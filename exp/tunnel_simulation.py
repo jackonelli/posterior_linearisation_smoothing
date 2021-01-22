@@ -16,7 +16,7 @@ from src.filter.ekf import Ekf
 from src.smoother.ext.eks import Eks
 from src.smoother.ext.ieks import Ieks
 from src.smoother.ext.lm_ieks import LmIeks
-from src.smoother.ipls import Ipls
+from src.smoother.ipls import SigmaPointIpls
 from src.utils import setup_logger
 from src.models.range_bearing import MultiSensorRange
 from src.models.coord_turn import LmCoordTurn
