@@ -136,4 +136,39 @@ class IteratedSmoother(Smoother):
     `smooth_and_filter_iter`
     """
 
-    pass
+    def filter_and_smooth(self, measurements, m_1_0, P_1_0, cost_fn):
+        """Overrides (extends) the base class default implementation"""
+
+        mf, Pf, current_ms, current_Ps = self._first_iter(measurements, m_1_0, P_1_0)
+        iter_cost = np.array(cost_fn(current_ms))
+        if self.num_iter > 1:
+            mf, Pf, ms, Ps, filter_cost, tmp_cost = self.filter_and_smooth_with_init_traj(
+                measurements, m_1_0, P_1_0, current_ms, 2, cost_fn
+            )
+            return mf, Pf, ms, Ps, np.concatenate((iter_cost, tmp_cost))
+        else:
+            return mf, Pf, current_ms, current_Ps, iter_cost
+
+    def filter_and_smooth_with_init_traj(self, measurements, m_1_0, P_1_0, init_traj, start_iter, cost_fn):
+        """Filter and smoothing given an initial trajectory
+
+        Override if more complex iteration behaviour decided (e.g. reject iter based on cost fn increase)
+        TODO: Can this be made to make overrides unnec? Adding rejection predicate perhaps.
+        """
+        current_ms = init_traj
+        self._update_estimates(current_ms)
+        cost_iter = [cost_fn(init_traj)]
+        for iter_ in range(start_iter, self.num_iter + 1):
+            self._log.info(f"Iter: {iter_}")
+            mf, Pf, current_ms, current_Ps, cost = super().filter_and_smooth(measurements, m_1_0, P_1_0, cost_fn)
+            self._update_estimates(current_ms)
+            cost_iter.append(cost)
+        return mf, Pf, current_ms, current_Ps, cost_iter
+
+    @abstractmethod
+    def _first_iter(measurements, m_1_0, P_1_0):
+        """First, special, iter to initialise the 'previous estimates'
+
+        Time step k gives required context for some linearisations (Posterior SLR).
+        """
+        pass

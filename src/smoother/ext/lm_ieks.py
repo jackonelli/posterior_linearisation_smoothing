@@ -3,11 +3,12 @@ from functools import partial
 import numpy as np
 from src.smoother.base import Smoother
 from src.smoother.ext.eks import Eks
+from src.smoother.base import IteratedSmoother
 from src.filter.ekf import ekf_lin
 from src.filter.iekf import Iekf, ekf_lin
 
 
-class LmIeks(Smoother):
+class LmIeks(IteratedSmoother):
     """Levenberg-Marquardt Iterated Extended Kalman Smoother (LM-IEKS)"""
 
     def __init__(self, motion_model, meas_model, num_iter, lambda_, nu):
@@ -24,19 +25,6 @@ class LmIeks(Smoother):
         mean = self._current_means[time_step, :]
         F, b = ekf_lin(self._motion_model, mean)
         return (F, b, 0)
-
-    def filter_and_smooth(self, measurements, m_1_0, P_1_0, num_iter, cost_fn):
-        """Overrides (extends) the base class default implementation"""
-
-        mf, Pf, current_ms, current_Ps = self._first_iter(measurements, m_1_0, P_1_0)
-        iter_cost = np.array(cost_fn(current_ms))
-        if self.num_iter > 1:
-            mf, Pf, ms, Ps, filter_cost, tmp_cost = self.filter_and_smooth_with_init_traj(
-                measurements, m_1_0, P_1_0, current_ms, 2, cost_fn
-            )
-            return mf, Pf, ms, Ps, np.concatenate((iter_cost, tmp_cost))
-        else:
-            return mf, Pf, current_ms, current_Ps, iter_cost
 
     # TODO: This should also has inner LM check
     def _first_iter(self, measurements, m_1_0, P_1_0):
@@ -56,7 +44,11 @@ class LmIeks(Smoother):
             inner_iter = 0
             has_improved = False
             while has_improved is False and inner_iter < 10:
-                mf, Pf, current_ms, current_Ps, _cost = super().filter_and_smooth(measurements, m_1_0, P_1_0, cost_fn)
+                # Note: here we want to run the base `Smoother` class method.
+                # I.e. we're getting the grandparent's method.
+                mf, Pf, current_ms, current_Ps, _cost = super(IteratedSmoother, self).filter_and_smooth(
+                    measurements, m_1_0, P_1_0, cost_fn
+                )
                 self._log.debug(f"Cost: {_cost}, lambda: {self._lambda}")
                 if _cost < prev_cost:
                     self._lambda /= self._nu
