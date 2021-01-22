@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def cost(means, measurements, m_1_0, P_1_0, motion_model, meas_model):
+def lm_cost(means, measurements, m_1_0, P_1_0, motion_model, meas_model):
     prior_diff = means[0, :] - m_1_0
     _cost = prior_diff.T @ np.linalg.inv(P_1_0) @ prior_diff
 

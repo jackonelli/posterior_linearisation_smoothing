@@ -10,7 +10,7 @@ from pathlib import Path
 from functools import partial
 import numpy as np
 from src.smoother.ext.ieks import Ieks
-from src.smoother.ext.cost import cost
+from src.cost import lm_cost
 from src.models.range_bearing import MultiSensorRange
 from src.models.coord_turn import LmCoordTurn
 from data.lm_ieks_paper.coord_turn_example import get_specific_states_from_file, Type
@@ -48,7 +48,7 @@ class TestIeks(unittest.TestCase):
         )
 
         cost_fn = partial(
-            cost,
+            lm_cost,
             measurements=measurements,
             m_1_0=prior_mean,
             P_1_0=prior_cov,
