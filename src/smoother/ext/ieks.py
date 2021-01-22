@@ -22,30 +22,36 @@ class Ieks(Smoother):
         F, b = ekf_lin(self._motion_model, mean)
         return (F, b, 0)
 
-    def filter_and_smooth(self, measurements, m_1_0, P_1_0):
+    def filter_and_smooth_iter(self, measurements, m_1_0, P_1_0, num_iter, cost_fn):
         """Overrides (extends) the base class default implementation"""
 
         mf, Pf, current_ms, current_Ps = self._first_iter(measurements, m_1_0, P_1_0)
+        iter_cost = np.array(cost_fn(current_ms))
         if self.num_iter > 1:
-            return self.filter_and_smooth_with_init_traj(measurements, m_1_0, P_1_0, current_ms, 2)
+            mf, Pf, ms, Ps, filter_cost, tmp_cost = self.filter_and_smooth_with_init_traj(
+                measurements, m_1_0, P_1_0, current_ms, 2, cost_fn
+            )
+            return mf, Pf, ms, Ps, np.concatenate((iter_cost, tmp_cost))
         else:
-            return mf, Pf, current_ms, current_Ps
+            return mf, Pf, current_ms, current_Ps, iter_cost
 
     def _first_iter(self, measurements, m_1_0, P_1_0):
         self._log.info("Iter: 1")
         smoother = Eks(self._motion_model, self._meas_model)
         return smoother.filter_and_smooth(measurements, m_1_0, P_1_0)
 
-    def filter_and_smooth_with_init_traj(self, measurements, m_1_0, P_1_0, init_traj, start_iter):
+    def filter_and_smooth_with_init_traj(self, measurements, m_1_0, P_1_0, init_traj, start_iter, cost_fn):
         """Filter and smoothing given an initial trajectory"""
         current_ms = init_traj
         self._update_estimates(current_ms)
+        cost_iter = [cost_fn(init_traj)]
         for iter_ in range(start_iter, self.num_iter + 1):
             self._log.info(f"Iter: {iter_}")
             mf, Pf, current_ms, current_Ps = super().filter_and_smooth(measurements, m_1_0, P_1_0)
             self._update_estimates(current_ms)
+            cost_iter.append(cost_fn(current_ms))
             # _cost = cost(current_ms, measurements, m_1_0, P_1_0, self._motion_model, self._meas_model)
-        return mf, Pf, current_ms, current_Ps
+        return mf, Pf, current_ms, current_Ps, cost_iter
 
     def _filter_seq(self, measurements, m_1_0, P_1_0):
         iekf = Iekf(self._motion_model, self._meas_model)
