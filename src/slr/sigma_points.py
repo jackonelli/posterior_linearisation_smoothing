@@ -8,22 +8,6 @@ class SigmaPointSlr(Slr):
     def __init__(self, sigma_point_method: SigmaPointMethod):
         self.sigma_point_method = sigma_point_method
 
-    def linear_params(self, fn, mean, cov):
-        """SLR sigma points linearisation
-        Args:
-            fn: state mapping. In principle fn: R^n -> R^m,
-                but in practice the function must handle sets of vectors of length N.
-                I.e., fn: R^Nxn -> R^Nxm
-            mean: estimated state, mean in R^n
-            cov: estimate state covaraiance, R^(n x n)
-        """
-
-        z_bar, psi, phi = self.sigma_point_slr(fn, mean, cov)
-        A = psi.T @ np.linalg.inv(cov)
-        b = z_bar - A @ mean
-        Sigma = phi - A @ cov @ A.T
-        return A, b, Sigma
-
     def slr(self, fn, mean, cov):
         """Sigma point SLR
         Calculate z_bar, psi, phi from a (non-linear) function and estimated distribution

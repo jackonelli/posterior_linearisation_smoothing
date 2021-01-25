@@ -2,10 +2,10 @@
 import numpy as np
 import logging
 from src.slr.distributions import Prior, Conditional
-from src.linearizer import Linearizer
+from src.slr.base import Slr
 
 
-class McSlr(Linearizer):
+class McSlr(Slr):
     """Monte Carlo SLR"""
 
     def __init__(self, p_x: Prior, p_z_given_x: Conditional, num_samples: int):
@@ -14,17 +14,12 @@ class McSlr(Linearizer):
         self.num_samples = num_samples
         self._log = logging.getLogger(self.__class__.__name__)
 
-    def linear_params(self, mean, cov):
-        """Estimate linear parameters"""
+    def slr(self, fn, mean, cov):
         x_sample, z_sample = self._sample(mean, cov)
         z_bar = self._z_bar(z_sample)
         psi = self._psi(x_sample, mean, z_sample, z_bar)
         phi = self._phi(z_sample, z_bar)
-
-        A = psi.T @ np.linalg.inv(cov)
-        b = z_bar - A @ _bar(x_sample)
-        Sigma = phi - A @ cov @ A.T
-        return A, b, Sigma
+        return z_bar, psi, phi
 
     def _sample(self, mean, cov):
         self._log.debug("Sampling x ~ p(x)")
