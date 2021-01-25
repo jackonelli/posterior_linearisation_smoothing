@@ -18,7 +18,6 @@ class LmIeks(IteratedSmoother):
         self._lambda = lambda_
         self._nu = nu
         self._current_means = None
-        self.store_cost = np.zeros((num_iter,))
         self.num_iter = num_iter
 
     def _motion_lin(self, _mean, _cov, time_step):
