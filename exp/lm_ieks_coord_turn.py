@@ -15,13 +15,11 @@ from src.filter.ekf import Ekf
 from src.smoother.ext.eks import Eks
 from src.smoother.ext.ieks import Ieks
 from src.smoother.ext.lm_ieks import LmIeks
-from src.smoother.ext.cost import cost
+from src.cost import analytical_smoothing_cost
 from src.utils import setup_logger
 from src.models.range_bearing import MultiSensorRange
 from src.models.coord_turn import LmCoordTurn
 from data.lm_ieks_paper.coord_turn_example import Type, get_specific_states_from_file
-
-from src.smoother.ext.cost import cost
 
 
 def main():
@@ -59,7 +57,7 @@ def main():
     states, measurements, _, _ = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.LM, num_iter)
 
     cost_fn = partial(
-        cost,
+        analytical_smoothing_cost,
         measurements=measurements,
         m_1_0=prior_mean,
         P_1_0=prior_cov,

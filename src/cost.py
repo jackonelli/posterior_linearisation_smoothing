@@ -8,12 +8,13 @@ from src.models.base import MotionModel, MeasModel
 from src.slr.base import Slr
 
 
-def analytical_smoothing_cost(means, measurements, m_1_0, P_1_0, motion_model: MotionModel, meas_model: MeasModel):
+def analytical_smoothing_cost(traj, measurements, m_1_0, P_1_0, motion_model: MotionModel, meas_model: MeasModel):
     """Cost function for an optimisation problem used in the family of extended smoothers
 
     GN optimisation of this cost function will result in a linearised function
     corresponding to the Extended Kalman Smoother (EKS) et al.
     """
+    means, _ = traj
     prior_diff = means[0, :] - m_1_0
     _cost = prior_diff.T @ np.linalg.inv(P_1_0) @ prior_diff
 
@@ -29,8 +30,7 @@ def analytical_smoothing_cost(means, measurements, m_1_0, P_1_0, motion_model: M
 
 
 def slr_smoothing_cost(
-    means,
-    covs,
+    traj,
     measurements,
     m_1_0,
     P_1_0,
@@ -43,6 +43,7 @@ def slr_smoothing_cost(
     GN optimisation of this cost function will result in a linearised function
     corresponding to the SLR Smoother (PrLS, PLS) et al.
     """
+    means, covs = traj
     prior_diff = means[0, :] - m_1_0
     _cost = prior_diff.T @ np.linalg.inv(P_1_0) @ prior_diff
 

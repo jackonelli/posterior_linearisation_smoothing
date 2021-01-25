@@ -13,9 +13,10 @@ from functools import partial
 import numpy as np
 import matplotlib.pyplot as plt
 from src import visualization as vis
-from src.cost import analytical_smoothing_cost
+from src.cost import slr_smoothing_cost
 from src.smoother.slr.ipls import SigmaPointIpls
 from src.smoother.slr.reg_ipls import SigmaPointRegIpls
+from src.slr.sigma_points import SigmaPointSlr
 from src.sigma_points import SphericalCubature
 from src.utils import setup_logger
 from src.models.range_bearing import MultiSensorRange
@@ -55,35 +56,42 @@ def main():
     prior_mean = np.array([0, 0, 1, 0, 0])
     prior_cov = np.diag([0.1, 0.1, 1, 1, 1])
 
+    sigma_point_method = SphericalCubature()
+
     num_iter = 10
     states, measurements, _, _ = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.LM, num_iter)
 
     cost_fn = partial(
-        analytical_smoothing_cost,
+        slr_smoothing_cost,
         measurements=measurements,
         m_1_0=prior_mean,
         P_1_0=prior_cov,
         motion_model=motion_model,
         meas_model=meas_model,
+        slr=SigmaPointSlr(sigma_point_method),
     )
-    ms_gn, Ps_gn, cost_gn = gn_ipls(motion_model, meas_model, num_iter, measurements, prior_mean, prior_cov, cost_fn)
+    ms_gn, Ps_gn, cost_gn = gn_ipls(
+        motion_model, meas_model, sigma_point_method, num_iter, measurements, prior_mean, prior_cov, cost_fn
+    )
     # plot_results(states, [(ms_gn, Ps_gn, cost_gn[1:], "GN-IPLS")])
-    ms_lm, Ps_lm, cost_lm = reg_ipls(motion_model, meas_model, num_iter, measurements, prior_mean, prior_cov, cost_fn)
+    ms_lm, Ps_lm, cost_lm = reg_ipls(
+        motion_model, meas_model, sigma_point_method, num_iter, measurements, prior_mean, prior_cov, cost_fn
+    )
     plot_results(states, [(ms_gn, Ps_gn, cost_gn[1:], "GN-IEKS"), (ms_lm, Ps_lm, cost_lm[1:], "LM-IEKS")])
 
 
-def gn_ipls(motion_model, meas_model, num_iter, measurements, prior_mean, prior_cov, cost_fn):
-    smoother = SigmaPointIpls(motion_model, meas_model, SphericalCubature(), num_iter)
+def gn_ipls(motion_model, meas_model, sigma_point_method, num_iter, measurements, prior_mean, prior_cov, cost_fn):
+    smoother = SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter)
     # Note that the paper uses m_k = 0, k = 1, ..., K as the initial trajectory
     # This is the reason for not using the ordinary `filter_and_smooth` method.
     _, _, ms, Ps, iter_cost = smoother.filter_and_smooth(measurements, prior_mean, prior_cov, cost_fn)
     return ms, Ps, iter_cost
 
 
-def reg_ipls(motion_model, meas_model, num_iter, measurements, prior_mean, prior_cov, cost_fn):
+def reg_ipls(motion_model, meas_model, sigma_point_method, num_iter, measurements, prior_mean, prior_cov, cost_fn):
     lambda_ = 1e-2
     nu = 10
-    smoother = SigmaPointRegIpls(motion_model, meas_model, SphericalCubature(), num_iter, lambda_, nu)
+    smoother = SigmaPointRegIpls(motion_model, meas_model, sigma_point_method, num_iter, lambda_, nu)
     _, _, ms, Ps, iter_cost = smoother.filter_and_smooth(measurements, prior_mean, prior_cov, cost_fn)
     return ms, Ps, iter_cost
 
