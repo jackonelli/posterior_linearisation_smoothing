@@ -11,6 +11,10 @@ class Smoother(ABC):
     Assumes motion and meas model on the form:
         x_k = f(x_{k-1}) + q_k, q_k ~ N(0, Q_k)
         y_k = f(x_k}) + r_k, r_k ~ N(0, R_k).
+
+    All the smoother in this codebase differs only in their method of linearisation.
+    As such, a new filter type is created by specifying the method of linearisation
+    in the concrete implementations of this class.
     """
 
     def __init__(self):
@@ -21,9 +25,9 @@ class Smoother(ABC):
 
         Args:
             measurements (K, D_y): Measurement sequence for times 1,..., K
-            m_0_0 (D_x,): Prior mean for time 0
-            P_0_0 (D_x, D_x): Prior covariance for time 0
-            cost_fn: optional fn mapping estimated traj to cost: R^(K x D_x) --> R
+            m_0_0 (D_x,): Prior mean for time 1
+            P_0_0 (D_x, D_x): Prior covariance for time 1
+            cost_fn: optional fn, mapping estimated traj to cost: R^(K x D_x) --> R
                 useful to track progress for iterated smoother and needs to be included here
                 to get a uniform api.
 
@@ -83,9 +87,9 @@ class Smoother(ABC):
         Given a motion model and filtered and predicted estimates,
         the smooth estimates can be calculated without an explicit filter and meas model.
         However, a concrete implementation of a smoother, e.g. the RTS smoother,
-        is expected to smooth estimates coming from a KF, not some other filter.
+        commonly smooths estimates coming from a KF, not some other filter.
 
-        The API still allows for smoothing of any filter sequence by using the `smooth_seq_pre_comp_filter` method
+        The API still allows for smoothing of any sequence by using the `smooth_seq_pre_comp_filter` method
         """
         pass
 
@@ -167,16 +171,12 @@ class IteratedSmoother(Smoother):
 
     @abstractmethod
     def _update_estimates(means, covs):
-        """First, special, iter to initialise the 'previous estimates'
-
-        Time step k gives required context for some linearisations (Posterior SLR).
+        """The 'previous estimates' which are used in the current iteration are stored in the smoother instance.
+        They should only be modified through this method.
         """
         pass
 
     @abstractmethod
     def _first_iter(measurements, m_1_0, P_1_0, cost_fn):
-        """First, special, iter to initialise the 'previous estimates'
-
-        Time step k gives required context for some linearisations (Posterior SLR).
-        """
+        """First, special, iter to initialise the 'previous estimates'"""
         pass

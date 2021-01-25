@@ -17,7 +17,9 @@ class Filter(ABC):
         f(x) = A x + b + omega, omega ~ N(0, Omega)
         h(x) = H x + c + lambda, lambda ~ N(0, Lambda).
 
-    The method of linearisation is specified in the concrete implementations of this class.
+    All the filters in this codebase differs only in their method of linearisation.
+    As such, a new filter type is created by specifying the method of linearisation
+    in the concrete implementations of this class.
     """
 
     def filter_seq(self, measurements, m_1_0, P_1_0):
@@ -25,8 +27,8 @@ class Filter(ABC):
 
         Args:
             measurements (K, D_y): Measurement sequence for times 1,..., K
-            m_0_0 (D_x,): Prior mean for time 0
-            P_0_0 (D_x, D_x): Prior covariance for time 0
+            m_0_0 (D_x,): Prior mean for time 1
+            P_0_0 (D_x, D_x): Prior covariance for time 1
 
         Returns:
             filter_means (K, D_x): Filtered estimates for times 1,..., K
@@ -101,7 +103,7 @@ class Filter(ABC):
     def _update(_self, y_k, m_k_kminus1, P_k_kminus1, R, linearization, _time_step):
         """KF update step
 
-        This is a static method in almost all cases, but e.g. LM-IEKS needs the context of self, and time_step
+        This is a static method in most cases, but e.g. LM-IEKS needs the context of self, and time_step
         when overriding this method.
 
         Args:

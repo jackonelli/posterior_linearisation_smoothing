@@ -17,7 +17,7 @@ class PosteriorSigmaPointSlr(SigmaPointSlrBase):
 
 
 class SigmaPointSlr(SigmaPointSlrBase):
-    def __init__(self, sigma_point_method=SphericalCubature()):
+    def __init__(self, sigma_point_method):
         self.sigma_point_method = sigma_point_method
 
     def linear_params(self, fn, mean, cov):

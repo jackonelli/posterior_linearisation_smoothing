@@ -6,10 +6,10 @@ from src.slr.sigma_points import SigmaPointSlr
 class SigmaPointSlrFilter(Filter):
     """Sigma point SLR filter"""
 
-    def __init__(self, motion_model, meas_model):
+    def __init__(self, motion_model, meas_model, sigma_point_method):
         self._motion_model = motion_model
         self._meas_model = meas_model
-        self._slr = SigmaPointSlr()
+        self._slr = SigmaPointSlr(sigma_point_method)
 
     def _motion_lin(self, mean, cov, _time_step):
         return self._slr.linear_params(self._motion_model.map_set, mean, cov)

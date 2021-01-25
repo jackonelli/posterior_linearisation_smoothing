@@ -17,14 +17,13 @@ from src.filter.ekf import Ekf
 from src.smoother.ext.eks import Eks
 from src.smoother.ext.ieks import Ieks
 from src.smoother.ext.lm_ieks import LmIeks
-from src.smoother.ext.cost import cost
+from src.cost import lm_cost
 from src.smoother.slr.ipls import SigmaPointIpls
+from src.sigma_points import SphericalCubature
 from src.utils import setup_logger
 from src.models.range_bearing import MultiSensorRange
 from src.models.coord_turn import LmCoordTurn
 from data.lm_ieks_paper.coord_turn_example import Type, get_specific_states_from_file
-
-from src.smoother.ext.cost import cost
 
 
 def main():
@@ -63,7 +62,7 @@ def main():
     states, measurements, _, _ = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.LM, num_iter)
 
     cost_fn = partial(
-        cost,
+        lm_cost,
         measurements=measurements,
         m_1_0=prior_mean,
         P_1_0=prior_cov,
@@ -71,14 +70,14 @@ def main():
         meas_model=meas_model,
     )
     ms_gn, Ps_gn, cost_gn = gn_ipls(motion_model, meas_model, num_iter, measurements, prior_mean, prior_cov, cost_fn)
-    plot_results(states, [(ms_gn, Ps_gn, cost_gn[1:], "GN-IEKS")])
+    plot_results(states, [(ms_gn, Ps_gn, cost_gn[1:], "GN-IPLS")])
     # ms_lm, Ps_lm, cost_lm = lm_ieks(motion_model, meas_model, num_iter, measurements, prior_mean, prior_cov, cost_fn)
     # plot_results(states, [(ms_gn, Ps_gn, cost_gn[1:], "GN-IEKS"), (ms_lm, Ps_lm, cost_lm[1:], "LM-IEKS")])
 
 
 def gn_ipls(motion_model, meas_model, num_iter, measurements, prior_mean, prior_cov, cost_fn):
     K = measurements.shape[0]
-    smoother = SigmaPointIpls(motion_model, meas_model, num_iter)
+    smoother = SigmaPointIpls(motion_model, meas_model, num_iter, SphericalCubature())
     # Note that the paper uses m_k = 0, k = 1, ..., K as the initial trajectory
     # This is the reason for not using the ordinary `filter_and_smooth` method.
     _, _, ms, Ps, iter_cost = smoother.filter_and_smooth(measurements, prior_mean, prior_cov, cost_fn)

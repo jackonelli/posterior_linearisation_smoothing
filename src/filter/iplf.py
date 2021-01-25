@@ -6,10 +6,10 @@ from src.slr.sigma_points import SigmaPointSlr
 class Iplf(Filter):
     """Iterated posterior linearisation filter (IPLF)"""
 
-    def __init__(self, motion_model, meas_model):
+    def __init__(self, motion_model, meas_model, sigma_point_method):
         self._motion_model = motion_model
         self._meas_model = meas_model
-        self._slr = SigmaPointSlr()
+        self._slr = SigmaPointSlr(sigma_point_method)
         self._current_estimates = None
 
     def _update_estimates(self, means, covs):
