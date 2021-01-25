@@ -30,7 +30,6 @@ def main():
     experiment_name = "lm_ieks"
     setup_logger(f"logs/{experiment_name}.log", logging.DEBUG)
     log.info(f"Running experiment: {experiment_name}")
-    K = 500
 
     dt = 0.01
     qc = 0.01
