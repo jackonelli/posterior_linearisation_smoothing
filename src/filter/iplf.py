@@ -10,18 +10,22 @@ class Iplf(Filter):
         self._motion_model = motion_model
         self._meas_model = meas_model
         self._slr = SigmaPointSlr(sigma_point_method)
-        self._current_estimates = None
+        self._current_means = None
+        self._current_covs = None
 
     def _update_estimates(self, means, covs):
-        self._current_estimates = (means.copy(), covs.copy())
+        self._current_means = means.copy()
+        self._current_covs = covs.copy()
 
     def _motion_lin(self, _mean, _cov, time_step):
-        means, covs = self._current_estimates
-        return self._slr.linear_params(self._motion_model.map_set, means[time_step, :], covs[time_step, :])
+        return self._slr.linear_params(
+            self._motion_model.map_set, self._current_means[time_step, :], self._current_covs[time_step, :]
+        )
 
     def _meas_lin(self, _mean, _cov, time_step):
-        means, covs = self._current_estimates
-        return self._slr.linear_params(self._meas_model.map_set, means[time_step, :], covs[time_step, :])
+        return self._slr.linear_params(
+            self._meas_model.map_set, self._current_means[time_step, :], self._current_covs[time_step, :]
+        )
 
     def _proc_noise(self, time_step):
         return self._motion_model.proc_noise(time_step)

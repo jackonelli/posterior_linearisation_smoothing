@@ -1,27 +1,15 @@
 """Statistical linear regression (SLR) with sigma points"""
-from abc import ABC, abstractmethod
 import numpy as np
-from src.sigma_points import SphericalCubature
+from src.sigma_points import SigmaPointMethod
+from src.slr.base import Slr
 
 
-class SigmaPointSlrBase(ABC):
-    @abstractmethod
-    def _sigma_points(self, mean, cov):
-        pass
-
-
-class PosteriorSigmaPointSlr(SigmaPointSlrBase):
-    def __init__(self, means, covs):
-        self.means = means
-        self.covs = covs
-
-
-class SigmaPointSlr(SigmaPointSlrBase):
-    def __init__(self, sigma_point_method):
+class SigmaPointSlr(Slr):
+    def __init__(self, sigma_point_method: SigmaPointMethod):
         self.sigma_point_method = sigma_point_method
 
     def linear_params(self, fn, mean, cov):
-        """SLR sigma points linearization
+        """SLR sigma points linearisation
         Args:
             fn: state mapping. In principle fn: R^n -> R^m,
                 but in practice the function must handle sets of vectors of length N.
@@ -30,13 +18,13 @@ class SigmaPointSlr(SigmaPointSlrBase):
             cov: estimate state covaraiance, R^(n x n)
         """
 
-        z_bar, psi, phi = self._sigma_point_slr(fn, mean, cov)
+        z_bar, psi, phi = self.sigma_point_slr(fn, mean, cov)
         A = psi.T @ np.linalg.inv(cov)
         b = z_bar - A @ mean
         Sigma = phi - A @ cov @ A.T
         return A, b, Sigma
 
-    def _sigma_point_slr(self, fn, mean, cov):
+    def slr(self, fn, mean, cov):
         """Sigma point SLR
         Calculate z_bar, psi, phi from a (non-linear) function and estimated distribution
         TODO:

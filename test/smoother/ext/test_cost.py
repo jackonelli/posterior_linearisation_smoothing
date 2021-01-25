@@ -8,7 +8,7 @@ Runs EKS and compares with stored matlab output.
 import unittest
 from pathlib import Path
 import numpy as np
-from src.cost import lm_cost
+from src.cost import analytical_smoothing_cost
 from src.models.range_bearing import MultiSensorRange
 from src.models.coord_turn import LmCoordTurn
 from data.lm_ieks_paper.coord_turn_example import get_specific_states_from_file, Type
@@ -42,5 +42,6 @@ class TestCost(unittest.TestCase):
 
         _, measurements, _, ss_ms = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.GN, 10)
         self.assertAlmostEqual(
-            lm_cost(ss_ms, measurements, prior_mean, prior_cov, motion_model, meas_model), 1.039569495177240e03
+            analytical_smoothing_cost(ss_ms, measurements, prior_mean, prior_cov, motion_model, meas_model),
+            1.039569495177240e03,
         )

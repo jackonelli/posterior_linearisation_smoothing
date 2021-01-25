@@ -1,10 +1,10 @@
-"""SLR filter"""
+"""Sigma point Prior Linearisation Filter (PrLF)"""
 from src.filter.base import Filter
 from src.slr.sigma_points import SigmaPointSlr
 
 
-class SigmaPointSlrFilter(Filter):
-    """Sigma point SLR filter"""
+class SigmaPointPrLf(Filter):
+    """Sigma point Prior Linearisation Filter (PrLF)"""
 
     def __init__(self, motion_model, meas_model, sigma_point_method):
         self._motion_model = motion_model

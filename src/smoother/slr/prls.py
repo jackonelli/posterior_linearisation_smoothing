@@ -1,6 +1,6 @@
 """Sigma point Prior linearisation smoother (PrLS)"""
 from src.smoother.base import Smoother
-from src.filter.slr import SigmaPointSlrFilter
+from src.filter.prlf import SigmaPointPrLf
 from src.slr.sigma_points import SigmaPointSlr
 
 
@@ -18,6 +18,6 @@ class SigmaPointPrLs(Smoother):
         return self._slr.linear_params(self._motion_model.map_set, mean, cov)
 
     def _filter_seq(self, measurements, x_0_0, P_0_0):
-        return SigmaPointSlrFilter(self._motion_model, self._meas_model, self._sigma_point_method).filter_seq(
+        return SigmaPointPrLf(self._motion_model, self._meas_model, self._sigma_point_method).filter_seq(
             measurements, x_0_0, P_0_0
         )
