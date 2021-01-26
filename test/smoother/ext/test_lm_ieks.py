@@ -48,10 +48,11 @@ class TestLmIeks(unittest.TestCase):
         )
         lambda_ = 1e-2
         nu = 10
+        cost_improv_iter_lim = 10
 
         cost_fn = partial(
             analytical_smoothing_cost,
-            measurements=measurements,
+            meas=measurements,
             m_1_0=prior_mean,
             P_1_0=prior_cov,
             motion_model=motion_model,
@@ -61,7 +62,7 @@ class TestLmIeks(unittest.TestCase):
         K = measurements.shape[0]
         init_traj = (np.zeros((K, prior_mean.shape[0])), None)
 
-        ieks = LmIeks(motion_model, meas_model, num_iter, lambda_, nu)
+        ieks = LmIeks(motion_model, meas_model, num_iter, cost_improv_iter_lim, lambda_, nu)
         mf, Pf, ms, Ps, _iter_cost = ieks.filter_and_smooth_with_init_traj(
             measurements, prior_mean, prior_cov, init_traj, 1, cost_fn
         )
@@ -72,7 +73,7 @@ class TestLmIeks(unittest.TestCase):
         _, measurements, ss_mf, ss_ms = get_specific_states_from_file(
             Path.cwd() / "data/lm_ieks_paper", Type.LM, num_iter
         )
-        ieks = LmIeks(motion_model, meas_model, num_iter, lambda_, nu)
+        ieks = LmIeks(motion_model, meas_model, num_iter, cost_improv_iter_lim, lambda_, nu)
         mf, Pf, ms, Ps, _iter_cost = ieks.filter_and_smooth_with_init_traj(
             measurements, prior_mean, prior_cov, init_traj, 1, cost_fn
         )

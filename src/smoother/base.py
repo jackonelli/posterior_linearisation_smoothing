@@ -42,7 +42,7 @@ class Smoother(ABC):
         smooth_means, smooth_covs = self.smooth_seq_pre_comp_filter(filter_means, filter_covs, pred_means, pred_covs)
         cost = None
         if cost_fn is not None:
-            cost = cost_fn((smooth_means, smooth_covs))
+            cost = cost_fn(smooth_means)
         return filter_means, filter_covs, smooth_means, smooth_covs, cost
 
     def smooth_seq_pre_comp_filter(self, filter_means, filter_covs, pred_means, pred_covs):
@@ -161,7 +161,7 @@ class IteratedSmoother(Smoother):
         """
         current_ms, current_Ps = init_traj
         self._update_estimates(current_ms, current_Ps)
-        cost_iter = [cost_fn(init_traj)]
+        cost_iter = [cost_fn(current_ms)]
         for iter_ in range(start_iter, self.num_iter + 1):
             self._log.info(f"Iter: {iter_}")
             mf, Pf, current_ms, current_Ps, cost = super().filter_and_smooth(measurements, m_1_0, P_1_0, cost_fn)

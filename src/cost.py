@@ -11,19 +11,25 @@ from src.slr.base import Slr
 LOGGER = logging.getLogger(__name__)
 
 
-def analytical_smoothing_cost(traj, measurements, m_1_0, P_1_0, motion_model: MotionModel, meas_model: MeasModel):
+def analytical_smoothing_cost(traj, meas, m_1_0, P_1_0, motion_model: MotionModel, meas_model: MeasModel):
     """Cost function for an optimisation problem used in the family of extended smoothers
 
     GN optimisation of this cost function will result in a linearised function
     corresponding to the Extended Kalman Smoother (EKS) et al.
+
+    Args:
+        traj: states for a time sequence 1, ..., K
+            represented as a np.array(K, D_x).
+            (The actual variable in the cost function)
+        meas: measurements for a time sequence 1, ..., K
+            represented as a np.array(K, D_y)
     """
-    means, _ = traj
-    prior_diff = means[0, :] - m_1_0
+    prior_diff = traj[0, :] - m_1_0
     _cost = prior_diff.T @ np.linalg.inv(P_1_0) @ prior_diff
 
-    proc_diff = means[1:, :] - motion_model.map_set(means[:-1, :])
-    meas_diff = measurements - meas_model.map_set(means)
-    for k in range(0, means.shape[0] - 1):
+    proc_diff = traj[1:, :] - motion_model.map_set(traj[:-1, :])
+    meas_diff = meas - meas_model.map_set(traj)
+    for k in range(0, traj.shape[0] - 1):
         _cost += proc_diff[k, :].T @ np.linalg.inv(motion_model.proc_noise(k)) @ proc_diff[k, :]
         # measurements are zero indexed, i.e. k-1 --> y_k
         _cost += meas_diff[k, :].T @ np.linalg.inv(meas_model.meas_noise(k)) @ meas_diff[k, :]
@@ -34,6 +40,7 @@ def analytical_smoothing_cost(traj, measurements, m_1_0, P_1_0, motion_model: Mo
 
 def slr_smoothing_cost(
     traj,
+    covs,
     measurements,
     m_1_0,
     P_1_0,
@@ -45,22 +52,30 @@ def slr_smoothing_cost(
 
     GN optimisation of this cost function will result in a linearised function
     corresponding to the SLR Smoother (PrLS, PLS) et al.
+
+    Args:
+        traj: states for a time sequence 1, ..., K
+            represented as a np.array(K, D_x).
+            (The actual variable in the cost function)
+        covs: estimated covariances (means) for a time sequence 1, ..., K
+            represented as a np.array(K, D_x)
+        meas: measurements for a time sequence 1, ..., K
+            represented as a np.array(K, D_y)
     """
-    means, covs = traj
-    prior_diff = means[0, :] - m_1_0
+    prior_diff = traj[0, :] - m_1_0
     _cost = prior_diff.T @ np.linalg.inv(P_1_0) @ prior_diff
 
-    for k in range(0, means.shape[0] - 1):
-        mean_k = means[k, :]
+    for k in range(0, traj.shape[0] - 1):
+        mean_k = traj[k, :]
         cov_k = covs[k, :]
         proc_bar, _, _ = slr.slr(motion_model.map_set, mean_k, cov_k)
         _, _, Omega_k = slr.linear_params(motion_model.map_set, mean_k, cov_k)
 
-        proc_diff_k = means[k + 1, :] - proc_bar
+        proc_diff_k = traj[k + 1, :] - proc_bar
         _cost += proc_diff_k.T @ np.linalg.inv(motion_model.proc_noise(k) + Omega_k) @ proc_diff_k
 
-    for k in range(0, means.shape[0]):
-        mean_k = means[k, :]
+    for k in range(0, traj.shape[0]):
+        mean_k = traj[k, :]
         cov_k = covs[k, :]
         meas_bar, _, _ = slr.slr(meas_model.map_set, mean_k, cov_k)
         _, _, Lambda_k = slr.linear_params(meas_model.map_set, mean_k, cov_k)

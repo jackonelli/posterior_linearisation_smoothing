@@ -60,6 +60,8 @@ def main():
     num_iter = 10
     states, measurements, _, _ = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.LM, num_iter)
 
+    # This creates a prototype for the cost with arguments L(means, covs)
+    # In the Smoother a proper cost function will be created as L(means) with fixed covs
     cost_fn = partial(
         slr_smoothing_cost,
         measurements=measurements,

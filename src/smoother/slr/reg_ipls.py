@@ -1,6 +1,8 @@
 """Regularised Iterated Posterior Linearisation Smoother (Reg-IPLS)"""
+from functools import partial
 import numpy as np
 from src.smoother.base import Smoother
+from src.cost import noop_cost
 from src.smoother.base import IteratedSmoother
 from src.filter.prlf import SigmaPointPrLf
 from src.smoother.slr.prls import SigmaPointPrLs
@@ -30,22 +32,35 @@ class SigmaPointRegIpls(IteratedSmoother):
         )
 
     # TODO: This should also have inner LM check
-    def _first_iter(self, measurements, m_1_0, P_1_0, cost_fn):
+    def _first_iter(self, measurements, m_1_0, P_1_0, cost_fn_prototype):
         self._log.info("Iter: 1")
         smoother = SigmaPointPrLs(self._motion_model, self._meas_model, self._sigma_point_method)
-        return smoother.filter_and_smooth(measurements, m_1_0, P_1_0, cost_fn)
+        # Hack to use the generic `filter_and_smooth` function
+        # The cost function prototype (variable covs) cannot be specialised until the `smooth_covs` are known
+        # but the cost is calculated within the function.
+        filter_means, filter_covs, smooth_means, smooth_covs, _ = smoother.filter_and_smooth(
+            measurements, m_1_0, P_1_0, noop_cost
+        )
+        # Fix cost function
+        cost_fn = partial(cost_fn_prototype, covs=smooth_covs)
+        cost = cost_fn(smooth_means)
+        return filter_means, filter_covs, smooth_means, smooth_covs, cost
 
-    def filter_and_smooth_with_init_traj(self, measurements, m_1_0, P_1_0, init_traj, start_iter, cost_fn):
+    def filter_and_smooth_with_init_traj(self, measurements, m_1_0, P_1_0, init_traj, start_iter, cost_fn_prototype):
         """Filter and smoothing given an initial trajectory"""
         current_ms, current_Ps = init_traj
         self._update_estimates(current_ms, current_Ps)
-        prev_cost = cost_fn(init_traj)
+        prev_cost = cost_fn_prototype(current_ms, current_Ps)
         cost_iter = [prev_cost]
         self._log.debug(f"Initial cost: {prev_cost}")
         for iter_ in range(start_iter, self.num_iter + 1):
             self._log.info(f"Iter: {iter_}")
             inner_iter = 0
             has_improved = False
+
+            # Fix cost function
+            cost_fn = partial(cost_fn_prototype, covs=self._current_covs)
+
             while not self._terminate_inner_loop(inner_iter):
                 while has_improved is False and inner_iter < self._cost_improv_iter_lim:
                     # Note: here we want to run the base `Smoother` class method.

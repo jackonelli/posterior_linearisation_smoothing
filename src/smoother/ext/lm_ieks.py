@@ -35,7 +35,7 @@ class LmIeks(IteratedSmoother):
         """Filter and smoothing given an initial trajectory"""
         current_ms, _ = init_traj
         self._update_estimates(current_ms, None)
-        prev_cost = cost_fn(init_traj)
+        prev_cost = cost_fn(current_ms)
         cost_iter = [prev_cost]
         self._log.debug(f"Initial cost: {prev_cost}")
         for iter_ in range(start_iter, self.num_iter + 1):

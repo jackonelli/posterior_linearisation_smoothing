@@ -42,6 +42,6 @@ class TestCost(unittest.TestCase):
 
         _, measurements, _, ss_ms = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.GN, 10)
         self.assertAlmostEqual(
-            analytical_smoothing_cost((ss_ms, None), measurements, prior_mean, prior_cov, motion_model, meas_model),
+            analytical_smoothing_cost(ss_ms, measurements, prior_mean, prior_cov, motion_model, meas_model),
             1.039569495177240e03,
         )

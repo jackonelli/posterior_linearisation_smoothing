@@ -49,7 +49,7 @@ class TestIeks(unittest.TestCase):
 
         cost_fn = partial(
             analytical_smoothing_cost,
-            measurements=measurements,
+            meas=measurements,
             m_1_0=prior_mean,
             P_1_0=prior_cov,
             motion_model=motion_model,
@@ -58,7 +58,7 @@ class TestIeks(unittest.TestCase):
 
         K = measurements.shape[0]
         init_traj = (np.zeros((K, prior_mean.shape[0])), None)
-        ieks = Ieks(motion_model, meas_model, num_iter=num_iter)
+        ieks = Ieks(motion_model, meas_model, num_iter)
         mf, Pf, ms, Ps, _iter_cost = ieks.filter_and_smooth_with_init_traj(
             measurements, prior_mean, prior_cov, init_traj, 1, cost_fn
         )
