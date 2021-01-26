@@ -64,9 +64,15 @@ def main():
         motion_model=motion_model,
         meas_model=meas_model,
     )
-    ms_gn, Ps_gn, cost_gn = gn_ieks(motion_model, meas_model, num_iter, measurements, prior_mean, prior_cov, cost_fn)
+    # ms_gn, Ps_gn, cost_gn = gn_ieks(motion_model, meas_model, num_iter, measurements, prior_mean, prior_cov, cost_fn)
     ms_lm, Ps_lm, cost_lm = lm_ieks(motion_model, meas_model, num_iter, measurements, prior_mean, prior_cov, cost_fn)
-    plot_results(states, [(ms_gn, Ps_gn, cost_gn[1:], "GN-IEKS"), (ms_lm, Ps_lm, cost_lm[1:], "LM-IEKS")])
+    plot_results(
+        states,
+        [
+            # (ms_gn, Ps_gn, cost_gn[1:], "GN-IEKS"),
+            (ms_lm, Ps_lm, cost_lm[1:], "LM-IEKS")
+        ],
+    )
 
 
 def gn_ieks(motion_model, meas_model, num_iter, measurements, prior_mean, prior_cov, cost_fn):
@@ -83,11 +89,12 @@ def gn_ieks(motion_model, meas_model, num_iter, measurements, prior_mean, prior_
 
 
 def lm_ieks(motion_model, meas_model, num_iter, measurements, prior_mean, prior_cov, cost_fn):
+    cost_improv_iter_lim = 10
     lambda_ = 1e-2
     nu = 10
     K = measurements.shape[0]
     init_traj = (np.zeros((K, prior_mean.shape[0])), None)
-    smoother = LmIeks(motion_model, meas_model, num_iter, lambda_, nu)
+    smoother = LmIeks(motion_model, meas_model, num_iter, cost_improv_iter_lim, lambda_, nu)
     # Note that the paper uses m_k = 0, k = 1, ..., K as the initial trajectory
     # This is the reason for not using the ordinary `filter_and_smooth` method.
     _, _, ms, Ps, iter_cost = smoother.filter_and_smooth_with_init_traj(

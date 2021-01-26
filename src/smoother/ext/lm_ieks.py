@@ -10,14 +10,15 @@ from src.filter.iekf import Iekf, ekf_lin
 class LmIeks(IteratedSmoother):
     """Levenberg-Marquardt Iterated Extended Kalman Smoother (LM-IEKS)"""
 
-    def __init__(self, motion_model, meas_model, num_iter, lambda_, nu):
+    def __init__(self, motion_model, meas_model, num_iter, cost_improv_iter_lim, lambda_, nu):
         super().__init__()
         self._motion_model = motion_model
         self._meas_model = meas_model
-        self._lambda = lambda_
-        self._nu = nu
         self._current_means = None
         self.num_iter = num_iter
+        self._cost_improv_iter_lim = cost_improv_iter_lim
+        self._lambda = lambda_
+        self._nu = nu
 
     def _motion_lin(self, _mean, _cov, time_step):
         mean = self._current_means[time_step, :]
@@ -41,7 +42,7 @@ class LmIeks(IteratedSmoother):
             self._log.info(f"Iter: {iter_}")
             inner_iter = 0
             has_improved = False
-            while has_improved is False and inner_iter < 10:
+            while has_improved is False and inner_iter < self._cost_improv_iter_lim:
                 # Note: here we want to run the base `Smoother` class method.
                 # I.e. we're getting the grandparent's method.
                 mf, Pf, current_ms, current_Ps, _cost = super(IteratedSmoother, self).filter_and_smooth(
@@ -54,6 +55,8 @@ class LmIeks(IteratedSmoother):
                 else:
                     self._lambda *= self._nu
                 inner_iter += 1
+            if inner_iter == self._cost_improv_iter_lim - 1:
+                self._log.warning(f"No cost improvement for {self._cost_improv_iter_lim} iterations")
             self._update_estimates(current_ms, None)
             prev_cost = _cost
             cost_iter.append(_cost)

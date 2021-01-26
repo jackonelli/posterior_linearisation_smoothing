@@ -3,9 +3,12 @@
 TODO: The models are assumed to be indep of time step k.
 Should make the API more flexible, this will prevent some vectorisation but this is not a hot path anyway.
 """
+import logging
 import numpy as np
 from src.models.base import MotionModel, MeasModel
 from src.slr.base import Slr
+
+LOGGER = logging.getLogger(__name__)
 
 
 def analytical_smoothing_cost(traj, measurements, m_1_0, P_1_0, motion_model: MotionModel, meas_model: MeasModel):
@@ -62,12 +65,16 @@ def slr_smoothing_cost(
         meas_bar, _, _ = slr.slr(meas_model.map_set, mean_k, cov_k)
         _, _, Lambda_k = slr.linear_params(meas_model.map_set, mean_k, cov_k)
 
-        meas_diff_k = means[k + 1, :] - meas_bar
-        _cost += proc_diff_k.T @ np.linalg.inv(motion_model.proc_noise(k) + Lambda_k) @ proc_diff_k
         # measurements are zero indexed, i.e. meas[k-1] --> y_k
+        meas_diff_k = measurements[k, :] - meas_bar
         _cost += meas_diff_k.T @ np.linalg.inv(meas_model.meas_noise(k)) @ meas_diff_k
 
     return _cost
+
+
+def noop_cost(traj):
+    LOGGER.info("Using the dummy loss")
+    return None
 
 
 def _ss_cost(means, measurements, m_1_0, P_1_0, Q, R, f_fun, h_fun):

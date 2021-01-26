@@ -11,7 +11,7 @@ from src.slr.sigma_points import SigmaPointSlr
 class SigmaPointRegIpls(IteratedSmoother):
     """Regularised Iterated Posterior Linearisation Smoother (Reg-IPLS)"""
 
-    def __init__(self, motion_model, meas_model, sigma_point_method, num_iter, lambda_, nu):
+    def __init__(self, motion_model, meas_model, sigma_point_method, num_iter, cost_improv_iter_lim, lambda_, nu):
         super().__init__()
         self._motion_model = motion_model
         self._meas_model = meas_model
@@ -19,9 +19,10 @@ class SigmaPointRegIpls(IteratedSmoother):
         self._sigma_point_method = sigma_point_method
         self._current_means = None
         self._current_covs = None
+        self.num_iter = num_iter
+        self._cost_improv_iter_lim = cost_improv_iter_lim
         self._lambda = lambda_
         self._nu = nu
-        self.num_iter = num_iter
 
     def _motion_lin(self, _mean, _cov, time_step):
         return self._slr.linear_params(
@@ -38,26 +39,29 @@ class SigmaPointRegIpls(IteratedSmoother):
         """Filter and smoothing given an initial trajectory"""
         current_ms, current_Ps = init_traj
         self._update_estimates(current_ms, current_Ps)
-        prev_cost = cost_fn(current_ms)
+        prev_cost = cost_fn(init_traj)
         cost_iter = [prev_cost]
         self._log.debug(f"Initial cost: {prev_cost}")
         for iter_ in range(start_iter, self.num_iter + 1):
             self._log.info(f"Iter: {iter_}")
             inner_iter = 0
             has_improved = False
-            while has_improved is False and inner_iter < 10:
-                # Note: here we want to run the base `Smoother` class method.
-                # I.e. we're getting the grandparent's method.
-                mf, Pf, current_ms, current_Ps, _cost = super(IteratedSmoother, self).filter_and_smooth(
-                    measurements, m_1_0, P_1_0, cost_fn
-                )
-                self._log.debug(f"Cost: {_cost}, lambda: {self._lambda}")
-                if _cost < prev_cost:
-                    self._lambda /= self._nu
-                    has_improved = True
-                else:
-                    self._lambda *= self._nu
-                inner_iter += 1
+            while not self._terminate_inner_loop(inner_iter):
+                while has_improved is False and inner_iter < self._cost_improv_iter_lim:
+                    # Note: here we want to run the base `Smoother` class method.
+                    # I.e. we're getting the grandparent's method.
+                    mf, Pf, current_ms, current_Ps, _cost = super(IteratedSmoother, self).filter_and_smooth(
+                        measurements, m_1_0, P_1_0, cost_fn
+                    )
+                    self._log.debug(f"Cost: {_cost}, lambda: {self._lambda}")
+                    if _cost < prev_cost:
+                        self._lambda /= self._nu
+                        has_improved = True
+                    else:
+                        self._lambda *= self._nu
+                    inner_iter += 1
+            if inner_iter == self._cost_improv_iter_lim - 1:
+                self._log.warning(f"No cost improvement for {self._cost_improv_iter_lim} iterations")
             self._update_estimates(current_ms, current_Ps)
             prev_cost = _cost
             cost_iter.append(_cost)
@@ -68,6 +72,9 @@ class SigmaPointRegIpls(IteratedSmoother):
         lm_iekf = _RegIplf(self._motion_model, self._meas_model, self._sigma_point_method, self._lambda)
         lm_iekf._update_estimates(self._current_means, self._current_covs)
         return lm_iekf.filter_seq(measurements, m_1_0, P_1_0)
+
+    def _terminate_inner_loop(self, inner_iter):
+        return inner_iter > 0
 
     def _update_estimates(self, means, covs):
         self._current_means = means.copy()

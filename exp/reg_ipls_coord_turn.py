@@ -13,7 +13,7 @@ from functools import partial
 import numpy as np
 import matplotlib.pyplot as plt
 from src import visualization as vis
-from src.cost import slr_smoothing_cost
+from src.cost import slr_smoothing_cost, noop_cost
 from src.smoother.slr.ipls import SigmaPointIpls
 from src.smoother.slr.reg_ipls import SigmaPointRegIpls
 from src.slr.sigma_points import SigmaPointSlr
@@ -28,9 +28,8 @@ def main():
     logging.getLogger("matplotlib").setLevel(logging.WARNING)
     log = logging.getLogger(__name__)
     experiment_name = "reg_ipls"
-    setup_logger(f"logs/{experiment_name}.log", logging.INFO)
+    setup_logger(f"logs/{experiment_name}.log", logging.DEBUG)
     log.info(f"Running experiment: {experiment_name}")
-    K = 500
 
     dt = 0.01
     qc = 0.01
@@ -70,14 +69,27 @@ def main():
         meas_model=meas_model,
         slr=SigmaPointSlr(sigma_point_method),
     )
-    ms_gn, Ps_gn, cost_gn = gn_ipls(
-        motion_model, meas_model, sigma_point_method, num_iter, measurements, prior_mean, prior_cov, cost_fn
-    )
+    # ms_gn, Ps_gn, cost_gn = gn_ipls(
+    #     motion_model,
+    #     meas_model,
+    #     sigma_point_method,
+    #     num_iter,
+    #     measurements,
+    #     prior_mean,
+    #     prior_cov,
+    #     cost_fn,
+    # )
     # plot_results(states, [(ms_gn, Ps_gn, cost_gn[1:], "GN-IPLS")])
     ms_lm, Ps_lm, cost_lm = reg_ipls(
         motion_model, meas_model, sigma_point_method, num_iter, measurements, prior_mean, prior_cov, cost_fn
     )
-    plot_results(states, [(ms_gn, Ps_gn, cost_gn[1:], "GN-IEKS"), (ms_lm, Ps_lm, cost_lm[1:], "LM-IEKS")])
+    plot_results(
+        states,
+        [
+            # (ms_gn, Ps_gn, cost_gn[1:], "GN-IPLS"),
+            (ms_lm, Ps_lm, cost_lm[1:], "Reg-IPLS")
+        ],
+    )
 
 
 def gn_ipls(motion_model, meas_model, sigma_point_method, num_iter, measurements, prior_mean, prior_cov, cost_fn):
@@ -91,7 +103,10 @@ def gn_ipls(motion_model, meas_model, sigma_point_method, num_iter, measurements
 def reg_ipls(motion_model, meas_model, sigma_point_method, num_iter, measurements, prior_mean, prior_cov, cost_fn):
     lambda_ = 1e-2
     nu = 10
-    smoother = SigmaPointRegIpls(motion_model, meas_model, sigma_point_method, num_iter, lambda_, nu)
+    cost_improv_iter_lim = 10
+    smoother = SigmaPointRegIpls(
+        motion_model, meas_model, sigma_point_method, num_iter, cost_improv_iter_lim, lambda_, nu
+    )
     _, _, ms, Ps, iter_cost = smoother.filter_and_smooth(measurements, prior_mean, prior_cov, cost_fn)
     return ms, Ps, iter_cost
 
