@@ -105,7 +105,7 @@ def gn_ipls(motion_model, meas_model, sigma_point_method, num_iter, measurements
 def reg_ipls(motion_model, meas_model, sigma_point_method, num_iter, measurements, prior_mean, prior_cov, cost_fn):
     lambda_ = 1e-2
     nu = 10
-    cost_improv_iter_lim = 10
+    cost_improv_iter_lim = 500
     smoother = SigmaPointRegIpls(
         motion_model, meas_model, sigma_point_method, num_iter, cost_improv_iter_lim, lambda_, nu
     )

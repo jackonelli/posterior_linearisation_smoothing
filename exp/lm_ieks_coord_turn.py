@@ -53,7 +53,7 @@ def main():
     prior_mean = np.array([0, 0, 1, 0, 0])
     prior_cov = np.diag([0.1, 0.1, 1, 1, 1])
 
-    num_iter = 10
+    num_iter = 100
     states, measurements, _, _ = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.LM, num_iter)
 
     cost_fn = partial(
