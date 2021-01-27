@@ -123,6 +123,7 @@ class Filter(ABC):
 
         m_k_k = m_k_kminus1 + (K @ (y_k - y_mean)).reshape(m_k_kminus1.shape)
         P_k_k = P_k_kminus1 - K @ S @ K.T
+        P_k_k = (P_k_k + P_k_k.T) / 2
 
         return m_k_k, P_k_k
 
