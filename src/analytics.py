@@ -2,6 +2,21 @@
 import numpy as np
 
 
+def rmse(true, est):
+    """Calculate RMSE
+    Scalar RMSE value for the whole sequence
+
+    Args:
+        true (K, D_x)
+        est (K, D_x)
+
+    Returns:
+        rmse (float)
+    """
+    err = true - est
+    return np.sqrt((err ** 2).sum(1).mean())
+
+
 def nees(true, est, cov):
     """Calculate NEES
     Normalized estimation error squared (NEES) for all timesteps
@@ -36,11 +51,6 @@ def is_pos_def(x):
     otherwise False
     """
     return np.all(np.linalg.eigvals(x) > 0)
-
-
-def pos_def_ratio(covs):
-    pos_defs = [pos_def_check(cov, False) for cov in covs]
-    return sum(pos_defs) / len(pos_defs)
 
 
 def calc_subspace_proj_matrix(num_dim: int):
