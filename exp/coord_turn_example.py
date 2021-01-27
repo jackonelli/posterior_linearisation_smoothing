@@ -17,7 +17,6 @@ from data.coord_turn import get_tricky_data
 
 
 def main():
-    logging.getLogger("matplotlib").setLevel(logging.WARNING)
     log = logging.getLogger(__name__)
     experiment_name = "coord_turn"
     setup_logger(f"logs/{experiment_name}.log", logging.INFO)

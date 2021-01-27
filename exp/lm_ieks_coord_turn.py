@@ -17,13 +17,13 @@ from src.smoother.ext.ieks import Ieks
 from src.smoother.ext.lm_ieks import LmIeks
 from src.cost import analytical_smoothing_cost
 from src.utils import setup_logger
+from src.analytics import rmse
 from src.models.range_bearing import MultiSensorRange
 from src.models.coord_turn import LmCoordTurn
 from data.lm_ieks_paper.coord_turn_example import Type, get_specific_states_from_file
 
 
 def main():
-    logging.getLogger("matplotlib").setLevel(logging.WARNING)
     log = logging.getLogger(__name__)
     experiment_name = "lm_ieks"
     setup_logger(f"logs/{experiment_name}.log", logging.DEBUG)
@@ -53,7 +53,7 @@ def main():
     prior_mean = np.array([0, 0, 1, 0, 0])
     prior_cov = np.diag([0.1, 0.1, 1, 1, 1])
 
-    num_iter = 100
+    num_iter = 10
     states, measurements, _, _ = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.LM, num_iter)
 
     cost_fn = partial(
@@ -64,14 +64,11 @@ def main():
         motion_model=motion_model,
         meas_model=meas_model,
     )
-    # ms_gn, Ps_gn, cost_gn = gn_ieks(motion_model, meas_model, num_iter, measurements, prior_mean, prior_cov, cost_fn)
+    ms_gn, Ps_gn, cost_gn = gn_ieks(motion_model, meas_model, num_iter, measurements, prior_mean, prior_cov, cost_fn)
     ms_lm, Ps_lm, cost_lm = lm_ieks(motion_model, meas_model, num_iter, measurements, prior_mean, prior_cov, cost_fn)
     plot_results(
         states,
-        [
-            # (ms_gn, Ps_gn, cost_gn[1:], "GN-IEKS"),
-            (ms_lm, Ps_lm, cost_lm[1:], "LM-IEKS")
-        ],
+        [(ms_gn, Ps_gn, cost_gn[1:], "GN-IEKS"), (ms_lm, Ps_lm, cost_lm[1:], "LM-IEKS")],
     )
 
 

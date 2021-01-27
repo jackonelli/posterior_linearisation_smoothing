@@ -25,7 +25,6 @@ from data.lm_ieks_paper.coord_turn_example import Type, get_specific_states_from
 
 
 def main():
-    logging.getLogger("matplotlib").setLevel(logging.WARNING)
     log = logging.getLogger(__name__)
     experiment_name = "reg_ipls"
     setup_logger(f"logs/{experiment_name}.log", logging.DEBUG)
@@ -105,7 +104,7 @@ def gn_ipls(motion_model, meas_model, sigma_point_method, num_iter, measurements
 def reg_ipls(motion_model, meas_model, sigma_point_method, num_iter, measurements, prior_mean, prior_cov, cost_fn):
     lambda_ = 1e-2
     nu = 10
-    cost_improv_iter_lim = 500
+    cost_improv_iter_lim = 10
     smoother = SigmaPointRegIpls(
         motion_model, meas_model, sigma_point_method, num_iter, cost_improv_iter_lim, lambda_, nu
     )

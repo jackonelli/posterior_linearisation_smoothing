@@ -34,6 +34,9 @@ def setup_logger(log_path: Union[str, Path], log_level: Union[str, int], fmt: Op
     file_handler = logging.FileHandler(str(log_path))
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
+    # Matplotlib is _very_ noisy at DEBUG level.
+    # Set to WARNING for good measure.
+    logging.getLogger("matplotlib").setLevel(logging.WARNING)
     logger.info("Log at {}".format(log_path))
 
 

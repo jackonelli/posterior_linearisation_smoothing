@@ -26,7 +26,6 @@ from src.smoother.ext.cost import cost
 
 
 def main():
-    logging.getLogger("matplotlib").setLevel(logging.WARNING)
     log = logging.getLogger(__name__)
     experiment_name = "lm_ieks"
     setup_logger(f"logs/{experiment_name}.log", logging.INFO)
