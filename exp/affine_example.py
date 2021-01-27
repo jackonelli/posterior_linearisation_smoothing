@@ -21,6 +21,7 @@ def main():
     prior_mean = np.array([1, 1, 3, 2])
     prior_cov = 1 * np.eye(4)
     T = 1
+
     A = np.array([[1, 0, T, 0], [0, 1, 0, T], [0, 0, 1, 0], [0, 0, 0, 1]])
     b = 0 * np.ones((4,))
     Q = np.array(
@@ -31,19 +32,19 @@ def main():
             [0, 0, 0, 1.5],
         ]
     )
+    motion_model = AffineModel(A, b, Q)
+
     H = np.array([[1, 0, 0, 0], [0, 1, 0, 0]])
     c = np.zeros((H @ prior_mean).shape)
     R = 2 * np.eye(2)
-
-    motion_model = AffineModel(A, b, Q)
     meas_model = AffineModel(H, c, R)
-    analytical_smooth = RtsSmoother(motion_model, meas_model)
 
     true_x = sim_affine_state_seq(prior_mean, prior_cov, motion_model, K)
-    y = sim_affine_meas_seq(true_x, H, R)
+    y = sim_affine_meas_seq(true_x, meas_model)
 
-    mf, Pf, ms, Ps = analytical_smooth.filter_and_smooth(y, prior_mean, prior_cov)
-    vis.plot_nees_and_2d_est(true_x, y, mf, Pf, ms, Ps, sigma_level=3, skip_cov=2)
+    analytical_smooth = RtsSmoother(motion_model, meas_model)
+    mf, Pf, ms, Ps, _ = analytical_smooth.filter_and_smooth(y, prior_mean, prior_cov, None)
+    vis.plot_nees_and_2d_est(true_x, y, [(mf, Pf, "KF"), (ms, Ps, "RTSS")], sigma_level=3, skip_cov=2)
 
 
 if __name__ == "__main__":

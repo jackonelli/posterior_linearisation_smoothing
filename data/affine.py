@@ -28,7 +28,7 @@ def sim_affine_state_seq(x_0: np.ndarray, P_0: np.ndarray, aff_model: AffineMode
     return X
 
 
-def sim_affine_meas_seq(X, H, R):
+def sim_affine_meas_seq(X, aff_model: AffineModel):
     """generates a sequence of observations of the state
     sequence X using a linear measurement model.
     Measurement noise is assumed to be zero mean and Gaussian.
@@ -42,6 +42,6 @@ def sim_affine_meas_seq(X, H, R):
         Y [K, m] Measurement sequence
     """
 
-    r = mvn.rvs(mean=np.zeros((R.shape[0],)), cov=R, size=X.shape[0])
+    r = mvn.rvs(mean=np.zeros((aff_model.offset.shape)), cov=aff_model.noise, size=X.shape[0])
 
-    return (H @ X.T).T + r
+    return aff_model.map_set(X) + r
