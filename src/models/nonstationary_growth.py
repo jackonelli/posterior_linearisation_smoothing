@@ -17,10 +17,9 @@ class NonStationaryGrowth(MotionModel, Differentiable):
         self.delta = delta
         self._proc_noise = proc_noise
 
-    def mapping(self, state):
-        x_k, time_step = state
-        term_1 = self.alpha * x_k
-        term_2 = self.beta * x_k / (1 + x_k ** 2)
+    def mapping(self, state, time_step):
+        term_1 = self.alpha * state
+        term_2 = self.beta * state / (1 + state ** 2)
         term_3 = self.gamma * np.cos(self.delta * time_step)
         return (term_1 + term_2 + term_3, time_step + 1)
 

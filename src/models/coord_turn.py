@@ -19,7 +19,7 @@ class CoordTurn(MotionModel, Differentiable):
         self.sampling_period = sampling_period
         self._proc_noise = proc_noise
 
-    def mapping(self, state):
+    def mapping(self, state, time_step=0):
         v = state[2]
         phi = state[3]
         omega = state[4]
@@ -38,7 +38,7 @@ class CoordTurn(MotionModel, Differentiable):
         return self._proc_noise
 
     # TODO: This is not the correct Jacobian
-    def jacobian(self, state):
+    def jacobian(self, state, time_step=0):
         dt = self.sampling_period
         w = state[4]
         if w == 0:
@@ -93,7 +93,7 @@ class LmCoordTurn(MotionModel, Differentiable):
         self._dt = sampling_period
         self._proc_noise = proc_noise
 
-    def mapping(self, state):
+    def mapping(self, state, time_step=0):
         dt = self._dt
         w = state[4]
         if w == 0:

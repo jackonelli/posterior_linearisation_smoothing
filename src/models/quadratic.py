@@ -14,11 +14,11 @@ class Quadratic(MotionModel, Differentiable):
         self.inv_coeff = inv_coeff
         self._proc_noise = proc_noise
 
-    def mapping(self, state):
+    def mapping(self, state, time_step=0):
         return state ** 2 / self.inv_coeff
 
     def proc_noise(self, _time_step):
         return self._proc_noise
 
-    def jacobian(self, state):
+    def jacobian(self, state, _time_step=0):
         return 2 * state / self.inv_coeff
