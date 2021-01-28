@@ -11,12 +11,12 @@ class RangeBearing(MeasModel):
         self.pos = pos
         self._meas_noise = meas_noise
 
-    def mapping(self, state):
+    def mapping(self, state, time_step=None):
         range_ = np.sqrt(np.sum((state[:2] - self.pos) ** 2))
         bearing = np.arctan2(state[1] - self.pos[1], state[0] - self.pos[0])
         return np.array([range_, bearing])
 
-    def meas_noise(self, _time_step):
+    def meas_noise(self, time_step):
         return self._meas_noise
 
 
@@ -29,13 +29,13 @@ class MultiSensorRange(MeasModel, Differentiable):
         self.sensors = sensors
         self._meas_noise = meas_noise
 
-    def mapping(self, state):
+    def mapping(self, state, time_step=None):
         return np.apply_along_axis(lambda pos: euclid_dist(state[:2], pos), axis=1, arr=self.sensors)
 
-    def meas_noise(self, _time_step):
+    def meas_noise(self, time_step):
         return self._meas_noise
 
-    def jacobian(self, state):
+    def jacobian(self, state, time_step=None):
         zeros_len = state.shape[0] - 2
         s_1 = self.sensors[0, :]
         s_2 = self.sensors[1, :]

@@ -14,11 +14,11 @@ class Cubic(MeasModel, Differentiable):
         self.coeff = coeff
         self._proc_noise = proc_noise
 
-    def mapping(self, state):
+    def mapping(self, state, time_step=None):
         return state ** 3 * self.coeff
 
     def meas_noise(self, _time_step):
         return self._proc_noise
 
-    def jacobian(self, state):
+    def jacobian(self, state, time_step=None):
         return 3 * state ** 2 * self.coeff

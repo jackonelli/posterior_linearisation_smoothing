@@ -21,6 +21,6 @@ class TestRangeBearing(unittest.TestCase):
         R = np.eye(2)
         meas_model = RangeBearing(pos, R)
         state = np.ones((10, 5))
-        meas = meas_model.map_set(state)
+        meas = meas_model.map_set(state, None)
         self.assertEqual(meas.shape, (10, 2))
         self.assertAlmostEqual(meas[0, 0], np.sqrt(2))
