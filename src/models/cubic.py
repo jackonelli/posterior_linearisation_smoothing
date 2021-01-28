@@ -1,24 +1,24 @@
 """Cubic meas model"""
 import numpy as np
-from src.models.base import MotionModel, Differentiable
+from src.models.base import MeasModel, Differentiable
 
 
-class Cubic(MotionModel, Differentiable):
+class Cubic(MeasModel, Differentiable):
     """
     state is
         x_k = actual state at time step k
     """
 
-    def __init__(self, inv_coeff: float, proc_noise):
+    def __init__(self, coeff: float, proc_noise):
         # Rename? 'scale' perhaps
-        self.inv_coeff = inv_coeff
+        self.coeff = coeff
         self._proc_noise = proc_noise
 
     def mapping(self, state):
-        return state ** 3 / self.inv_coeff
+        return state ** 3 * self.coeff
 
-    def proc_noise(self, _time_step):
+    def meas_noise(self, _time_step):
         return self._proc_noise
 
     def jacobian(self, state):
-        return 3 * state ** 2 / self.inv_coeff
+        return 3 * state ** 2 * self.coeff

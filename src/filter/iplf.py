@@ -3,7 +3,7 @@ from src.filter.base import Filter
 from src.slr.sigma_points import SigmaPointSlr
 
 
-class Iplf(Filter):
+class SigmaPointIplf(Filter):
     """Iterated posterior linearisation filter (IPLF)"""
 
     def __init__(self, motion_model, meas_model, sigma_point_method):

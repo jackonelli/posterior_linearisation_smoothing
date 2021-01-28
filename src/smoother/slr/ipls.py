@@ -1,7 +1,7 @@
 """Sigma point Iterated posterior linearisation smoother (IPLS)"""
 from src.smoother.base import IteratedSmoother
 from src.smoother.slr.prls import SigmaPointPrLs
-from src.filter.iplf import Iplf
+from src.filter.iplf import SigmaPointIplf
 from src.slr.sigma_points import SigmaPointSlr
 import numpy as np
 
@@ -30,7 +30,7 @@ class SigmaPointIpls(IteratedSmoother):
         return smoother.filter_and_smooth(measurements, m_1_0, P_1_0, cost_fn)
 
     def _filter_seq(self, measurements, m_1_0, P_1_0):
-        iplf = Iplf(self._motion_model, self._meas_model, self._sigma_point_method)
+        iplf = SigmaPointIplf(self._motion_model, self._meas_model, self._sigma_point_method)
         iplf._update_estimates(self._current_means, self._current_covs)
         return iplf.filter_seq(measurements, m_1_0, P_1_0)
 

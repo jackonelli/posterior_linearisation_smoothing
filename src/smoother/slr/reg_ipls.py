@@ -6,7 +6,7 @@ from src.cost import noop_cost
 from src.smoother.base import IteratedSmoother
 from src.filter.prlf import SigmaPointPrLf
 from src.smoother.slr.prls import SigmaPointPrLs
-from src.filter.iplf import Iplf
+from src.filter.iplf import SigmaPointIplf
 from src.slr.sigma_points import SigmaPointSlr
 
 
@@ -108,7 +108,7 @@ class SigmaPointRegIpls(IteratedSmoother):
         self._current_means = means.copy()
 
 
-class _RegIplf(Iplf):
+class _RegIplf(SigmaPointIplf):
     def __init__(self, motion_model, meas_model, sigma_point_method, lambda_):
         super().__init__(motion_model, meas_model, sigma_point_method)
         self._lambda = lambda_

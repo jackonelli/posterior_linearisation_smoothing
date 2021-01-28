@@ -42,9 +42,9 @@ class UnscentedTransform(SigmaPointMethod):
         return self._alpha ** 2 * (D_x + self._kappa) - D_x
 
     def weights(self, D_x):
-        lambda_ = self.lambda_()
-        w_m_0 = lambda_ / (D_x + lambda_)
-        w_c_0 = lambda_ / (D_x + lambda_) + (1 - self._alpha ** 2 + self._beta)
+        lambda_ = self.lambda_(D_x)
+        w_m_0 = np.array([lambda_ / (D_x + lambda_)])
+        w_c_0 = np.array([lambda_ / (D_x + lambda_) + (1 - self._alpha ** 2 + self._beta)])
         tmp_w = 1 / (2 * (np.arange(1, 2 * D_x) + lambda_))
         return np.concatenate((w_m_0, tmp_w)), np.concatenate((w_c_0, tmp_w))
 

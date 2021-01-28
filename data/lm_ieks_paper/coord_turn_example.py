@@ -23,7 +23,7 @@ class Type(Enum):
     LM = "lm"
 
 
-def gen_data(sens_pos_1, sens_pos_2, std, dt, x_0, time_steps, seed=None) -> (np.ndarray, np.ndarray):
+def simulate_data(sens_pos_1, sens_pos_2, std, dt, x_0, time_steps, seed=None) -> (np.ndarray, np.ndarray):
     """Create a curved trajectory and angle measurements from two sensors (TODO angles)
     D_x = 4, D_y = 2
 
@@ -123,7 +123,7 @@ def xs_name(num_iter: Optional[int]) -> str:
 
 
 if __name__ == "__main__":
-    data = gen_data(
+    data = simulate_data(
         sens_pos_1=np.array([-1.5, 0.5]),
         sens_pos_2=np.array([1, 1]),  # Position of sensor 2
         std=0.5,  # Standard deviation of measurements
@@ -133,7 +133,7 @@ if __name__ == "__main__":
         seed=4,
     )
 
-    data = get_specific_states_from_file(Path.cwd(), Type.Extended, None)
+    states, measurements, xf, xs = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.Extended, None)
 
-    plt.plot(data[:, 0], data[:, 1])
+    plt.plot(states[:, 0], states[:, 1])
     plt.show()
