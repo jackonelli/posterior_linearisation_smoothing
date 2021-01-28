@@ -15,6 +15,13 @@ cd post_lin_smooth
 pipenv shell
 ```
 
+### Data
+
+Results first achieved for the paper "Paper link" can be reproduced by running the corresponding script in the `exp` sub-dir.
+Using a fixed seed will guarantee exactly replicated data and conditions.
+
+For previous results that this code reproduces a fixed seed is not possible (the previous papers' experiments are exclusively implemented in matlab). For them the actual data used in those trials are included in this repo (the `data` sub-dir).
+
 ## Test coverage
 
 Explicit unit testing as such, is limited at the moment.
