@@ -16,6 +16,7 @@ from src.models.cubic import Cubic
 from src.sigma_points import UnscentedTransform
 from src.filter.iplf import SigmaPointIplf
 from src.filter.prlf import SigmaPointPrLf
+from src.smoother.slr.ipls import SigmaPointIpls
 from data.ipls_paper.data import get_specific_states_from_file, gen_measurements
 
 
@@ -49,13 +50,15 @@ def main():
     prior_mean = np.atleast_1d(5)
     prior_cov = np.atleast_2d([4])
 
-    prlf = SigmaPointPrLf(motion_model, meas_model, sigma_point_method)
+    num_iter = 10
+    ipls = SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter)
     for mc_iter in range(num_mc_runs):
         # initialise storage
+        log.info(f"MC iter: {mc_iter}")
         traj_idx = _mc_iter_to_traj_idx(mc_iter, num_mc_per_traj)
         traj = trajs[:, traj_idx]
         meas = gen_measurements(traj, noise[:, mc_iter])
-        prlf.filter_seq(meas, prior_mean, prior_cov)
+        ipls.filter_and_smooth(meas, prior_mean, prior_cov, cost_fn=None)
 
 
 def _mc_iter_to_traj_idx(mc_iter: int, num_mc_per_traj) -> int:

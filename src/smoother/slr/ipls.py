@@ -21,7 +21,9 @@ class SigmaPointIpls(IteratedSmoother):
 
     def _motion_lin(self, _mean, _cov, time_step):
         return self._slr.linear_params(
-            self._motion_model.map_set, self._current_means[time_step], self._current_covs[time_step]
+            self._mapping_with_time_step(self._motion_model.map_set, time_step=time_step),
+            self._current_means[time_step],
+            self._current_covs[time_step],
         )
 
     def _first_iter(self, measurements, m_1_0, P_1_0, cost_fn):

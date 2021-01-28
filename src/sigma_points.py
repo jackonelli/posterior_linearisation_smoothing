@@ -13,6 +13,7 @@ class SigmaPointMethod(ABC):
 class SphericalCubature(SigmaPointMethod):
     def sigma_points(self, mean, cov):
         D_x = mean.shape[0]
+        cov = np.atleast_2d(cov)
         sqrt_cov = sqrtm(cov)
         num_sigma_points = 2 * D_x
 
@@ -50,7 +51,7 @@ class UnscentedTransform(SigmaPointMethod):
 
     def sigma_points(self, mean, cov):
         D_x = mean.shape[0]
-        # cov = np.atleast_2d(cov)
+        cov = np.atleast_2d(cov)
         sqrt_cov = sqrtm(cov)
         lambda_ = self.lambda_(D_x)
         num_sigma_points = 2 * D_x + 1

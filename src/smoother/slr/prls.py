@@ -14,8 +14,10 @@ class SigmaPointPrLs(Smoother):
         self._slr = SigmaPointSlr(sigma_point_method)
         self._sigma_point_method = sigma_point_method
 
-    def _motion_lin(self, mean, cov, _time_step):
-        return self._slr.linear_params(self._motion_model.map_set, mean, cov)
+    def _motion_lin(self, mean, cov, time_step):
+        return self._slr.linear_params(
+            self._mapping_with_time_step(self._motion_model.map_set, time_step=time_step), mean, cov
+        )
 
     def _filter_seq(self, measurements, x_0_0, P_0_0):
         return SigmaPointPrLf(self._motion_model, self._meas_model, self._sigma_point_method).filter_seq(

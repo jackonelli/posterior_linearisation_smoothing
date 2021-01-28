@@ -1,8 +1,8 @@
 """Abstract smoother class"""
 from abc import abstractmethod, ABC
+from functools import partial
 import logging
 import numpy as np
-from src.filter.base import Filter
 
 
 class Smoother(ABC):
@@ -132,6 +132,10 @@ class Smoother(ABC):
         """
         pass
 
+    @staticmethod
+    def _mapping_with_time_step(mapping, time_step):
+        return partial(mapping, time_step=time_step)
+
 
 class IteratedSmoother(Smoother):
     """Abstract iterated smoother class
@@ -161,7 +165,7 @@ class IteratedSmoother(Smoother):
         """
         current_ms, current_Ps = init_traj
         self._update_estimates(current_ms, current_Ps)
-        cost_iter = [cost_fn(current_ms)]
+        cost_iter = [cost_fn(current_ms)] if cost_fn is not None else [None]
         for iter_ in range(start_iter, self.num_iter + 1):
             self._log.info(f"Iter: {iter_}")
             mf, Pf, current_ms, current_Ps, cost = super().filter_and_smooth(measurements, m_1_0, P_1_0, cost_fn)
