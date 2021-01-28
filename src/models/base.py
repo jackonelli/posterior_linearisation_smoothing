@@ -16,7 +16,7 @@ class Model(ABC):
         """
         pass
 
-    def map_set(self, states: np.ndarray, time_step: Optional[int]) -> np.ndarray:
+    def map_set(self, states: np.ndarray, time_step: Optional[int] = None) -> np.ndarray:
         """Map multiple states
         Efficient mapping of multiple states
 
