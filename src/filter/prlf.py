@@ -11,11 +11,11 @@ class SigmaPointPrLf(Filter):
         self._meas_model = meas_model
         self._slr = SigmaPointSlr(sigma_point_method)
 
-    def _motion_lin(self, mean, cov, _time_step):
-        return self._slr.linear_params(self._motion_model.map_set, mean, cov)
+    def _motion_lin(self, mean, cov, time_step):
+        return self._slr.linear_params(self._mapping_with_time_step(self._motion_model.map_set, time_step), mean, cov)
 
-    def _meas_lin(self, mean, cov, _time_step):
-        return self._slr.linear_params(self._meas_model.map_set, mean, cov)
+    def _meas_lin(self, mean, cov, time_step):
+        return self._slr.linear_params(self._mapping_with_time_step(self._meas_model.map_set, time_step), mean, cov)
 
     def _proc_noise(self, time_step):
         return self._motion_model.proc_noise(time_step)

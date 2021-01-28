@@ -1,5 +1,6 @@
 """Abstract filter class"""
 from abc import abstractmethod, ABC
+from functools import partial
 import logging
 import numpy as np
 
@@ -149,3 +150,7 @@ class Filter(ABC):
         est_means = np.empty((K, D_x))
         est_covs = np.empty((K, D_x, D_x))
         return est_means, est_covs
+
+    @staticmethod
+    def _mapping_with_time_step(mapping, time_step):
+        return partial(mapping, time_step=time_step)
