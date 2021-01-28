@@ -1,4 +1,5 @@
 """Base classes for models"""
+from typing import Optional
 from abc import ABC, abstractmethod
 from functools import partial
 import numpy as np
@@ -15,7 +16,7 @@ class Model(ABC):
         """
         pass
 
-    def map_set(self, states: np.ndarray, time_step: int = 0) -> np.ndarray:
+    def map_set(self, states: np.ndarray, time_step: Optional[int]) -> np.ndarray:
         """Map multiple states
         Efficient mapping of multiple states
 
@@ -27,7 +28,7 @@ class Model(ABC):
 
 class Differentiable(ABC):
     @abstractmethod
-    def jacobian(self, state, time_step: int) -> np.ndarray:
+    def jacobian(self, state, time_step: Optional[int]) -> np.ndarray:
         pass
 
 

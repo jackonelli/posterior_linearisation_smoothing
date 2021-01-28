@@ -16,6 +16,6 @@ class TestCoordTurn(unittest.TestCase):
         sampling_period = 0.1
         motion_model = CoordTurn(sampling_period, None)
         state = np.zeros((10, 5))
-        pred_state = motion_model.map_set(state)
+        pred_state = motion_model.map_set(state, None)
         self.assertEqual(pred_state.shape, state.shape)
         self.assertAlmostEqual(pred_state[0, 0], 0)

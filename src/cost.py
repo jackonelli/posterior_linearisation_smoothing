@@ -4,6 +4,7 @@ TODO: The models are assumed to be indep of time step k.
 Should make the API more flexible, this will prevent some vectorisation but this is not a hot path anyway.
 """
 import logging
+from functools import partial
 import numpy as np
 from src.models.base import MotionModel, MeasModel
 from src.slr.base import Slr
@@ -27,8 +28,8 @@ def analytical_smoothing_cost(traj, meas, m_1_0, P_1_0, motion_model: MotionMode
     prior_diff = traj[0, :] - m_1_0
     _cost = prior_diff.T @ np.linalg.inv(P_1_0) @ prior_diff
 
-    proc_diff = traj[1:, :] - motion_model.map_set(traj[:-1, :])
-    meas_diff = meas - meas_model.map_set(traj)
+    proc_diff = traj[1:, :] - motion_model.map_set(traj[:-1, :], None)
+    meas_diff = meas - meas_model.map_set(traj, None)
     for k in range(0, traj.shape[0] - 1):
         _cost += proc_diff[k, :].T @ np.linalg.inv(motion_model.proc_noise(k)) @ proc_diff[k, :]
         # measurements are zero indexed, i.e. k-1 --> y_k
@@ -65,20 +66,23 @@ def slr_smoothing_cost(
     prior_diff = traj[0, :] - m_1_0
     _cost = prior_diff.T @ np.linalg.inv(P_1_0) @ prior_diff
 
+    motion_mapping = partial(motion_model.map_set, time_step=None)
     for k in range(0, traj.shape[0] - 1):
         mean_k = traj[k, :]
         cov_k = covs[k, :]
-        proc_bar, _, _ = slr.slr(motion_model.map_set, mean_k, cov_k)
-        _, _, Omega_k = slr.linear_params(motion_model.map_set, mean_k, cov_k)
+        # TODO: Refactor so as not to have to redo this calc.
+        proc_bar, _, _ = slr.slr(motion_mapping, mean_k, cov_k)
+        _, _, Omega_k = slr.linear_params(motion_mapping, mean_k, cov_k)
 
         proc_diff_k = traj[k + 1, :] - proc_bar
         _cost += proc_diff_k.T @ np.linalg.inv(motion_model.proc_noise(k) + Omega_k) @ proc_diff_k
 
+    meas_mapping = partial(meas_model.map_set, time_step=None)
     for k in range(0, traj.shape[0]):
         mean_k = traj[k, :]
         cov_k = covs[k, :]
-        meas_bar, _, _ = slr.slr(meas_model.map_set, mean_k, cov_k)
-        _, _, Lambda_k = slr.linear_params(meas_model.map_set, mean_k, cov_k)
+        meas_bar, _, _ = slr.slr(meas_mapping, mean_k, cov_k)
+        _, _, Lambda_k = slr.linear_params(meas_mapping, mean_k, cov_k)
 
         # measurements are zero indexed, i.e. meas[k-1] --> y_k
         meas_diff_k = measurements[k, :] - meas_bar

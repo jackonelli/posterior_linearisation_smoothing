@@ -1,4 +1,5 @@
 """Stochastic coordinated turn motion model"""
+from typing import Optional
 import numpy as np
 from src.models.base import MotionModel, Differentiable
 
@@ -19,7 +20,7 @@ class CoordTurn(MotionModel, Differentiable):
         self.sampling_period = sampling_period
         self._proc_noise = proc_noise
 
-    def mapping(self, state, time_step=0):
+    def mapping(self, state, time_step=None):
         v = state[2]
         phi = state[3]
         omega = state[4]
@@ -38,7 +39,7 @@ class CoordTurn(MotionModel, Differentiable):
         return self._proc_noise
 
     # TODO: This is not the correct Jacobian
-    def jacobian(self, state, time_step=0):
+    def jacobian(self, state, time_step: Optional[None]):
         dt = self.sampling_period
         w = state[4]
         if w == 0:
@@ -93,7 +94,7 @@ class LmCoordTurn(MotionModel, Differentiable):
         self._dt = sampling_period
         self._proc_noise = proc_noise
 
-    def mapping(self, state, time_step=0):
+    def mapping(self, state, time_step=None):
         dt = self._dt
         w = state[4]
         if w == 0:

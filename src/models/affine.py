@@ -24,7 +24,7 @@ class AffineModel(MotionModel, MeasModel):
         self.noise = noise
         self.offset = offset
 
-    def mapping(self, state: np.ndarray, time_step=0) -> np.ndarray:
+    def mapping(self, state: np.ndarray, time_step=None) -> np.ndarray:
         return self.linear_map @ state + self.offset
 
     def proc_noise(self, _time_step):
