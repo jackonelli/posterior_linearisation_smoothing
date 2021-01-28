@@ -14,7 +14,7 @@ class Slr(ABC):
             cov: covaraiance, R^(n x n)
         """
 
-        mean, cov = np.asarray(mean), np.asmatrix(cov)
+        mean, cov = np.atleast_1d(mean), np.atleast_2d(cov)
         z_bar, psi, phi = self.slr(fn, mean, cov)
         A = psi.T @ np.linalg.inv(cov)
         b = z_bar - A @ mean

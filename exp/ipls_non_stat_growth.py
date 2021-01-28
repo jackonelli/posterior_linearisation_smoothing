@@ -46,8 +46,8 @@ def main():
     assert sigma_point_method.weights(D_x)[0][0] == 1 / 3
     assert np.allclose(sigma_point_method.weights(D_x)[0], sigma_point_method.weights(D_x)[1])
 
-    prior_mean = np.asarray(5)
-    prior_cov = np.array([4])
+    prior_mean = np.atleast_1d(5)
+    prior_cov = np.atleast_2d([4])
 
     prlf = SigmaPointPrLf(motion_model, meas_model, sigma_point_method)
     for mc_iter in range(num_mc_runs):
