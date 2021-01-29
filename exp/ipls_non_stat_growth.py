@@ -35,7 +35,7 @@ def main():
     assert noise.shape == (K, num_mc_runs)
 
     motion_model = NonStationaryGrowth(alpha=0.9, beta=10, gamma=8, delta=1.2, proc_noise=1)
-    meas_model = Cubic(coeff=1/20, proc_noise=1)
+    meas_model = Cubic(coeff=1 / 20, proc_noise=1)
 
     # The paper simply states that "[t]he SLRs have been implemented using the unscented transform
     # with N s = 2n x + 1 sigma-points and the weight of the sigma-point located on the mean is 1/3."
