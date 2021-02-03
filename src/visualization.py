@@ -29,8 +29,33 @@ def plot_nees_comp(true_x, m_1, P_1, m_2, P_2):
     plt.show()
 
 
+def plot_1d_est(true_x, meas, means_and_covs, sigma_level=3, skip_cov=1, ax=None):
+    time_steps = np.arange(true_x.shape[0])
+    if ax is None:
+        _, ax = plt.subplots()
+    ax.plot(time_steps, true_x, ".k", label="true")
+
+    if meas is not None:
+        ax.plot(time_steps, meas, ".r", label="meas")
+
+    for m, P, label in means_and_covs:
+        plot_1d_mean_and_cov(ax, m, P, sigma_level, label, "b", skip_cov)
+
+    ax.set_title("Estimates")
+    ax.set_xlabel("$pos_x$")
+    ax.set_ylabel("$pos_y$")
+    ax.legend()
+
+
+def plot_1d_mean_and_cov(ax, means, covs, sigma_level, label, color, skip_cov):
+    time_steps = np.arange(means.shape[0])
+    stds = np.sqrt(covs)
+    handle = ax.errorbar(x=time_steps, y=means, yerr=sigma_level * stds)
+    handle.set_label(r"{}, ${} \sigma$".format(label, sigma_level))
+    return handle
+
+
 def plot_2d_est(true_x, meas, means_and_covs, sigma_level=3, skip_cov=1, ax=None):
-    K, D_x = true_x.shape
     if ax is None:
         _, ax = plt.subplots()
     ax.plot(true_x[:, 0], true_x[:, 1], ".k", label="true")
@@ -39,7 +64,7 @@ def plot_2d_est(true_x, meas, means_and_covs, sigma_level=3, skip_cov=1, ax=None
         ax.plot(meas[:, 0], meas[:, 1], ".r", label="meas")
 
     for m, P, label in means_and_covs:
-        plot_mean_and_cov(ax, m[:, :2], P[:, :2, :2], sigma_level, label, skip_cov)
+        plot_2d_mean_and_cov(ax, m[:, :2], P[:, :2, :2], sigma_level, label, skip_cov)
 
     ax.set_title("Estimates")
     ax.set_xlabel("$pos_x$")
@@ -57,7 +82,7 @@ def plot_nees_and_2d_est(true_x, meas, means_and_covs, sigma_level=3, skip_cov=1
         ax_2.plot(meas[:, 0], meas[:, 1], ".r", label="meas")
 
     for m, P, label in means_and_covs:
-        traj_handle = plot_mean_and_cov(ax_2, m[:, :2], P[:, :2, :2], sigma_level, label, skip_cov)
+        traj_handle = plot_2d_mean_and_cov(ax_2, m[:, :2], P[:, :2, :2], sigma_level, label, skip_cov)
         filter_nees = nees(true_x, m, P)
         (nees_handle,) = ax_1.plot(filter_nees, "-b", label=label)
         nees_handle.set_color(traj_handle.get_color())
@@ -74,7 +99,7 @@ def plot_nees_and_2d_est(true_x, meas, means_and_covs, sigma_level=3, skip_cov=1
     plt.show()
 
 
-def plot_mean_and_cov(ax, means, covs, sigma_level, label, skip_cov):
+def plot_2d_mean_and_cov(ax, means, covs, sigma_level, label, skip_cov):
     fmt = "-"
     (handle,) = ax.plot(means[:, 0], means[:, 1], fmt, label=label)
     color = handle.get_color()
@@ -82,18 +107,6 @@ def plot_mean_and_cov(ax, means, covs, sigma_level, label, skip_cov):
         last_handle = plot_sigma_level(ax, means[k, :], covs[k, :, :], sigma_level, "", color)
     last_handle.set_label(r"${} \sigma$".format(sigma_level))
     return handle
-
-
-def plot_mean_and_cov_1d(ax, means, covs, sigma_level, label, color, skip_cov):
-    stds = np.sqrt(covs)
-    fmt = "{}-*".format(color)
-    ax.plot(means, fmt, label=label)
-    print(covs)
-    last_handle = ax.fill_between(
-        x=np.arange(0, means.shape[0], skip_cov), y1=means - sigma_level ** 2 * stds, y2=means + sigma_level ** 2 * stds
-    )
-
-    last_handle.set_label(r"${} \sigma$".format(sigma_level))
 
 
 def plot_sigma_level(ax, means, covs, level, label, color, resolution=50):

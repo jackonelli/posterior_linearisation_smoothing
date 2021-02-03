@@ -51,6 +51,8 @@ def get_specific_states_from_file(data_root: Path) -> np.ndarray:
 
 
 def gen_measurements(states: np.ndarray, standard_normal_noise: np.ndarray):
+    num_time_steps = states.shape[0]
+    standard_normal_noise = standard_normal_noise.reshape((num_time_steps, 1))
     std = 1
     a = 1 / 20
     noise = std * standard_normal_noise

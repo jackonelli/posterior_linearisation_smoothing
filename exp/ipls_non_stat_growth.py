@@ -18,6 +18,9 @@ from src.filter.iplf import SigmaPointIplf
 from src.filter.prlf import SigmaPointPrLf
 from src.smoother.slr.ipls import SigmaPointIpls
 from data.ipls_paper.data import get_specific_states_from_file, gen_measurements
+from src import visualization as vis
+from src.analytics import rmse
+import matplotlib.pyplot as plt
 
 
 def main():
@@ -47,18 +50,42 @@ def main():
     assert sigma_point_method.weights(D_x)[0][0] == 1 / 3
     assert np.allclose(sigma_point_method.weights(D_x)[0], sigma_point_method.weights(D_x)[1])
 
-    prior_mean = np.atleast_1d(5)
+    prior_mean = np.atleast_2d(5)
     prior_cov = np.atleast_2d([4])
 
-    num_iter = 10
+    num_iter = 1
     ipls = SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter)
+    # for mc_iter in range(num_mc_runs):
+
+    filter_squared_errs = np.zeros((K, 1))
+    smooth_squared_errs = np.zeros((K, 1))
     for mc_iter in range(num_mc_runs):
         # initialise storage
-        log.info(f"MC iter: {mc_iter}")
+        if mc_iter % 100 == 0:
+            log.info(f"MC iter: {mc_iter}")
         traj_idx = _mc_iter_to_traj_idx(mc_iter, num_mc_per_traj)
-        traj = trajs[:, traj_idx]
+        traj = trajs[:, traj_idx].reshape((K, 1))
         meas = gen_measurements(traj, noise[:, mc_iter])
-        ipls.filter_and_smooth(meas, prior_mean, prior_cov, cost_fn=None)
+        mf, Pf, ms, Ps, _ = ipls.filter_and_smooth(meas, prior_mean, prior_cov, cost_fn=None)
+        filter_squared_errs += (mf - traj) ** 2
+        smooth_squared_errs += (ms - traj) ** 2
+    smooth_rmses = np.sqrt(smooth_squared_errs / num_mc_runs)
+    plt.plot(smooth_rmses)
+    plt.show()
+
+    # mf, Pf = mf.reshape((K,)), Pf.reshape((K,))
+    # ms, Pf = mf.reshape((K,)), Pf.reshape((K,))
+    # plot_results(traj, meas, [(mf, Pf, "filter"), (ms, Ps, "smoother")])
+
+
+def plot_results(traj, meas, means_and_covs):
+
+    vis.plot_1d_est(
+        traj,
+        meas,
+        [(mf, Pf, "filter"), (ms, Ps, "smooth")],
+    )
+    plt.show()
 
 
 def _mc_iter_to_traj_idx(mc_iter: int, num_mc_per_traj) -> int:

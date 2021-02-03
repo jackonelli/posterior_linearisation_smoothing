@@ -6,11 +6,9 @@ from scipy.stats import multivariate_normal as mvn
 from src.models.range_bearing import to_cartesian_coords
 from src.models.coord_turn import LmCoordTurn, CoordTurn
 from src.models.range_bearing import RangeBearing
-from src.filter.slr import SigmaPointSlrFilter
-
-# from src.smoother.slr import SigmaPointSlrSmoother
-from src.smoother.ipls import SigmaPointIpls
+from src.smoother.slr.ipls import SigmaPointIpls
 from src.smoother.ext.ieks import Ieks
+from src.sigma_points import SphericalCubature
 from src import visualization as vis
 from src.utils import setup_logger
 from data.coord_turn import get_tricky_data
@@ -23,12 +21,12 @@ def main():
     log.info(f"Running experiment: {experiment_name}")
     np.random.seed(2)
     range_ = (0, 200)
-    num_iter = 10
+    num_iter = 5
 
     # Motion model
     sampling_period = 0.1
-    v_scale = 1
-    omega_scale = 1
+    v_scale = 5
+    omega_scale = 5
     sigma_v = v_scale * 1
     sigma_omega = omega_scale * np.pi / 180
     Q = np.diag([0, 0, sampling_period * sigma_v ** 2, 0, sampling_period * sigma_omega ** 2])
@@ -36,7 +34,7 @@ def main():
 
     # Meas model
     pos = np.array([100, -100])
-    sigma_r = 1
+    sigma_r = 2
     sigma_phi = 0.5 * np.pi / 180
 
     R = np.diag([sigma_r ** 2, sigma_phi ** 2])
@@ -51,8 +49,8 @@ def main():
     x_1_0 = np.array([4.4, 0, 4, 0, 0])
     P_1_0 = np.diag([1 ** 2, 1 ** 2, 1 ** 2, (5 * np.pi / 180) ** 2, (1 * np.pi / 180) ** 2])
 
-    smoother = SigmaPointIpls(motion_model, meas_model, num_iter)
-    mf, Pf, ms, Ps = smoother.filter_and_smooth(measurements, x_1_0, P_1_0)
+    smoother = SigmaPointIpls(motion_model, meas_model, SphericalCubature(), num_iter)
+    mf, Pf, ms, Ps, _ = smoother.filter_and_smooth(measurements, x_1_0, P_1_0, None)
 
     vis.plot_nees_and_2d_est(
         true_states[range_[0] : range_[1], :],

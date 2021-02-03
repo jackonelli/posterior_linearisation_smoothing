@@ -18,6 +18,7 @@ from src.sigma_points import UnscentedTransform
 from src.slr.sigma_points import SigmaPointSlr
 from src.filter.prlf import SigmaPointPrLf
 from src.smoother.slr.prls import SigmaPointPrLs
+from src.smoother.slr.ipls import SigmaPointIpls
 
 
 # randn("seed", 9)
@@ -60,6 +61,7 @@ square_error_t_tot_smoothing = np.zeros((1, Nsteps))
 # Nit_s-> Number of iterations in smoothing
 Nit_s = 10
 Nit_iplf = 1  # Number of iterations in filtering (Nit_iplf=1 is similar to the UKF)
+ipls = SigmaPointIpls(motion_model, meas_model, sigma_point_method, Nit_s)
 
 square_error_t_tot_smoothing_series = np.zeros((Nmc, Nsteps, Nit_s + 1))  # For filtering and the N_it_s iterations
 NLL_smoothing_series = np.zeros((Nmc, Nsteps, Nit_s + 1))  # Negative log-likelihood (See Deisenroth_thesis)
@@ -99,6 +101,9 @@ for i in range(1, Nmc):
 
     meank_t = np.zeros((Nsteps, Nx))
     Pk_t = np.zeros((Nsteps, Nx, Nx))
+
+    pred_means = np.zeros((Nsteps, Nx))
+    pred_covs = np.zeros((Nsteps, Nx, Nx))
 
     # SLR parameters for dynamics
     A_dyn = np.zeros((Nx, Nx, Nsteps))
@@ -179,6 +184,8 @@ for i in range(1, Nmc):
 
         meank = A_dyn_k * mean_ukf_act + b_dyn_k
         Pk = A_dyn_k * var_ukf_act * A_dyn_k.T + Omega_dyn_k + Q
+        pred_means[k, :] = meank
+        pred_covs[k, :, :] = Pk
         # Pk = (Pk + Pk.T) / 2
 
         A_dyn[:, :, k] = A_dyn_k
@@ -187,59 +194,62 @@ for i in range(1, Nmc):
 
     # Smoother
     # [meank_smoothed_t, Pk_smoothed_t] = linear_rts_smoother(meank_t, Pk_t, A_dyn, b_dyn, Omega_dyn, Q)
-    [meank_smoothed_t, Pk_smoothed_t] = prls.smooth_seq_pre_comp_filter(meank_t, Pk_t, A_dyn, b_dyn, Omega_dyn, Q)
-
+    print("Min filtered Pk", np.min(Pk_t))
+    print("Min pred Pk", np.min(pred_covs))
+    [meank_smoothed_t, Pk_smoothed_t] = prls.smooth_seq_pre_comp_filter(meank_t, Pk_t, pred_means, pred_covs)
     # for k=1:Nsteps
     #     pos_x=X_multi[1,k)
     #     square_error_t_tot_smoothing_series[i,k,2)=(meank_smoothed_t[1,k)-pos_x)**2
     #     NLL_smoothing_series[i,k,2)=1/2*log(Pk_smoothed_t[1,1,k))+1/2*square_error_t_tot_smoothing_series(i,k,2)/Pk_smoothed_t(1,1,k)+cte_NLL
     #     Nees_smoothing_series(i,k,2)=square_error_t_tot_smoothing_series(i,k,2)/Pk_smoothed_t(1,1,k)
 
-    for p in range(1, Nit_s - 1):
+    # for p in range(1, Nit_s - 1):
 
-        # Iterated SLR using the current posterior
+    #     # Iterated SLR using the current posterior
 
-        for k in range(1, Nsteps):
-            # Generation of sigma points
-            meank = meank_smoothed_t[:, k]
-            Pk = Pk_smoothed_t[:, :, k]
+    #     # TODO: Refactor to function
+    #     for k in range(1, Nsteps):
+    #         # Generation of sigma points
+    #         meank = meank_smoothed_t[k, :]
+    #         Pk = Pk_smoothed_t[k, :, :]
 
-            # SLR for measurement
-            # [A_l, b_l, Omega_l] = SLR_measurement_ax3(meank, Pk, a, weights, W0, Nx, Nz)
-            (A_l, b_l, Omega_l) = slr.linear_params(meas_model.map_set, meank_j, Pk_j)
+    #         # SLR for measurement
+    #         # [A_l, b_l, Omega_l] = SLR_measurement_ax3(meank, Pk, a, weights, W0, Nx, Nz)
+    #         (A_l, b_l, Omega_l) = slr.linear_params(meas_model.map_set, meank_j, Pk_j)
 
-            A_m[:, :, k] = A_l
-            b_m[:, k] = b_l
-            Omega_m[:, :, k] = Omega_l
+    #         A_m[:, :, k] = A_l
+    #         b_m[:, k] = b_l
+    #         Omega_m[:, :, k] = Omega_l
 
-            # SLR for dynamics
-            # [A_dyn_k, b_dyn_k, Omega_dyn_k] = SLR_ungm_dynamic(
-            #     meank, Pk, alfa_mod, beta_mod, gamma_mod, weights, W0, Nx, k
-            # )
-            # NOTE: might be shifted with one here
-            (A_dyn_k, b_dyn_k, Omega_dyn_k) = slr.linear_params(
-                partial(motion_model.map_set, time_step=k),
-                mean_ukf_act,
-                var_ukf_act,
-            )
+    #         # SLR for dynamics
+    #         # [A_dyn_k, b_dyn_k, Omega_dyn_k] = SLR_ungm_dynamic(
+    #         #     meank, Pk, alfa_mod, beta_mod, gamma_mod, weights, W0, Nx, k
+    #         # )
+    #         # NOTE: might be shifted with one here
+    #         (A_dyn_k, b_dyn_k, Omega_dyn_k) = slr.linear_params(
+    #             partial(motion_model.map_set, time_step=k),
+    #             mean_ukf_act,
+    #             var_ukf_act,
+    #         )
 
-            A_dyn[:, :, k] = A_dyn_k
-            b_dyn[:, k] = b_dyn_k
-            Omega_dyn[:, :, k] = Omega_dyn_k
+    #         A_dyn[:, :, k] = A_dyn_k
+    #         b_dyn[:, k] = b_dyn_k
+    #         Omega_dyn[:, :, k] = Omega_dyn_k
 
-        # Filter with the linearised model
+    # Filter with the linearised model
+    print("Min smoothed Pk", np.min(Pk_smoothed_t))
+    meank_t, Pk_t, meank_smoothed_t, Pk_smoothed_t, _ = ipls.filter_and_smooth_with_init_traj(
+        z_real_t.T, mean_ini, P_ini, (meank_smoothed_t, Pk_smoothed_t), 2, None
+    )
+    # [meank_t, Pk_t] = linear_kf_full(mean_ini, P_ini, A_m, b_m, Omega_m, A_dyn, b_dyn, Omega_dyn, R, Q, z_real_t)
+    # # Smoother
+    # [meank_smoothed_t, Pk_smoothed_t] = linear_rts_smoother(meank_t, Pk_t, A_dyn, b_dyn, Omega_dyn, Q)
 
-        [meank_t, Pk_t] = linear_kf_full(mean_ini, P_ini, A_m, b_m, Omega_m, A_dyn, b_dyn, Omega_dyn, R, Q, z_real_t)
-
-        # Smoother
-
-        [meank_smoothed_t, Pk_smoothed_t] = linear_rts_smoother(meank_t, Pk_t, A_dyn, b_dyn, Omega_dyn, Q)
-
-        # for k in range(1,Nsteps):
-        #     pos_x=X_multi[1,k)
-        #     square_error_t_tot_smoothing_series[i,k,p+2)=(meank_smoothed_t[1,k)-pos_x)**2
-        #     NLL_smoothing_series[i,k,p+2)=1/2*log(Pk_smoothed_t[1,1,k))+1/2*square_error_t_tot_smoothing_series[i,k,p+2)/Pk_smoothed_t(1,1,k)+cte_NLL
-        #     Nees_smoothing_series(i,k,p+2)=square_error_t_tot_smoothing_series(i,k,p+2)/Pk_smoothed_t(1,1,k)
+    # for k in range(1,Nsteps):
+    #     pos_x=X_multi[1,k)
+    #     square_error_t_tot_smoothing_series[i,k,p+2)=(meank_smoothed_t[1,k)-pos_x)**2
+    #     NLL_smoothing_series[i,k,p+2)=1/2*log(Pk_smoothed_t[1,1,k))+1/2*square_error_t_tot_smoothing_series[i,k,p+2)/Pk_smoothed_t(1,1,k)+cte_NLL
+    #     Nees_smoothing_series(i,k,p+2)=square_error_t_tot_smoothing_series(i,k,p+2)/Pk_smoothed_t(1,1,k)
     # Square error calculation
 
     # for k=1:Nsteps
