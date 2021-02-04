@@ -38,10 +38,10 @@ class SigmaPointRegIpls(IteratedSmoother):
         # Hack to use the generic `filter_and_smooth` method
         # The cost function prototype (variable covs) cannot be specialised until the `smooth_covs` are known
         # but the cost is calculated within the function (where it must be specialised).
-        # Solution: - Calculate a dummy (noop_cost) in the `filter_and_smooth` method => conforms to the base API.
+        # Solution: - Use 'None' in the `filter_and_smooth` method => conforms to the base API.
         #           - Calculate the actual cost here, when the smooth_covs are available.
         filter_means, filter_covs, smooth_means, smooth_covs, _ = smoother.filter_and_smooth(
-            measurements, m_1_0, P_1_0, noop_cost
+            measurements, m_1_0, P_1_0, None
         )
         # Fix cost function
         cost_fn = partial(cost_fn_prototype, covs=smooth_covs)
@@ -62,7 +62,7 @@ class SigmaPointRegIpls(IteratedSmoother):
             has_improved = False
 
             # Fix cost function
-            cost_fn = partial(cost_fn_prototype, covs=self._current_covs)
+            cost_fn = self._specialise_cost_fn(cost_fn_prototype, self._cost_fn_params())
             prev_cost = cost_fn(self._current_means)
 
             while not self._terminate_inner_loop(loss_cand_no):
@@ -89,13 +89,18 @@ class SigmaPointRegIpls(IteratedSmoother):
             self._update_estimates(current_ms, current_Ps)
             current_mf, current_Pf = mf, Pf
             cost_iter.append(cost)
-            # _cost = cost(current_ms, measurements, m_1_0, P_1_0, self._motion_model, self._meas_model)
         return current_mf, current_Pf, current_ms, current_Ps, np.array(cost_iter)
 
     def _filter_seq(self, measurements, m_1_0, P_1_0):
         lm_iekf = _RegIplf(self._motion_model, self._meas_model, self._sigma_point_method, self._lambda)
         lm_iekf._update_estimates(self._current_means, self._current_covs)
         return lm_iekf.filter_seq(measurements, m_1_0, P_1_0)
+
+    def _specialise_cost_fn(self, cost_fn_prototype, params):
+        return partial(cost_fn_prototype, covs=params)
+
+    def _cost_fn_params(self):
+        return self._current_covs
 
     def _terminate_inner_loop(self, loss_cand_no):
         return loss_cand_no > 1

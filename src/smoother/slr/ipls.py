@@ -3,7 +3,7 @@ from src.smoother.base import IteratedSmoother
 from src.smoother.slr.prls import SigmaPointPrLs
 from src.filter.iplf import SigmaPointIplf
 from src.slr.sigma_points import SigmaPointSlr
-import numpy as np
+from functools import partial
 
 
 class SigmaPointIpls(IteratedSmoother):
@@ -26,10 +26,10 @@ class SigmaPointIpls(IteratedSmoother):
             self._current_covs[time_step],
         )
 
-    def _first_iter(self, measurements, m_1_0, P_1_0, cost_fn):
+    def _first_iter(self, measurements, m_1_0, P_1_0, cost_fn_prototype):
         self._log.debug("Iter: 1")
         smoother = SigmaPointPrLs(self._motion_model, self._meas_model, self._sigma_point_method)
-        return smoother.filter_and_smooth(measurements, m_1_0, P_1_0, cost_fn)
+        return smoother.filter_and_smooth(measurements, m_1_0, P_1_0, None)
 
     def _filter_seq(self, measurements, m_1_0, P_1_0):
         iplf = SigmaPointIplf(self._motion_model, self._meas_model, self._sigma_point_method)
@@ -39,3 +39,9 @@ class SigmaPointIpls(IteratedSmoother):
     def _update_estimates(self, means, covs):
         self._current_means = means.copy()
         self._current_covs = covs.copy()
+
+    def _specialise_cost_fn(self, cost_fn_prototype, params):
+        return partial(cost_fn_prototype, covs=params)
+
+    def _cost_fn_params(self):
+        return self._current_covs

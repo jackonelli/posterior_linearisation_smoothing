@@ -59,7 +59,7 @@ def slr_smoothing_cost(
             represented as a np.array(K, D_x).
             (The actual variable in the cost function)
         covs: estimated covariances (means) for a time sequence 1, ..., K
-            represented as a np.array(K, D_x)
+            represented as a np.array(K, D_x, D_x)
         meas: measurements for a time sequence 1, ..., K
             represented as a np.array(K, D_y)
     """

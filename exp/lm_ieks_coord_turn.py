@@ -2,7 +2,15 @@
 
 Reproducing the experiment in the paper:
 
-"Levenberg-Marquardt and line-search extended Kalman smoother"
+"Levenberg-Marquardt and line-search extended Kalman smoother".
+
+The problem is evaluated for
+(Original experiment)
+- (GN-)IEKS
+- LM-IEKS
+(Additional models)
+- (GN-)IPLS
+- Reg-IPLS (LM-IPLS)
 """
 
 import logging
@@ -15,7 +23,11 @@ from src.filter.ekf import Ekf
 from src.smoother.ext.eks import Eks
 from src.smoother.ext.ieks import Ieks
 from src.smoother.ext.lm_ieks import LmIeks
-from src.cost import analytical_smoothing_cost
+from src.smoother.slr.ipls import SigmaPointIpls
+from src.smoother.slr.reg_ipls import SigmaPointRegIpls
+from src.slr.sigma_points import SigmaPointSlr
+from src.sigma_points import SphericalCubature
+from src.cost import analytical_smoothing_cost, slr_smoothing_cost
 from src.utils import setup_logger
 from src.analytics import rmse
 from src.models.range_bearing import MultiSensorRange
@@ -56,7 +68,7 @@ def main():
     num_iter = 10
     states, measurements, _, _ = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.LM, num_iter)
 
-    cost_fn = partial(
+    cost_fn_eks = partial(
         analytical_smoothing_cost,
         meas=measurements,
         m_1_0=prior_mean,
@@ -64,12 +76,62 @@ def main():
         motion_model=motion_model,
         meas_model=meas_model,
     )
-    ms_gn, Ps_gn, cost_gn = gn_ieks(motion_model, meas_model, num_iter, measurements, prior_mean, prior_cov, cost_fn)
-    ms_lm, Ps_lm, cost_lm = lm_ieks(motion_model, meas_model, num_iter, measurements, prior_mean, prior_cov, cost_fn)
+    ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks = gn_ieks(
+        motion_model, meas_model, num_iter, measurements, prior_mean, prior_cov, cost_fn_eks
+    )
+    ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks = lm_ieks(
+        motion_model, meas_model, num_iter, measurements, prior_mean, prior_cov, cost_fn_eks
+    )
+
+    sigma_point_method = SphericalCubature()
+    cost_fn_ipls = partial(
+        slr_smoothing_cost,
+        measurements=measurements,
+        m_1_0=prior_mean,
+        P_1_0=prior_cov,
+        motion_model=motion_model,
+        meas_model=meas_model,
+        slr=SigmaPointSlr(sigma_point_method),
+    )
+    ms_gn_ipls, Ps_gn_ipls, cost_gn_ipls = gn_ipls(
+        motion_model,
+        meas_model,
+        sigma_point_method,
+        num_iter,
+        measurements,
+        prior_mean,
+        prior_cov,
+        cost_fn_ipls,
+    )
+    ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls = lm_ipls(
+        motion_model, meas_model, sigma_point_method, num_iter, measurements, prior_mean, prior_cov, cost_fn_ipls
+    )
     plot_results(
         states,
-        [(ms_gn, Ps_gn, cost_gn[1:], "GN-IEKS"), (ms_lm, Ps_lm, cost_lm[1:], "LM-IEKS")],
+        [
+            (ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks[1:], "GN-IEKS"),
+            (ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks[1:], "LM-IEKS"),
+            (ms_gn_ipls, Ps_gn_ipls, cost_gn_ipls[1:], "GN-IPLS"),
+            (ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls[1:], "LM-IPLS"),
+        ],
     )
+
+
+def gn_ipls(motion_model, meas_model, sigma_point_method, num_iter, measurements, prior_mean, prior_cov, cost_fn):
+    smoother = SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter)
+    _, _, ms, Ps, iter_cost = smoother.filter_and_smooth(measurements, prior_mean, prior_cov, cost_fn)
+    return ms, Ps, iter_cost
+
+
+def lm_ipls(motion_model, meas_model, sigma_point_method, num_iter, measurements, prior_mean, prior_cov, cost_fn):
+    lambda_ = 1e-2
+    nu = 10
+    cost_improv_iter_lim = 10
+    smoother = SigmaPointRegIpls(
+        motion_model, meas_model, sigma_point_method, num_iter, cost_improv_iter_lim, lambda_, nu
+    )
+    _, _, ms, Ps, iter_cost = smoother.filter_and_smooth(measurements, prior_mean, prior_cov, cost_fn)
+    return ms, Ps, iter_cost
 
 
 def gn_ieks(motion_model, meas_model, num_iter, measurements, prior_mean, prior_cov, cost_fn):

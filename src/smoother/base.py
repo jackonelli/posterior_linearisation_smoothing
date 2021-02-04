@@ -157,7 +157,7 @@ class IteratedSmoother(Smoother):
         else:
             return mf, Pf, current_ms, current_Ps, iter_cost
 
-    def filter_and_smooth_with_init_traj(self, measurements, m_1_0, P_1_0, init_traj, start_iter, cost_fn):
+    def filter_and_smooth_with_init_traj(self, measurements, m_1_0, P_1_0, init_traj, start_iter, cost_fn_prototype):
         """Filter and smoothing given an initial trajectory
 
         Override if more complex iteration behaviour decided (e.g. reject iter based on cost fn increase)
@@ -165,13 +165,23 @@ class IteratedSmoother(Smoother):
         """
         current_ms, current_Ps = init_traj
         self._update_estimates(current_ms, current_Ps)
+        cost_fn = self._specialise_cost_fn(cost_fn_prototype, self._cost_fn_params())
         cost_iter = [cost_fn(current_ms)] if cost_fn is not None else [None]
         for iter_ in range(start_iter, self.num_iter + 1):
             self._log.info(f"Iter: {iter_}")
             mf, Pf, current_ms, current_Ps, cost = super().filter_and_smooth(measurements, m_1_0, P_1_0, cost_fn)
             self._update_estimates(current_ms, current_Ps)
             cost_iter.append(cost)
+            cost_fn = self._specialise_cost_fn(cost_fn_prototype, self._cost_fn_params())
         return mf, Pf, current_ms, current_Ps, np.array(cost_iter)
+
+    def _specialise_cost_fn(self, cost_fn_prototype, params):
+        """Required for methods which update the cost fn, e.g. Reg-IPLS."""
+        return cost_fn_prototype
+
+    def _cost_fn_params(self):
+        """Extra parameters used for specialising the cost fn"""
+        return None
 
     @abstractmethod
     def _update_estimates(means, covs):
