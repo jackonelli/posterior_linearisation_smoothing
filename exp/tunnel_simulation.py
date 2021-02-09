@@ -114,15 +114,8 @@ def main():
 
 
 def gn_ieks(motion_model, meas_model, num_iter, measurements, prior_mean, prior_cov, cost_fn):
-    K = measurements.shape[0]
-    # No initial covariances nec.
-    init_traj = (np.zeros((K, prior_mean.shape[0])), None)
     smoother = Ieks(motion_model, meas_model, num_iter)
-    # Note that the paper uses m_k = 0, k = 1, ..., K as the initial trajectory
-    # This is the reason for not using the ordinary `filter_and_smooth` method.
-    _, _, ms, Ps, iter_cost = smoother.filter_and_smooth_with_init_traj(
-        measurements, prior_mean, prior_cov, init_traj, 1, cost_fn
-    )
+    _, _, ms, Ps, iter_cost = smoother.filter_and_smooth(measurements, prior_mean, prior_cov, cost_fn)
     return ms, Ps, iter_cost
 
 
@@ -130,14 +123,8 @@ def lm_ieks(motion_model, meas_model, num_iter, measurements, prior_mean, prior_
     cost_improv_iter_lim = 10
     lambda_ = 1e-2
     nu = 10
-    K = measurements.shape[0]
-    init_traj = (np.zeros((K, prior_mean.shape[0])), None)
     smoother = LmIeks(motion_model, meas_model, num_iter, cost_improv_iter_lim, lambda_, nu)
-    # Note that the paper uses m_k = 0, k = 1, ..., K as the initial trajectory
-    # This is the reason for not using the ordinary `filter_and_smooth` method.
-    _, _, ms, Ps, iter_cost = smoother.filter_and_smooth_with_init_traj(
-        measurements, prior_mean, prior_cov, init_traj, 1, cost_fn
-    )
+    _, _, ms, Ps, iter_cost = smoother.filter_and_smooth(measurements, prior_mean, prior_cov, cost_fn)
     return ms, Ps, iter_cost
 
 
