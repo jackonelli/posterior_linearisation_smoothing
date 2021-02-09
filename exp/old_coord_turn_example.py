@@ -6,12 +6,14 @@ from scipy.stats import multivariate_normal as mvn
 from src.models.range_bearing import to_cartesian_coords
 from src.models.coord_turn import LmCoordTurn, CoordTurn
 from src.models.range_bearing import RangeBearing
+from src.slr.sigma_points import SigmaPointSlr
 from src.smoother.slr.ipls import SigmaPointIpls
 from src.smoother.ext.ieks import Ieks
 from src.sigma_points import SphericalCubature
 from src import visualization as vis
 from src.utils import setup_logger
 from data.coord_turn import get_tricky_data
+from src.cost import slr_smoothing_cost
 
 
 def main():
@@ -20,13 +22,13 @@ def main():
     setup_logger(f"logs/{experiment_name}.log", logging.INFO)
     log.info(f"Running experiment: {experiment_name}")
     np.random.seed(2)
-    range_ = (0, 200)
+    range_ = (0, -1)
     num_iter = 5
 
     # Motion model
     sampling_period = 0.1
-    v_scale = 5
-    omega_scale = 5
+    v_scale = 2
+    omega_scale = 2
     sigma_v = v_scale * 1
     sigma_omega = omega_scale * np.pi / 180
     Q = np.diag([0, 0, sampling_period * sigma_v ** 2, 0, sampling_period * sigma_omega ** 2])
@@ -46,11 +48,21 @@ def main():
     cartes_meas = np.apply_along_axis(partial(to_cartesian_coords, pos=pos), 1, measurements)
 
     # Prior distr.
-    x_1_0 = np.array([4.4, 0, 4, 0, 0])
-    P_1_0 = np.diag([1 ** 2, 1 ** 2, 1 ** 2, (5 * np.pi / 180) ** 2, (1 * np.pi / 180) ** 2])
+    prior_mean = np.array([4.4, 0, 4, 0, 0])
+    prior_cov = np.diag([1 ** 2, 1 ** 2, 1 ** 2, (5 * np.pi / 180) ** 2, (1 * np.pi / 180) ** 2])
+
+    cost_fn_ipls = partial(
+        slr_smoothing_cost,
+        measurements=measurements,
+        m_1_0=prior_mean,
+        P_1_0=prior_cov,
+        motion_model=motion_model,
+        meas_model=meas_model,
+        slr=SigmaPointSlr(SphericalCubature()),
+    )
 
     smoother = SigmaPointIpls(motion_model, meas_model, SphericalCubature(), num_iter)
-    mf, Pf, ms, Ps, _ = smoother.filter_and_smooth(measurements, x_1_0, P_1_0, None)
+    mf, Pf, ms, Ps, _ = smoother.filter_and_smooth(measurements, prior_mean, prior_cov, cost_fn_ipls)
 
     vis.plot_nees_and_2d_est(
         true_states[range_[0] : range_[1], :],

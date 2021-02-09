@@ -1,16 +1,11 @@
-"""Example: Levenberg-Marquardt regularised IEKS smoothing
+"""Example:
 
 Reproducing the experiment in the paper:
 
 "Levenberg-Marquardt and line-search extended Kalman smoother".
 
-The problem is evaluated for
-(Original experiment)
-- (GN-)IEKS
-- LM-IEKS
-(Additional models)
-- (GN-)IPLS
-- Reg-IPLS (LM-IPLS)
+The exact realisation of the experiment in the paper is found in
+`exp/lm_ieks_paper.py`
 """
 
 import logging
@@ -76,9 +71,9 @@ def main():
         motion_model=motion_model,
         meas_model=meas_model,
     )
-    ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks = gn_ieks(
-        motion_model, meas_model, num_iter, measurements, prior_mean, prior_cov, cost_fn_eks
-    )
+    # ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks = gn_ieks(
+    #     motion_model, meas_model, num_iter, measurements, prior_mean, prior_cov, cost_fn_eks
+    # )
     ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks = lm_ieks(
         motion_model, meas_model, num_iter, measurements, prior_mean, prior_cov, cost_fn_eks
     )
@@ -93,25 +88,26 @@ def main():
         meas_model=meas_model,
         slr=SigmaPointSlr(sigma_point_method),
     )
-    ms_gn_ipls, Ps_gn_ipls, cost_gn_ipls = gn_ipls(
-        motion_model,
-        meas_model,
-        sigma_point_method,
-        num_iter,
-        measurements,
-        prior_mean,
-        prior_cov,
-        cost_fn_ipls,
-    )
+
+    # ms_gn_ipls, Ps_gn_ipls, cost_gn_ipls = gn_ipls(
+    #     motion_model,
+    #     meas_model,
+    #     sigma_point_method,
+    #     num_iter,
+    #     measurements,
+    #     prior_mean,
+    #     prior_cov,
+    #     cost_fn_ipls,
+    # )
     ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls = lm_ipls(
         motion_model, meas_model, sigma_point_method, num_iter, measurements, prior_mean, prior_cov, cost_fn_ipls
     )
     plot_results(
         states,
         [
-            (ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks[1:], "GN-IEKS"),
+            # (ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks[1:], "GN-IEKS"),
             (ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks[1:], "LM-IEKS"),
-            (ms_gn_ipls, Ps_gn_ipls, cost_gn_ipls[1:], "GN-IPLS"),
+            # (ms_gn_ipls, Ps_gn_ipls, cost_gn_ipls[1:], "GN-IPLS"),
             (ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls[1:], "LM-IPLS"),
         ],
     )
@@ -162,6 +158,7 @@ def lm_ieks(motion_model, meas_model, num_iter, measurements, prior_mean, prior_
     return ms, Ps, iter_cost
 
 
+# TODO: Sep module?
 def plot_results(states, trajs_and_costs):
     means_and_covs = [(ms, Ps, f"{label}-{len(cost)}") for (ms, Ps, cost, label) in trajs_and_costs]
     costs = [(cost, f"{label}-{len(cost)}") for (_, _, cost, label) in trajs_and_costs]

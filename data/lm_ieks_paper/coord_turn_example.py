@@ -46,7 +46,8 @@ def simulate_data(sens_pos_1, sens_pos_2, std, dt, x_0, time_steps, seed=None) -
         seed(int): random seed
 
     Returns:
-        data (np.ndarray): (time_steps, D_x)
+        states (np.ndarray): (time_steps, D_x)
+        meas (np.ndarray): (time_steps, D_y)
     """
     if seed is not None:
         np.random.seed(seed)
@@ -74,6 +75,7 @@ def simulate_data(sens_pos_1, sens_pos_2, std, dt, x_0, time_steps, seed=None) -
         range_meas[k, :] = np.array([y1, y2])
     # TODO: add sample method on base class.
     # measurements = meas_model.map_set(states)
+    print(states.sum())
 
     return states, range_meas
 
