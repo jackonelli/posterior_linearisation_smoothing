@@ -144,6 +144,13 @@ class IteratedSmoother(Smoother):
     `smooth_and_filter_iter`
     """
 
+    def __init__(self):
+        super().__init__()
+        self._current_means = None
+        self._current_covs = None
+        self._store_means = []
+        self._store_covs = []
+
     def filter_and_smooth(self, measurements, m_1_0, P_1_0, cost_fn):
         """Overrides (extends) the base class default implementation"""
 
@@ -183,12 +190,19 @@ class IteratedSmoother(Smoother):
         """Extra parameters used for specialising the cost fn"""
         return None
 
-    @abstractmethod
-    def _update_estimates(means, covs):
+    def _update_estimates(self, means, covs):
         """The 'previous estimates' which are used in the current iteration are stored in the smoother instance.
         They should only be modified through this method.
         """
-        pass
+        self._current_means = means.copy()
+        self._store_means.append(means)
+        if covs is not None:
+            self._current_covs = covs.copy()
+            self._store_covs.append(covs)
+
+    def stored_estimates(self):
+        for means, covs in zip(self._store_means, self._store_covs):
+            yield means, covs
 
     @abstractmethod
     def _first_iter(measurements, m_1_0, P_1_0, cost_fn):

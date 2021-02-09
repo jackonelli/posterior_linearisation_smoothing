@@ -13,7 +13,6 @@ class Ieks(IteratedSmoother):
         super().__init__()
         self._motion_model = motion_model
         self._meas_model = meas_model
-        self._current_means = None
         self.num_iter = num_iter
 
     def _motion_lin(self, _mean, _cov, time_step):
@@ -28,8 +27,5 @@ class Ieks(IteratedSmoother):
 
     def _filter_seq(self, measurements, m_1_0, P_1_0):
         iekf = Iekf(self._motion_model, self._meas_model)
-        iekf._update_estimates(self._current_means, None)
+        iekf._update_estimates(self._current_means, self._current_covs)
         return iekf.filter_seq(measurements, m_1_0, P_1_0)
-
-    def _update_estimates(self, means, _covs):
-        self._current_means = means.copy()

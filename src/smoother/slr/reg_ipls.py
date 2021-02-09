@@ -19,8 +19,6 @@ class SigmaPointRegIpls(IteratedSmoother):
         self._meas_model = meas_model
         self._slr = SigmaPointSlr(sigma_point_method)
         self._sigma_point_method = sigma_point_method
-        self._current_means = None
-        self._current_covs = None
         self.num_iter = num_iter
         self._cost_improv_iter_lim = cost_improv_iter_lim
         self._lambda = lambda_
@@ -104,10 +102,6 @@ class SigmaPointRegIpls(IteratedSmoother):
 
     def _terminate_inner_loop(self, loss_cand_no):
         return loss_cand_no > 1
-
-    def _update_estimates(self, means, covs):
-        self._current_means = means.copy()
-        self._current_covs = covs.copy()
 
     def _update_means_only(self, means):
         self._current_means = means.copy()
