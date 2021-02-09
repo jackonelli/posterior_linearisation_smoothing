@@ -26,7 +26,7 @@ from src.smoother.slr.reg_ipls import SigmaPointRegIpls
 from src.slr.sigma_points import SigmaPointSlr
 from src.sigma_points import SphericalCubature
 from src.cost import analytical_smoothing_cost, slr_smoothing_cost
-from exp.lm_ieks_coord_turn import plot_results, plot_cost, gn_ipls, gn_ieks, lm_ipls, lm_ieks
+from exp.lm_ieks_paper import plot_results, plot_cost, gn_ipls, lm_ipls
 
 
 def main():
@@ -62,7 +62,7 @@ def main():
 
     states, measurements = simulate_data(sens_pos_1, sens_pos_2, std, dt, prior_mean[:-1], time_steps=500)
 
-    num_iter = 10
+    num_iter = 3
 
     results = []
     cost_fn_eks = partial(
@@ -77,10 +77,10 @@ def main():
         motion_model, meas_model, num_iter, measurements, prior_mean, prior_cov, cost_fn_eks
     )
     results.append((ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks[1:], "GN-IEKS"))
-    ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks = lm_ieks(
-        motion_model, meas_model, num_iter, measurements, prior_mean, prior_cov, cost_fn_eks
-    )
-    results.append((ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks[1:], "LM-IEKS"))
+    # ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks = lm_ieks(
+    #     motion_model, meas_model, num_iter, measurements, prior_mean, prior_cov, cost_fn_eks
+    # )
+    # results.append((ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks[1:], "LM-IEKS"))
 
     sigma_point_method = SphericalCubature()
     cost_fn_ipls = partial(
@@ -103,14 +103,42 @@ def main():
         cost_fn_ipls,
     )
     results.append((ms_gn_ipls, Ps_gn_ipls, cost_gn_ipls[1:], "GN-IPLS"))
-    ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls = lm_ipls(
-        motion_model, meas_model, sigma_point_method, num_iter, measurements, prior_mean, prior_cov, cost_fn_ipls
-    )
-    results.append((ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls[1:], "LM-IPLS"))
+    # ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls = lm_ipls(
+    #     motion_model, meas_model, sigma_point_method, num_iter, measurements, prior_mean, prior_cov, cost_fn_ipls
+    # )
+    # results.append((ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls[1:], "LM-IPLS"))
     plot_results(
         states,
         results,
     )
+
+
+def gn_ieks(motion_model, meas_model, num_iter, measurements, prior_mean, prior_cov, cost_fn):
+    K = measurements.shape[0]
+    # No initial covariances nec.
+    init_traj = (np.zeros((K, prior_mean.shape[0])), None)
+    smoother = Ieks(motion_model, meas_model, num_iter)
+    # Note that the paper uses m_k = 0, k = 1, ..., K as the initial trajectory
+    # This is the reason for not using the ordinary `filter_and_smooth` method.
+    _, _, ms, Ps, iter_cost = smoother.filter_and_smooth_with_init_traj(
+        measurements, prior_mean, prior_cov, init_traj, 1, cost_fn
+    )
+    return ms, Ps, iter_cost
+
+
+def lm_ieks(motion_model, meas_model, num_iter, measurements, prior_mean, prior_cov, cost_fn):
+    cost_improv_iter_lim = 10
+    lambda_ = 1e-2
+    nu = 10
+    K = measurements.shape[0]
+    init_traj = (np.zeros((K, prior_mean.shape[0])), None)
+    smoother = LmIeks(motion_model, meas_model, num_iter, cost_improv_iter_lim, lambda_, nu)
+    # Note that the paper uses m_k = 0, k = 1, ..., K as the initial trajectory
+    # This is the reason for not using the ordinary `filter_and_smooth` method.
+    _, _, ms, Ps, iter_cost = smoother.filter_and_smooth_with_init_traj(
+        measurements, prior_mean, prior_cov, init_traj, 1, cost_fn
+    )
+    return ms, Ps, iter_cost
 
 
 if __name__ == "__main__":

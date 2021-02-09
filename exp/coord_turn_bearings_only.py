@@ -9,7 +9,6 @@ The exact realisation of the experiment in the paper is found in
 """
 
 import logging
-from pathlib import Path
 from functools import partial
 import numpy as np
 import matplotlib.pyplot as plt
@@ -27,7 +26,7 @@ from src.utils import setup_logger
 from src.analytics import rmse
 from src.models.range_bearing import MultiSensorRange
 from src.models.coord_turn import LmCoordTurn
-from data.lm_ieks_paper.coord_turn_example import Type, get_specific_states_from_file
+from data.lm_ieks_paper.coord_turn_example import simulate_data
 
 
 def main():
@@ -61,7 +60,8 @@ def main():
     prior_cov = np.diag([0.1, 0.1, 1, 1, 1])
 
     num_iter = 10
-    states, measurements, _, _ = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.LM, num_iter)
+    # states, measurements, _, _ = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.LM, num_iter)
+    states, measurements = simulate_data()
 
     cost_fn_eks = partial(
         analytical_smoothing_cost,
