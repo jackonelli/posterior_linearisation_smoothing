@@ -67,8 +67,8 @@ def simulate_data(sens_pos_1, sens_pos_2, std, dt, x_0, time_steps, seed=None) -
     for k in range(time_steps):
         F = np.array([[0, 0, 1, 0], [0, 0, 0, 1], [0, 0, 0, a[k]], [0, 0, -a[k], 0]])
         x = expm(F * dt) @ x
-        y1 = meas_model_1.mapping(x)[0] + std * np.random.rand()
-        y2 = meas_model_2.mapping(x)[0] + std * np.random.rand()
+        y1 = meas_model_1.mapping(x)[0] + std * np.random.randn()
+        y2 = meas_model_2.mapping(x)[0] + std * np.random.randn()
         t += dt
         states[k, :] = x
         T.append(t)
