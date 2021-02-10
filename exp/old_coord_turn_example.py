@@ -33,6 +33,7 @@ def main():
     sigma_omega = omega_scale * np.pi / 180
     Q = np.diag([0, 0, sampling_period * sigma_v ** 2, 0, sampling_period * sigma_omega ** 2])
     motion_model = CoordTurn(sampling_period, Q)
+    motion_model = LmCoordTurn(sampling_period, Q)
 
     # Meas model
     pos = np.array([100, -100])
