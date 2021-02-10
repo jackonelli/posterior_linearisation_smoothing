@@ -167,7 +167,8 @@ def lm_ieks(motion_model, meas_model, num_iter, measurements, prior_mean, prior_
 def plot_results(states, trajs_and_costs):
     means_and_covs = [(ms, Ps, f"{label}-{len(cost)}") for (ms, Ps, cost, label) in trajs_and_costs]
     costs = [(cost, f"{label}-{len(cost)}") for (_, _, cost, label) in trajs_and_costs]
-    _, (ax_1, ax_2) = plt.subplots(1, 2)
+    # _, (ax_1, ax_2) = plt.subplots(1, 2)
+    _, ax_1 = plt.subplots()
     vis.plot_2d_est(
         states,
         meas=None,
@@ -176,7 +177,7 @@ def plot_results(states, trajs_and_costs):
         skip_cov=50,
         ax=ax_1,
     )
-    plot_cost(ax_2, costs)
+    # plot_cost(ax_2, costs)
     plt.show()
 
 
