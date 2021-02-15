@@ -117,16 +117,18 @@ class Filter(ABC):
             m_k_k: m_{k | k}
             P_k_k: P_{k | k}
         """
-        H, c, Lambda = linearization
-        y_mean = H @ m_k_kminus1 + c
-        S = H @ P_k_kminus1 @ H.T + R + Lambda
-        K = P_k_kminus1 @ H.T @ np.linalg.inv(S)
+        if not any(np.isnan(y_k)):
+            H, c, Lambda = linearization
+            y_mean = H @ m_k_kminus1 + c
+            S = H @ P_k_kminus1 @ H.T + R + Lambda
+            K = P_k_kminus1 @ H.T @ np.linalg.inv(S)
 
-        m_k_k = m_k_kminus1 + (K @ (y_k - y_mean)).reshape(m_k_kminus1.shape)
-        P_k_k = P_k_kminus1 - K @ S @ K.T
-        P_k_k = (P_k_k + P_k_k.T) / 2
-
-        return m_k_k, P_k_k
+            m_k_k = m_k_kminus1 + (K @ (y_k - y_mean)).reshape(m_k_kminus1.shape)
+            P_k_k = P_k_kminus1 - K @ S @ K.T
+            P_k_k = (P_k_k + P_k_k.T) / 2
+            return m_k_k, P_k_k
+        else:
+            return m_k_kminus1, P_k_kminus1
 
     @abstractmethod
     def _motion_lin(self, state, cov, time_step):

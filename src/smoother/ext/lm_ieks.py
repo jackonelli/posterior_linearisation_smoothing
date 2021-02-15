@@ -26,7 +26,7 @@ class LmIeks(IteratedSmoother):
 
     # TODO: This should also have inner LM check
     def _first_iter(self, measurements, m_1_0, P_1_0, cost_fn):
-        self._log.info("Iter: 1")
+        self._log.debug("Iter: 1")
         smoother = Eks(self._motion_model, self._meas_model)
         return smoother.filter_and_smooth(measurements, m_1_0, P_1_0, cost_fn)
 
@@ -38,7 +38,7 @@ class LmIeks(IteratedSmoother):
         cost_iter = [prev_cost]
         self._log.debug(f"Initial cost: {prev_cost}")
         for iter_ in range(start_iter, self.num_iter + 1):
-            self._log.info(f"Iter: {iter_}")
+            self._log.debug(f"Iter: {iter_}")
             inner_iter = 0
             has_improved = False
             while has_improved is False and inner_iter < self._cost_improv_iter_lim:

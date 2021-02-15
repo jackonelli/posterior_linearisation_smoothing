@@ -51,3 +51,28 @@ def make_pos_def(x, eps=0.1):
     neg_sing_vals = s < 0
     s_hat = s * np.logical_not(neg_sing_vals) + eps * neg_sing_vals
     return np.dot(u, np.dot(np.diag(s_hat), vh)), s
+
+
+def tikz_err_bar_tab_to_file(xs, ys, errs, file_: Path):
+    with open(file_, "w") as data_file:
+        data_file.write(tikz_err_bar_tab_format(xs, ys, errs))
+
+
+def tikz_err_bar_tab_format(xs, ys, err):
+    header = "x y err"
+    data = [f"{x} {y} {err}" for x, y, err in zip(xs, ys, err)]
+    data = "\n".join(data)
+    return f"{header}\n{data}"
+
+
+def tikz_2d_tab_to_file(data, dir_: Path):
+    for label, vals in data:
+        with open(dir_ / f"{label.lower()}.data", "w") as data_file:
+            data_file.write(tikz_2d_tab_format(vals[:, 0], vals[:, 1]))
+
+
+def tikz_2d_tab_format(xs, ys):
+    header = "x y"
+    data = [f"{x} {y}" for x, y in zip(xs, ys)]
+    data = "\n".join(data)
+    return f"{header}\n{data}"

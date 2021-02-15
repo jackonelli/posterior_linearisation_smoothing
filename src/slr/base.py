@@ -15,6 +15,8 @@ class Slr(ABC):
         """
 
         mean, cov = np.atleast_1d(mean), np.atleast_2d(cov)
+        # print("mean", mean.max())
+        # print("cov", cov.max())
         z_bar, psi, phi = self.slr(fn, mean, cov)
         A = psi.T @ np.linalg.inv(cov)
         b = z_bar - A @ mean

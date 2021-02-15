@@ -17,6 +17,7 @@ numpy = "*"
 scipy = "*"
 matplotlib = "*"
 jupyter = "*"
+tikzplotlib = "*"
 
 [requires]
 python_version = "3.8"

@@ -2,9 +2,7 @@
 import logging
 from functools import partial
 import numpy as np
-from scipy.stats import multivariate_normal as mvn
-from src.models.range_bearing import to_cartesian_coords
-from src.models.coord_turn import LmCoordTurn, CoordTurn
+from src.models.coord_turn import LmCoordTurn
 from src.models.range_bearing import RangeBearing
 from src.slr.sigma_points import SigmaPointSlr
 from src.smoother.slr.ipls import SigmaPointIpls
@@ -13,6 +11,7 @@ from src.sigma_points import SphericalCubature
 from src import visualization as vis
 from src.utils import setup_logger
 from data.coord_turn import get_tricky_data
+from src.models.range_bearing import to_cartesian_coords
 from src.cost import slr_smoothing_cost
 
 
@@ -32,7 +31,6 @@ def main():
     sigma_v = v_scale * 1
     sigma_omega = omega_scale * np.pi / 180
     Q = np.diag([0, 0, sampling_period * sigma_v ** 2, 0, sampling_period * sigma_omega ** 2])
-    motion_model = CoordTurn(sampling_period, Q)
     motion_model = LmCoordTurn(sampling_period, Q)
 
     # Meas model

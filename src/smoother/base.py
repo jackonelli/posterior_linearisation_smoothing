@@ -155,13 +155,13 @@ class IteratedSmoother(Smoother):
         """Overrides (extends) the base class default implementation"""
 
         mf, Pf, current_ms, current_Ps, first_cost = self._first_iter(measurements, m_1_0, P_1_0, cost_fn)
-        iter_cost = np.array([first_cost])
         if self.num_iter > 1:
             mf, Pf, ms, Ps, tmp_cost = self.filter_and_smooth_with_init_traj(
                 measurements, m_1_0, P_1_0, (current_ms, current_Ps), 2, cost_fn
             )
-            return mf, Pf, ms, Ps, np.concatenate((iter_cost, tmp_cost))
+            return mf, Pf, ms, Ps, tmp_cost
         else:
+            iter_cost = np.array([first_cost])
             return mf, Pf, current_ms, current_Ps, iter_cost
 
     def filter_and_smooth_with_init_traj(self, measurements, m_1_0, P_1_0, init_traj, start_iter, cost_fn_prototype):
@@ -175,7 +175,7 @@ class IteratedSmoother(Smoother):
         cost_fn = self._specialise_cost_fn(cost_fn_prototype, self._cost_fn_params())
         cost_iter = [cost_fn(current_ms)] if cost_fn is not None else [None]
         for iter_ in range(start_iter, self.num_iter + 1):
-            self._log.info(f"Iter: {iter_}")
+            self._log.debug(f"Iter: {iter_}")
             mf, Pf, current_ms, current_Ps, cost = super().filter_and_smooth(measurements, m_1_0, P_1_0, cost_fn)
             self._update_estimates(current_ms, current_Ps)
             cost_iter.append(cost)

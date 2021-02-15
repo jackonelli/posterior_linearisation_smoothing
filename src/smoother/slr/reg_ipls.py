@@ -31,7 +31,7 @@ class SigmaPointRegIpls(IteratedSmoother):
 
     # TODO: This should also have inner LM check
     def _first_iter(self, measurements, m_1_0, P_1_0, cost_fn_prototype):
-        self._log.info("Iter: 1")
+        self._log.debug("Iter: 1")
         smoother = SigmaPointPrLs(self._motion_model, self._meas_model, self._sigma_point_method)
         # Hack to use the generic `filter_and_smooth` method
         # The cost function prototype (variable covs) cannot be specialised until the `smooth_covs` are known
@@ -55,7 +55,7 @@ class SigmaPointRegIpls(IteratedSmoother):
         cost_iter = [prev_cost]
         self._log.debug(f"Initial cost: {prev_cost}")
         for iter_ in range(start_iter, self.num_iter + 1):
-            self._log.info(f"Iter: {iter_}")
+            self._log.debug(f"Iter: {iter_}")
             loss_cand_no = 1
             has_improved = False
 

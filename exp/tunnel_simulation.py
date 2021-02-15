@@ -18,7 +18,7 @@ from src.smoother.ext.ieks import Ieks
 from src.smoother.ext.lm_ieks import LmIeks
 from src.smoother.slr.ipls import SigmaPointIpls
 from src.utils import setup_logger
-from src.models.range_bearing import MultiSensorRange
+from src.models.range_bearing import RangeBearing
 from src.models.coord_turn import LmCoordTurn
 from data.lm_ieks_paper.coord_turn_example import simulate_data
 from src.smoother.slr.reg_ipls import SigmaPointRegIpls
@@ -27,42 +27,48 @@ from src.sigma_points import SphericalCubature
 from src.cost import analytical_smoothing_cost, slr_smoothing_cost
 from exp.lm_ieks_paper import plot_results, plot_cost
 from src.analytics import rmse, nees
+from src.models.range_bearing import to_cartesian_coords
+from src.cost import slr_smoothing_cost
+from data.tunnel_traj import get_states_and_meas
 
 
 def main():
     log = logging.getLogger(__name__)
     experiment_name = "tunnel_simulation"
-    setup_logger(f"logs/{experiment_name}.log", logging.INFO)
+    setup_logger(f"logs/{experiment_name}.log", logging.DEBUG)
     log.info(f"Running experiment: {experiment_name}")
-    # seed = 0
-    # np.random.seed(seed)
-    dt = 0.01
-    qc = 0.01
-    qw = 10
-    Q = np.array(
-        [
-            [qc * dt ** 3 / 3, 0, qc * dt ** 2 / 2, 0, 0],
-            [0, qc * dt ** 3 / 3, 0, qc * dt ** 2 / 2, 0],
-            [qc * dt ** 2 / 2, 0, qc * dt, 0, 0],
-            [0, qc * dt ** 2 / 2, 0, qc * dt, 0],
-            [0, 0, 0, 0, dt * qw],
-        ]
-    )
-    motion_model = LmCoordTurn(dt, Q)
 
-    sens_pos_1 = np.array([-1.5, 0.5])
-    sens_pos_2 = np.array([1, 1])
-    sensors = np.row_stack((sens_pos_1, sens_pos_2))
-    std = 0.5
-    R = std ** 2 * np.eye(2)
-    meas_model = MultiSensorRange(sensors, R)
+    np.random.seed(2)
+    num_iter = 3
+
+    # Motion model
+    sampling_period = 0.1
+    v_scale = 2
+    omega_scale = 2
+    sigma_v = v_scale * 1
+    sigma_omega = omega_scale * np.pi / 180
+    Q = np.diag([0, 0, sampling_period * sigma_v ** 2, 0, sampling_period * sigma_omega ** 2])
+    motion_model = LmCoordTurn(sampling_period, Q)
+
+    # Meas model
+    pos = np.array([100, -100])
+    # sigma_r = 2
+    # sigma_phi = 0.5 * np.pi / 180
+    sigma_r = 4
+    sigma_phi = 1 * np.pi / 180
+
+    R = np.diag([sigma_r ** 2, sigma_phi ** 2])
+    meas_model = RangeBearing(pos, R)
+
+    # Generate data
+    range_ = (0, None)
+    tunnel_segment = [145, 165]
+    # tunnel_segment = [None, None]
+    states, measurements = get_states_and_meas(meas_model, R, range_, tunnel_segment)
+    cartes_meas = np.apply_along_axis(partial(to_cartesian_coords, pos=pos), 1, measurements)
 
     prior_mean = np.array([0, 0, 1, 0, 0])
     prior_cov = np.diag([0.1, 0.1, 1, 1, 1])
-
-    states, measurements = simulate_data(sens_pos_1, sens_pos_2, std, dt, prior_mean[:-1], time_steps=500)
-
-    num_iter = 10
 
     results = []
     cost_fn_eks = partial(
@@ -73,14 +79,14 @@ def main():
         motion_model=motion_model,
         meas_model=meas_model,
     )
-    ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks, rmses_gn_ieks, neeses_gn_ieks = gn_ieks(
-        motion_model, meas_model, num_iter, states, measurements, prior_mean, prior_cov, cost_fn_eks
-    )
-    results.append((ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks[1:], "GN-IEKS"))
-    ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks, rmses_lm_ieks, neeses_lm_ieks = lm_ieks(
-        motion_model, meas_model, num_iter, states, measurements, prior_mean, prior_cov, cost_fn_eks
-    )
-    results.append((ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks[1:], "LM-IEKS"))
+    # ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks, rmses_gn_ieks, neeses_gn_ieks = gn_ieks(
+    #     motion_model, meas_model, num_iter, states, measurements, prior_mean, prior_cov, cost_fn_eks
+    # )
+    # results.append((ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks[1:], "GN-IEKS"))
+    # ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks, rmses_lm_ieks, neeses_lm_ieks = lm_ieks(
+    #     motion_model, meas_model, num_iter, states, measurements, prior_mean, prior_cov, cost_fn_eks
+    # )
+    # results.append((ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks[1:], "LM-IEKS"))
 
     sigma_point_method = SphericalCubature()
     cost_fn_ipls = partial(
@@ -96,7 +102,7 @@ def main():
         motion_model,
         meas_model,
         sigma_point_method,
-        num_iter,
+        1,
         states,
         measurements,
         prior_mean,
@@ -104,7 +110,7 @@ def main():
         cost_fn_ipls,
     )
     results.append((ms_gn_ipls, Ps_gn_ipls, cost_gn_ipls[1:], "GN-IPLS"))
-    ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, rmses_lm_ipls, neeses_lm_ipls = lm_ipls(
+    ms_gn_ipls, Ps_gn_ipls, cost_gn_ipls, rmses_gn_ipls, neeses_gn_ipls = gn_ipls(
         motion_model,
         meas_model,
         sigma_point_method,
@@ -115,10 +121,23 @@ def main():
         prior_cov,
         cost_fn_ipls,
     )
-    results.append((ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls[1:], "LM-IPLS"))
+    results.append((ms_gn_ipls, Ps_gn_ipls, cost_gn_ipls[1:], "GN-IPLS"))
+    # ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, rmses_lm_ipls, neeses_lm_ipls = lm_ipls(
+    #     motion_model,
+    #     meas_model,
+    #     sigma_point_method,
+    #     num_iter,
+    #     states,
+    #     measurements,
+    #     prior_mean,
+    #     prior_cov,
+    #     cost_fn_ipls,
+    # )
+    # results.append((ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls[1:], "LM-IPLS"))
     plot_results(
         states,
         results,
+        cartes_meas,
     )
     plot_metrics(
         [
@@ -168,10 +187,10 @@ def gn_ieks(motion_model, meas_model, num_iter, states, measurements, prior_mean
     smoother = Ieks(motion_model, meas_model, num_iter)
     _, _, ms, Ps, iter_cost = smoother.filter_and_smooth(measurements, prior_mean, prior_cov, cost_fn)
     rmses = calc_iter_metrics(
-        lambda means, covs, states: rmse(means[:, :-1], states), smoother.stored_estimates(), states
+        lambda means, covs, states: rmse(means[:, :2], states), smoother.stored_estimates(), states
     )
     neeses = calc_iter_metrics(
-        lambda means, covs, states: np.mean(nees(means[:, :-1], states, covs[:, :-1, :-1])),
+        lambda means, covs, states: np.mean(nees(means[:, :2], states, covs[:, :2, :2])),
         smoother.stored_estimates(),
         states,
     )
@@ -185,10 +204,10 @@ def lm_ieks(motion_model, meas_model, num_iter, states, measurements, prior_mean
     smoother = LmIeks(motion_model, meas_model, num_iter, cost_improv_iter_lim, lambda_, nu)
     _, _, ms, Ps, iter_cost = smoother.filter_and_smooth(measurements, prior_mean, prior_cov, cost_fn)
     rmses = calc_iter_metrics(
-        lambda means, covs, states: rmse(means[:, :-1], states), smoother.stored_estimates(), states
+        lambda means, covs, states: rmse(means[:, :2], states), smoother.stored_estimates(), states
     )
     neeses = calc_iter_metrics(
-        lambda means, covs, states: np.mean(nees(means[:, :-1], states, covs[:, :-1, :-1])),
+        lambda means, covs, states: np.mean(nees(means[:, :2], states, covs[:, :2, :2])),
         smoother.stored_estimates(),
         states,
     )
@@ -201,10 +220,10 @@ def gn_ipls(
     smoother = SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter)
     _, _, ms, Ps, iter_cost = smoother.filter_and_smooth(measurements, prior_mean, prior_cov, cost_fn)
     rmses = calc_iter_metrics(
-        lambda means, covs, states: rmse(means[:, :-1], states), smoother.stored_estimates(), states
+        lambda means, covs, states: rmse(means[:, :2], states), smoother.stored_estimates(), states
     )
     neeses = calc_iter_metrics(
-        lambda means, covs, states: np.mean(nees(means[:, :-1], states, covs[:, :-1, :-1])),
+        lambda means, covs, states: np.mean(nees(means[:, :2], states, covs[:, :2, :2])),
         smoother.stored_estimates(),
         states,
     )
@@ -222,10 +241,10 @@ def lm_ipls(
     )
     _, _, ms, Ps, iter_cost = smoother.filter_and_smooth(measurements, prior_mean, prior_cov, cost_fn)
     rmses = calc_iter_metrics(
-        lambda means, covs, states: rmse(means[:, :-1], states), smoother.stored_estimates(), states
+        lambda means, covs, states: rmse(means[:, :2], states), smoother.stored_estimates(), states
     )
     neeses = calc_iter_metrics(
-        lambda means, covs, states: np.mean(nees(means[:, :-1], states, covs[:, :-1, :-1])),
+        lambda means, covs, states: np.mean(nees(means[:, :2], states, covs[:, :2, :2])),
         smoother.stored_estimates(),
         states,
     )

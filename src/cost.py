@@ -79,6 +79,8 @@ def slr_smoothing_cost(
 
     meas_mapping = partial(meas_model.map_set, time_step=None)
     for k in range(0, traj.shape[0]):
+        if any(np.isnan(measurements[k, :])):
+            continue
         mean_k = traj[k, :]
         cov_k = covs[k, :]
         meas_bar, _, _ = slr.slr(meas_mapping, mean_k, cov_k)

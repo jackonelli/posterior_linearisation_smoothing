@@ -3,6 +3,7 @@ import numpy as np
 from scipy.linalg import sqrtm
 import matplotlib.pyplot as plt
 from src.analytics import nees
+import tikzplotlib
 
 
 def plot_states(ax, x, label):
@@ -125,3 +126,17 @@ def ellips_points(center, transf, scale, resolution):
     level_sigma_offsets = scale * sqrtm(transf) @ curve_parameter
 
     return center + level_sigma_offsets.T
+
+
+def to_tikz(fig):
+    tikzplotlib.clean_figure(fig)
+    output = tikzplotlib.get_tikz_code(
+        figure=fig, filepath=None, axis_width=None, axis_height=None, textsize=10.0, table_row_sep="\n"
+    )
+    return output
+
+
+def write_to_tikz_file(tikz_string, tikz_dir, name):
+    file_name = tikz_dir / (name + ".tikz")
+    with open(file_name, "w") as tikz_file:
+        tikz_file.write(tikz_string)
