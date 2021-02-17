@@ -6,7 +6,7 @@ The particular realisation used in the paper is data/lm_ieks_coord_turn_states.c
 """
 
 from enum import Enum
-from typing import Optional
+from typing import Optional, Tuple
 import logging
 from pathlib import Path
 import numpy as np
@@ -79,7 +79,9 @@ def simulate_data(sens_pos_1, sens_pos_2, std, dt, x_0, time_steps, seed=None) -
     return states, range_meas
 
 
-def get_specific_states_from_file(data_root: Path, type_: Type, num_iter: Optional[int]) -> np.ndarray:
+def get_specific_states_from_file(
+    data_root: Path, type_: Type, num_iter: Optional[int]
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     states_file = data_root / "states.csv"
     if states_file.exists():
         states = np.genfromtxt(states_file, dtype=float, delimiter=";", comments="#")

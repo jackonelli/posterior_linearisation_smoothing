@@ -31,6 +31,7 @@ from src.sigma_points import SphericalCubature
 from src.cost import analytical_smoothing_cost, slr_smoothing_cost
 from src.utils import setup_logger
 from src.analytics import rmse
+from src.analytics import nees
 from src.visualization import to_tikz, write_to_tikz_file
 from src.models.range_bearing import MultiSensorRange
 from src.models.coord_turn import LmCoordTurn
@@ -73,7 +74,9 @@ def main():
     if args.random:
         states, measurements = simulate_data(sens_pos_1, sens_pos_2, std, dt, prior_mean[:-1], time_steps=500)
     else:
-        states, measurements, _, _ = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.LM, num_iter)
+        states, measurements, _, xs_ss = get_specific_states_from_file(
+            Path.cwd() / "data/lm_ieks_paper", Type.LM, num_iter
+        )
 
     results = []
     cost_fn_eks = partial(
@@ -85,18 +88,18 @@ def main():
         meas_model=meas_model,
     )
 
-    ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks, rmses_gn_ieks, neeses_gn_ieks = run_smoothing(
-        Ieks(motion_model, meas_model, num_iter),
-        states,
-        measurements,
-        prior_mean,
-        prior_cov,
-        cost_fn_eks,
-        (np.zeros((measurements.shape[0], prior_mean.shape[0])), None),
-    )
-    results.append(
-        (ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks[1:], "GN-IEKS"),
-    )
+    # ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks, rmses_gn_ieks, neeses_gn_ieks = run_smoothing(
+    #     Ieks(motion_model, meas_model, num_iter),
+    #     states,
+    #     measurements,
+    #     prior_mean,
+    #     prior_cov,
+    #     cost_fn_eks,
+    #     (np.zeros((measurements.shape[0], prior_mean.shape[0])), None),
+    # )
+    # results.append(
+    #     (ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks[1:], "GN-IEKS"),
+    # )
     ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks, rmses_lm_ieks, neeses_lm_ieks = run_smoothing(
         LmIeks(motion_model, meas_model, num_iter, 10, 1e-2, 10),
         states,
@@ -106,6 +109,14 @@ def main():
         cost_fn_eks,
         (np.zeros((measurements.shape[0], prior_mean.shape[0])), None),
     )
+    assert np.allclose(ms_lm_ieks, xs_ss)
+    # err = states - ms_lm_ieks[:, :-1]
+    # ind = -1
+    # print("err", err[ind, :])
+    # err_1 = err[ind, :]
+    print("NEES")
+    for nees_ in neeses_lm_ieks:
+        print(nees_)
     results.append(
         (ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks[1:], "LM-IEKS"),
     )
@@ -146,6 +157,14 @@ def main():
     # results.append(
     #     (ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, "LM-IPLS"),
     # )
+    plot_results(
+        states,
+        results,
+        None,
+    )
+    print("GN-NEES")
+    for nees_ in neeses_gn_ieks:
+        print(nees_)
     plot_results(
         states,
         results,

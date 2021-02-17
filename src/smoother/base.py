@@ -198,7 +198,7 @@ class IteratedSmoother(Smoother):
         self._store_means.append(means)
         if covs is not None:
             self._current_covs = covs.copy()
-            self._store_covs.append(covs)
+        self._store_covs.append(covs)
 
     def stored_estimates(self):
         for means, covs in zip(self._store_means, self._store_covs):

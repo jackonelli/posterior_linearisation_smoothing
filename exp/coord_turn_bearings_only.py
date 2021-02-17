@@ -62,9 +62,9 @@ def main():
     prior_mean = np.array([0, 0, 1, 0, 0])
     prior_cov = np.diag([0.1, 0.1, 1, 1, 1])
 
-    num_iter = 2
+    num_iter = 10
 
-    num_mc_samples = 2
+    num_mc_samples = 15
 
     rmses_gn_ieks = np.zeros((num_mc_samples, num_iter))
     rmses_lm_ieks = np.zeros((num_mc_samples, num_iter))
@@ -172,18 +172,37 @@ def run_smoothing(smoother, states, measurements, prior_mean, prior_cov, cost_fn
         _, _, ms, Ps, iter_cost = smoother.filter_and_smooth_with_init_traj(
             measurements, prior_mean, prior_cov, init_traj, 1, cost_fn
         )
+        stored_est = smoother.stored_estimates()
+        next(stored_est)
+        stored_est = list(stored_est)
     else:
         _, _, ms, Ps, iter_cost = smoother.filter_and_smooth(measurements, prior_mean, prior_cov, cost_fn)
+        stored_est = list(smoother.stored_estimates())
     rmses = calc_iter_metrics(
-        lambda means, covs, states: rmse(means[:, :-1], states), smoother.stored_estimates(), states, smoother.num_iter
+        lambda means, covs, states: rmse(means[:, :-1], states), stored_est, states, smoother.num_iter
     )
+    # assert np.allclose(ms_st, ms)
     neeses = calc_iter_metrics(
-        lambda means, covs, states: np.mean(nees(means[:, :-1], states, covs[:, :-1, :-1])),
-        smoother.stored_estimates(),
+        lambda means, covs, states: np.mean(nees(states, means[:, :-1], covs[:, :-1, :-1])),
+        stored_est,
         states,
         smoother.num_iter,
     )
     return ms, Ps, iter_cost, rmses, neeses
+
+
+def calc_iter_metrics(metric_fn, estimates, states, num_iter):
+    metrics = np.array([metric_fn(means, covs, states) for means, covs in estimates])
+    metrics = np.concatenate(
+        (
+            metrics,
+            metrics[-1]
+            * np.ones(
+                num_iter - len(metrics),
+            ),
+        )
+    )
+    return metrics
 
 
 def tikz_stats(dir_, name, stats):
@@ -234,20 +253,6 @@ def plot_metrics(costs, rmses, neeses, exp_name, tikz_dir):
     nees_ax.set_title("NEES")
     rmse_ax.legend()
     plt.show()
-
-
-def calc_iter_metrics(metric_fn, estimates, states, num_iter):
-    metrics = np.array([metric_fn(means, covs, states) for means, covs in estimates])
-    metrics = np.concatenate(
-        (
-            metrics,
-            metrics[-1]
-            * np.ones(
-                num_iter - len(metrics),
-            ),
-        )
-    )
-    return metrics
 
 
 if __name__ == "__main__":

@@ -13,6 +13,7 @@ from src.smoother.ext.lm_ieks import LmIeks
 from src.cost import analytical_smoothing_cost
 from src.models.range_bearing import MultiSensorRange
 from src.models.coord_turn import LmCoordTurn
+from src.analytics import nees
 from data.lm_ieks_paper.coord_turn_example import get_specific_states_from_file, Type
 
 
@@ -43,7 +44,7 @@ class TestLmIeks(unittest.TestCase):
         prior_cov = np.diag([0.1, 0.1, 1, 1, 1])
 
         num_iter = 1
-        _, measurements, ss_mf, ss_ms = get_specific_states_from_file(
+        states, measurements, ss_mf, ss_ms = get_specific_states_from_file(
             Path.cwd() / "data/lm_ieks_paper", Type.LM, num_iter
         )
         lambda_ = 1e-2
@@ -79,3 +80,8 @@ class TestLmIeks(unittest.TestCase):
         )
         self.assertTrue(np.allclose(mf, ss_mf))
         self.assertTrue(np.allclose(ms, ss_ms))
+        # Summation over the time steps and columns of the cov seq.
+        matlab_covs_sum = np.array([1.8843, 0.3417, 20.4884, 2.2148, 498.6999])
+        self.assertTrue(np.allclose(Ps.sum(0).sum(1), matlab_covs_sum, rtol=1e-4, atol=1e-4))
+        calc_nees = np.mean(nees(states, ms[:, :-1], Ps[:, :-1, :-1]))
+        # self.assertAlmostEqual(calc_nees, 2.2094012168057)
