@@ -84,9 +84,9 @@ class LmCoordTurn(MotionModel, Differentiable):
         x_k = [
             pos_x,
             pos_y,
-            v: speed,
-            phi: angle,
-            omega: angular_vel,
+            s: speed,
+            phi: angle (heading), // or is this s_y?
+            omega: angular_vel (turn (yaw) rate),
         ]
     """
 
