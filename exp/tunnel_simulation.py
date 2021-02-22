@@ -21,7 +21,7 @@ from src.utils import setup_logger
 from src.models.range_bearing import RangeBearing
 from src.models.coord_turn import LmCoordTurn
 from data.lm_ieks_paper.coord_turn_example import simulate_data
-from src.smoother.slr.reg_ipls import SigmaPointRegIpls
+from src.smoother.slr.reg_ipls import SigmaPointLmIpls
 from src.slr.sigma_points import SigmaPointSlr
 from src.sigma_points import SphericalCubature
 from src.cost import analytical_smoothing_cost, slr_smoothing_cost
@@ -118,7 +118,7 @@ def main():
     )
     results.append((ms_gn_ipls, Ps_gn_ipls, cost_gn_ipls[1:], "GN-IPLS"))
     ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, rmses_lm_ipls, neeses_lm_ipls = run_smoothing(
-        SigmaPointRegIpls(
+        SigmaPointLmIpls(
             motion_model, meas_model, sigma_point_method, num_iter, cost_improv_iter_lim=10, lambda_=1e-2, nu=10
         ),
         states,

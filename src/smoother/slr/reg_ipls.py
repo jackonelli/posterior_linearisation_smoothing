@@ -10,7 +10,7 @@ from src.filter.iplf import SigmaPointIplf
 from src.slr.sigma_points import SigmaPointSlr
 
 
-class SigmaPointRegIpls(IteratedSmoother):
+class SigmaPointLmIpls(IteratedSmoother):
     """Regularised Iterated Posterior Linearisation Smoother (Reg-IPLS)"""
 
     def __init__(self, motion_model, meas_model, sigma_point_method, num_iter, cost_improv_iter_lim, lambda_, nu):
@@ -31,7 +31,6 @@ class SigmaPointRegIpls(IteratedSmoother):
 
     # TODO: This should also have inner LM check
     def _first_iter(self, measurements, m_1_0, P_1_0, cost_fn_prototype):
-        self._log.debug("Iter: 1")
         smoother = SigmaPointPrLs(self._motion_model, self._meas_model, self._sigma_point_method)
         # Hack to use the generic `filter_and_smooth` method
         # The cost function prototype (variable covs) cannot be specialised until the `smooth_covs` are known
