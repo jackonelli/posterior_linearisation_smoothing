@@ -89,13 +89,10 @@ class MultiSensorBearings(MeasModel, Differentiable):
 
     def jacobian(self, state, time_step=None):
         zeros_len = state.shape[0] - 2
-        s_1 = self.sensors[0, :]
-        s_2 = self.sensors[1, :]
         x, y = state[0], state[1]
+        non_zero = np.apply_along_axis(lambda pos: atan2_jacobian(x - pos[0], y - pos[1]), axis=1, arr=self.sensors)
 
-        dh1 = atan2_jacobian(x - s_1[0], y - s_1[1])
-        dh2 = atan2_jacobian(x - s_2[0], y - s_2[1])
-        return np.column_stack((np.array([dh1, dh2]), np.zeros((2, zeros_len))))
+        return np.column_stack((non_zero, np.zeros((self.sensors.shape[0], zeros_len))))
 
     def sample(self, states):
         means = self.map_set(states)
