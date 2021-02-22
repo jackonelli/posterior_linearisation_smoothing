@@ -154,6 +154,7 @@ class IteratedSmoother(Smoother):
     def filter_and_smooth(self, measurements, m_1_0, P_1_0, cost_fn):
         """Overrides (extends) the base class default implementation"""
 
+        self._log.debug("Iter: 1")
         mf, Pf, current_ms, current_Ps, first_cost = self._first_iter(measurements, m_1_0, P_1_0, cost_fn)
         if self.num_iter > 1:
             mf, Pf, ms, Ps, tmp_cost = self.filter_and_smooth_with_init_traj(

@@ -30,6 +30,7 @@ from src.analytics import rmse, nees
 from src.models.range_bearing import to_cartesian_coords
 from src.cost import slr_smoothing_cost
 from data.tunnel_traj import get_states_and_meas
+from exp.coord_turn_bearings_only import calc_iter_metrics
 
 
 def main():
@@ -39,23 +40,24 @@ def main():
     log.info(f"Running experiment: {experiment_name}")
 
     np.random.seed(2)
-    num_iter = 3
+    num_iter = 10
 
     # Motion model
     sampling_period = 0.1
-    v_scale = 2
-    omega_scale = 2
+    v_scale = 7
+    omega_scale = 15
     sigma_v = v_scale * 1
     sigma_omega = omega_scale * np.pi / 180
-    Q = np.diag([0, 0, sampling_period * sigma_v ** 2, 0, sampling_period * sigma_omega ** 2])
+    eps = 0.1
+    Q = np.diag([eps, eps, sampling_period * sigma_v ** 2, eps, sampling_period * sigma_omega ** 2])
     motion_model = LmCoordTurn(sampling_period, Q)
 
     # Meas model
     pos = np.array([100, -100])
     # sigma_r = 2
     # sigma_phi = 0.5 * np.pi / 180
-    sigma_r = 4
-    sigma_phi = 1 * np.pi / 180
+    sigma_r = 8
+    sigma_phi = 2 * np.pi / 180
 
     R = np.diag([sigma_r ** 2, sigma_phi ** 2])
     meas_model = RangeBearing(pos, R)
@@ -79,14 +81,6 @@ def main():
         motion_model=motion_model,
         meas_model=meas_model,
     )
-    # ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks, rmses_gn_ieks, neeses_gn_ieks = gn_ieks(
-    #     motion_model, meas_model, num_iter, states, measurements, prior_mean, prior_cov, cost_fn_eks
-    # )
-    # results.append((ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks[1:], "GN-IEKS"))
-    # ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks, rmses_lm_ieks, neeses_lm_ieks = lm_ieks(
-    #     motion_model, meas_model, num_iter, states, measurements, prior_mean, prior_cov, cost_fn_eks
-    # )
-    # results.append((ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks[1:], "LM-IEKS"))
 
     sigma_point_method = SphericalCubature()
     cost_fn_ipls = partial(
@@ -98,11 +92,24 @@ def main():
         meas_model=meas_model,
         slr=SigmaPointSlr(sigma_point_method),
     )
-    ms_gn_ipls, Ps_gn_ipls, cost_gn_ipls, rmses_gn_ipls, neeses_gn_ipls = gn_ipls(
-        motion_model,
-        meas_model,
-        sigma_point_method,
-        1,
+
+    ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks, tmp_rmse, tmp_nees = run_smoothing(
+        Ieks(motion_model, meas_model, num_iter), states, measurements, prior_mean, prior_cov, cost_fn_eks
+    )
+    results.append((ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks[1:], "GN-IEKS"))
+
+    ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks, tmp_rmse, tmp_nees = run_smoothing(
+        LmIeks(motion_model, meas_model, num_iter, cost_improv_iter_lim=10, lambda_=1e-2, nu=10),
+        states,
+        measurements,
+        prior_mean,
+        prior_cov,
+        cost_fn_eks,
+    )
+    results.append((ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks[1:], "LM-IEKS"))
+
+    ms_gn_ipls, Ps_gn_ipls, cost_gn_ipls, rmses_gn_ipls, neeses_gn_ipls = run_smoothing(
+        SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter),
         states,
         measurements,
         prior_mean,
@@ -110,55 +117,71 @@ def main():
         cost_fn_ipls,
     )
     results.append((ms_gn_ipls, Ps_gn_ipls, cost_gn_ipls[1:], "GN-IPLS"))
-    ms_gn_ipls, Ps_gn_ipls, cost_gn_ipls, rmses_gn_ipls, neeses_gn_ipls = gn_ipls(
-        motion_model,
-        meas_model,
-        sigma_point_method,
-        num_iter,
+    ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, rmses_lm_ipls, neeses_lm_ipls = run_smoothing(
+        SigmaPointRegIpls(
+            motion_model, meas_model, sigma_point_method, num_iter, cost_improv_iter_lim=10, lambda_=1e-2, nu=10
+        ),
         states,
         measurements,
         prior_mean,
         prior_cov,
         cost_fn_ipls,
     )
-    results.append((ms_gn_ipls, Ps_gn_ipls, cost_gn_ipls[1:], "GN-IPLS"))
-    # ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, rmses_lm_ipls, neeses_lm_ipls = lm_ipls(
-    #     motion_model,
-    #     meas_model,
-    #     sigma_point_method,
-    #     num_iter,
-    #     states,
-    #     measurements,
-    #     prior_mean,
-    #     prior_cov,
-    #     cost_fn_ipls,
-    # )
-    # results.append((ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls[1:], "LM-IPLS"))
+    results.append((ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls[1:], "LM-IPLS"))
     plot_results(
         states,
         results,
         cartes_meas,
     )
-    plot_metrics(
-        [
-            (cost_gn_ieks[1:], "GN-IEKS"),
-            (cost_lm_ieks[1:], "LM-IEKS"),
-            (cost_gn_ipls[1:], "GN-IPLS"),
-            (cost_lm_ipls[1:], "LM-IPLS"),
-        ],
-        [
-            (rmses_gn_ieks, "GN-IEKS"),
-            (rmses_lm_ieks, "LM-IEKS"),
-            (rmses_gn_ipls, "LM-IPLS"),
-            (rmses_lm_ipls, "LM-IPLS"),
-        ],
-        [
-            (neeses_gn_ieks, "GN-IEKS"),
-            (neeses_lm_ieks, "LM-IEKS"),
-            (neeses_gn_ipls, "LM-IPLS"),
-            (neeses_lm_ipls, "LM-IPLS"),
-        ],
+    # plot_metrics(
+    #     [
+    #         (cost_gn_ieks[1:], "GN-IEKS"),
+    #         (cost_lm_ieks[1:], "LM-IEKS"),
+    #         (cost_gn_ipls[1:], "GN-IPLS"),
+    #         (cost_lm_ipls[1:], "LM-IPLS"),
+    #     ],
+    #     [
+    #         (rmses_gn_ieks, "GN-IEKS"),
+    #         (rmses_lm_ieks, "LM-IEKS"),
+    #         (rmses_gn_ipls, "LM-IPLS"),
+    #         (rmses_lm_ipls, "LM-IPLS"),
+    #     ],
+    #     [
+    #         (neeses_gn_ieks, "GN-IEKS"),
+    #         (neeses_lm_ieks, "LM-IEKS"),
+    #         (neeses_gn_ipls, "LM-IPLS"),
+    #         (neeses_lm_ipls, "LM-IPLS"),
+    #     ],
+    # )
+
+
+def run_smoothing(smoother, states, measurements, prior_mean, prior_cov, cost_fn, init_traj=None):
+    """Common function that runs a smoother and collects metrics
+
+    Some iterative smoothers may return early if they exceed the limit on the number of loss-improving trials.
+    In those cases, the metrics are extended with the last element to a list of length `smoother.num_iter`
+    """
+    if init_traj is not None:
+        _, _, ms, Ps, iter_cost = smoother.filter_and_smooth_with_init_traj(
+            measurements, prior_mean, prior_cov, init_traj, 1, cost_fn
+        )
+        stored_est = smoother.stored_estimates()
+        next(stored_est)
+        stored_est = list(stored_est)
+    else:
+        _, _, ms, Ps, iter_cost = smoother.filter_and_smooth(measurements, prior_mean, prior_cov, cost_fn)
+        stored_est = list(smoother.stored_estimates())
+    rmses = calc_iter_metrics(
+        lambda means, covs, states: rmse(means[:, :2], states), stored_est, states, smoother.num_iter
     )
+    # assert np.allclose(ms_st, ms)
+    neeses = calc_iter_metrics(
+        lambda means, covs, states: np.mean(nees(states, means[:, :2], covs[:, :2, :2])),
+        stored_est,
+        states,
+        smoother.num_iter,
+    )
+    return ms, Ps, iter_cost, rmses, neeses
 
 
 def plot_metrics(costs, rmses, neeses):
@@ -177,78 +200,6 @@ def plot_metrics(costs, rmses, neeses):
     rmse_ax.set_title("NEES")
     rmse_ax.legend()
     plt.show()
-
-
-def calc_iter_metrics(metric_fn, estimates, states):
-    return np.array([metric_fn(means, covs, states) for means, covs in estimates])
-
-
-def gn_ieks(motion_model, meas_model, num_iter, states, measurements, prior_mean, prior_cov, cost_fn):
-    smoother = Ieks(motion_model, meas_model, num_iter)
-    _, _, ms, Ps, iter_cost = smoother.filter_and_smooth(measurements, prior_mean, prior_cov, cost_fn)
-    rmses = calc_iter_metrics(
-        lambda means, covs, states: rmse(means[:, :2], states), smoother.stored_estimates(), states
-    )
-    neeses = calc_iter_metrics(
-        lambda means, covs, states: np.mean(nees(means[:, :2], states, covs[:, :2, :2])),
-        smoother.stored_estimates(),
-        states,
-    )
-    return ms, Ps, iter_cost, rmses, neeses
-
-
-def lm_ieks(motion_model, meas_model, num_iter, states, measurements, prior_mean, prior_cov, cost_fn):
-    cost_improv_iter_lim = 10
-    lambda_ = 1e-2
-    nu = 10
-    smoother = LmIeks(motion_model, meas_model, num_iter, cost_improv_iter_lim, lambda_, nu)
-    _, _, ms, Ps, iter_cost = smoother.filter_and_smooth(measurements, prior_mean, prior_cov, cost_fn)
-    rmses = calc_iter_metrics(
-        lambda means, covs, states: rmse(means[:, :2], states), smoother.stored_estimates(), states
-    )
-    neeses = calc_iter_metrics(
-        lambda means, covs, states: np.mean(nees(means[:, :2], states, covs[:, :2, :2])),
-        smoother.stored_estimates(),
-        states,
-    )
-    return ms, Ps, iter_cost, rmses, neeses
-
-
-def gn_ipls(
-    motion_model, meas_model, sigma_point_method, num_iter, states, measurements, prior_mean, prior_cov, cost_fn
-):
-    smoother = SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter)
-    _, _, ms, Ps, iter_cost = smoother.filter_and_smooth(measurements, prior_mean, prior_cov, cost_fn)
-    rmses = calc_iter_metrics(
-        lambda means, covs, states: rmse(means[:, :2], states), smoother.stored_estimates(), states
-    )
-    neeses = calc_iter_metrics(
-        lambda means, covs, states: np.mean(nees(means[:, :2], states, covs[:, :2, :2])),
-        smoother.stored_estimates(),
-        states,
-    )
-    return ms, Ps, iter_cost, rmses, neeses
-
-
-def lm_ipls(
-    motion_model, meas_model, sigma_point_method, num_iter, states, measurements, prior_mean, prior_cov, cost_fn
-):
-    lambda_ = 1e-2
-    nu = 10
-    cost_improv_iter_lim = 10
-    smoother = SigmaPointRegIpls(
-        motion_model, meas_model, sigma_point_method, num_iter, cost_improv_iter_lim, lambda_, nu
-    )
-    _, _, ms, Ps, iter_cost = smoother.filter_and_smooth(measurements, prior_mean, prior_cov, cost_fn)
-    rmses = calc_iter_metrics(
-        lambda means, covs, states: rmse(means[:, :2], states), smoother.stored_estimates(), states
-    )
-    neeses = calc_iter_metrics(
-        lambda means, covs, states: np.mean(nees(means[:, :2], states, covs[:, :2, :2])),
-        smoother.stored_estimates(),
-        states,
-    )
-    return ms, Ps, iter_cost, rmses, neeses
 
 
 if __name__ == "__main__":

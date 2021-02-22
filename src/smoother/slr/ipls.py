@@ -25,7 +25,6 @@ class SigmaPointIpls(IteratedSmoother):
         )
 
     def _first_iter(self, measurements, m_1_0, P_1_0, cost_fn_prototype):
-        self._log.debug("Iter: 1")
         smoother = SigmaPointPrLs(self._motion_model, self._meas_model, self._sigma_point_method)
         return smoother.filter_and_smooth(measurements, m_1_0, P_1_0, None)
 

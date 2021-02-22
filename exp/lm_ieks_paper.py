@@ -109,7 +109,6 @@ def main():
         cost_fn_eks,
         (np.zeros((measurements.shape[0], prior_mean.shape[0])), None),
     )
-    assert np.allclose(ms_lm_ieks, xs_ss)
     # err = states - ms_lm_ieks[:, :-1]
     # ind = -1
     # print("err", err[ind, :])
@@ -162,30 +161,22 @@ def main():
         results,
         None,
     )
-    print("GN-NEES")
-    for nees_ in neeses_gn_ieks:
-        print(nees_)
-    plot_results(
-        states,
-        results,
-        None,
-    )
 
 
 # TODO: Sep module?
 def plot_results(states, trajs_and_costs, meas):
     means_and_covs = [(ms, Ps, f"{label}-{len(cost)}") for (ms, Ps, cost, label) in trajs_and_costs]
-    costs = [
-        (cost, f"{label}-{len(cost)}") for (_, _, cost, label) in trajs_and_costs
-    ]  # _, (ax_1, ax_2) = plt.subplots(1, 2)
-    print("costs:\n", costs)
+    # costs = [
+    #     (cost, f"{label}-{len(cost)}") for (_, _, cost, label) in trajs_and_costs
+    # ]
+    # _, (ax_1, ax_2) = plt.subplots(1, 2)
     fig, ax_1 = plt.subplots()
     vis.plot_2d_est(
         states,
         meas=meas,
         means_and_covs=means_and_covs,
         sigma_level=2,
-        skip_cov=50,
+        skip_cov=5,
         ax=ax_1,
     )
     plt.show()
@@ -200,7 +191,7 @@ def plot_cost(ax, costs):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Process some integers.")
+    parser = argparse.ArgumentParser(description="LM-IEKS paper experiment.")
     parser.add_argument("--random", action="store_true")
 
     return parser.parse_args()

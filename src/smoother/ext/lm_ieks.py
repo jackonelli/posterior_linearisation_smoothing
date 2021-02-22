@@ -1,6 +1,5 @@
 """Levenberg-Marquardt Iterated Extended Kalman Smoother (LM-IEKS)"""
 import numpy as np
-from src.smoother.base import Smoother
 from src.smoother.ext.eks import Eks
 from src.smoother.base import IteratedSmoother
 from src.filter.ekf import ekf_lin
@@ -26,7 +25,6 @@ class LmIeks(IteratedSmoother):
 
     # TODO: This should also have inner LM check
     def _first_iter(self, measurements, m_1_0, P_1_0, cost_fn):
-        self._log.debug("Iter: 1")
         smoother = Eks(self._motion_model, self._meas_model)
         return smoother.filter_and_smooth(measurements, m_1_0, P_1_0, cost_fn)
 
