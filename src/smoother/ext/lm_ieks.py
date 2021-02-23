@@ -17,6 +17,7 @@ class LmIeks(IteratedSmoother):
         self._cost_improv_iter_lim = cost_improv_iter_lim
         self._lambda = lambda_
         self._nu = nu
+        self._lin_cache = []
 
     def _motion_lin(self, _mean, _cov, time_step):
         mean = self._current_means[time_step, :]
@@ -64,6 +65,16 @@ class LmIeks(IteratedSmoother):
         lm_iekf = _LmIekf(self._motion_model, self._meas_model, self._lambda)
         lm_iekf._update_estimates(self._current_means, self._current_covs)
         return lm_iekf.filter_seq(measurements, m_1_0, P_1_0)
+
+    def _update_estimates(self, means, covs):
+        """The 'previous estimates' which are used in the current iteration are stored in the smoother instance.
+        They should only be modified through this method.
+        """
+        super()._update_estimates(means, covs)
+        self._update_lin_cache()
+
+    def _update_lin_cache(self):
+        self._lin_cache = [ekf_lin(self._motion_model, mean_k) for mean_k in self._current_means]
 
 
 class _LmIekf(Iekf):
