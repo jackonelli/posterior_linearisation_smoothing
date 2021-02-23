@@ -28,7 +28,6 @@ from src.cost import analytical_smoothing_cost, slr_smoothing_cost
 from exp.lm_ieks_paper import plot_results, plot_cost
 from src.analytics import rmse, nees
 from src.models.range_bearing import to_cartesian_coords
-from src.cost import slr_smoothing_cost
 from data.tunnel_traj import get_states_and_meas
 from exp.coord_turn_bearings_only import calc_iter_metrics
 
@@ -40,7 +39,7 @@ def main():
     log.info(f"Running experiment: {experiment_name}")
 
     np.random.seed(2)
-    num_iter = 10
+    num_iter = 3
 
     # Motion model
     sampling_period = 0.1
@@ -132,6 +131,7 @@ def main():
         states,
         results,
         cartes_meas,
+        skip_cov=10,
     )
     # plot_metrics(
     #     [

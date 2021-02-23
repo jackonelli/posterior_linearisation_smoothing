@@ -128,32 +128,32 @@ def main():
         slr=SigmaPointSlr(sigma_point_method),
     )
 
-    # ms_gn_ipls, Ps_gn_ipls, cost_gn_ipls, rmses_gn_ipls, neeses_gn_ipls = run_smoothing(
-    #     SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter),
-    #     states,
-    #     measurements,
-    #     prior_mean,
-    #     prior_cov,
-    #     cost_fn_ipls,
-    #     None,
-    # )
-    # results.append(
-    #     (ms_gn_ipls, Ps_gn_ipls, cost_gn_ipls, "GN-IPLS"),
-    # )
-    # ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, rmses_lm_ipls, neeses_lm_ipls = run_smoothing(
-    #     SigmaPointRegIpls(
-    #         motion_model, meas_model, sigma_point_method, num_iter, cost_improv_iter_lim=10, lambda_=1e-2, nu=10
-    #     ),
-    #     states,
-    #     measurements,
-    #     prior_mean,
-    #     prior_cov,
-    #     cost_fn_ipls,
-    #     None,
-    # )
-    # results.append(
-    #     (ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, "LM-IPLS"),
-    # )
+    ms_gn_ipls, Ps_gn_ipls, cost_gn_ipls, rmses_gn_ipls, neeses_gn_ipls = run_smoothing(
+        SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter),
+        states,
+        measurements,
+        prior_mean,
+        prior_cov,
+        cost_fn_ipls,
+        None,
+    )
+    results.append(
+        (ms_gn_ipls, Ps_gn_ipls, cost_gn_ipls, "GN-IPLS"),
+    )
+    ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, rmses_lm_ipls, neeses_lm_ipls = run_smoothing(
+        SigmaPointLmIpls(
+            motion_model, meas_model, sigma_point_method, num_iter, cost_improv_iter_lim=10, lambda_=1e-2, nu=10
+        ),
+        states,
+        measurements,
+        prior_mean,
+        prior_cov,
+        cost_fn_ipls,
+        None,
+    )
+    results.append(
+        (ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, "LM-IPLS"),
+    )
     plot_results(
         states,
         results,
@@ -162,7 +162,7 @@ def main():
 
 
 # TODO: Sep module?
-def plot_results(states, trajs_and_costs, meas):
+def plot_results(states, trajs_and_costs, meas, skip_cov=50):
     means_and_covs = [(ms, Ps, f"{label}-{len(cost)}") for (ms, Ps, cost, label) in trajs_and_costs]
     # costs = [
     #     (cost, f"{label}-{len(cost)}") for (_, _, cost, label) in trajs_and_costs
@@ -174,7 +174,7 @@ def plot_results(states, trajs_and_costs, meas):
         meas=meas,
         means_and_covs=means_and_covs,
         sigma_level=2,
-        skip_cov=50,
+        skip_cov=skip_cov,
         ax=ax_1,
     )
     plt.show()

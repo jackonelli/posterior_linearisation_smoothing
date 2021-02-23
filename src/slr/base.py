@@ -15,9 +15,27 @@ class Slr(ABC):
         """
 
         mean, cov = np.atleast_1d(mean), np.atleast_2d(cov)
-        # print("mean", mean.max())
-        # print("cov", cov.max())
         z_bar, psi, phi = self.slr(fn, mean, cov)
+        return self.linear_params_from_slr(mean, cov, z_bar, psi, phi)
+
+    @staticmethod
+    def linear_params_from_slr(mean, cov, z_bar, psi, phi):
+        """SLR linearisation helper
+
+        Public fn because sometimes the desired output is the SLR qty's in addition to the lin. params.
+        Without this API that output would require calling both `self.slr` and then `self.linear_params`,
+        causing unecc. sigma point calculation.
+        With it, `self.linear_params` is equivalent to `self.linear_params_from_slr(self.slr)`
+        and all outputs are accessible
+
+        Args:
+            mean: mean, R^n
+            cov: covaraiance, R^(n x n)
+            z_bar: mapped mean E(z = fn(x)) R^n
+            psi: Cov(x, z) R^(n x m)
+            phi: Cov(z, z) R^(m x m)
+        """
+
         A = psi.T @ np.linalg.inv(cov)
         b = z_bar - A @ mean
         Sigma = phi - A @ cov @ A.T

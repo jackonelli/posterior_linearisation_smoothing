@@ -71,10 +71,9 @@ def slr_smoothing_cost(
     motion_mapping = partial(motion_model.map_set, time_step=None)
     for k in range(0, traj.shape[0] - 1):
         mean_k = traj[k, :]
-        cov_k = covs[k, :]
-        # TODO: Refactor so as not to have to redo this calc.
-        proc_bar, _, _ = slr.slr(motion_mapping, mean_k, cov_k)
-        _, _, Omega_k = slr.linear_params(motion_mapping, mean_k, cov_k)
+        cov_k = covs[k, :, :]
+        proc_bar, psi, phi = slr.slr(motion_mapping, mean_k, cov_k)
+        _, _, Omega_k = slr.linear_params_from_slr(mean_k, cov_k, proc_bar, psi, phi)
 
         proc_diff_k = traj[k + 1, :] - proc_bar
         _cost += proc_diff_k.T @ np.linalg.inv(motion_model.proc_noise(k) + Omega_k) @ proc_diff_k
@@ -85,8 +84,8 @@ def slr_smoothing_cost(
             continue
         mean_k = traj[k, :]
         cov_k = covs[k, :]
-        meas_bar, _, _ = slr.slr(meas_mapping, mean_k, cov_k)
-        _, _, Lambda_k = slr.linear_params(meas_mapping, mean_k, cov_k)
+        meas_bar, psi, phi = slr.slr(meas_mapping, mean_k, cov_k)
+        _, _, Lambda_k = slr.linear_params_from_slr(mean_k, cov_k, meas_bar, psi, phi)
 
         # measurements are zero indexed, i.e. meas[k-1] --> y_k
         meas_diff_k = measurements[k, :] - meas_bar
@@ -95,8 +94,8 @@ def slr_smoothing_cost(
     return _cost
 
 
-def noop_cost(traj):
-    LOGGER.info("Using the dummy loss")
+def noop_cost(means, covs):
+    LOGGER.warning("Using the dummy loss")
     return None
 
 
