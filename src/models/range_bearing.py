@@ -12,7 +12,7 @@ class RangeBearing(MeasModel, Differentiable):
         self._meas_noise = meas_noise
 
     def mapping(self, state, time_step=None):
-        range_ = np.sqrt(np.sum((state[:2] - self.pos) ** 2))
+        range_ = _euclid_dist(state[:2], self.pos)
         bearing = _angle(state, self.pos)
         return np.array([range_, bearing])
 
@@ -24,9 +24,9 @@ class RangeBearing(MeasModel, Differentiable):
         s_x, s_y = self.pos[0], self.pos[1]
         delta_x, delta_y = x - s_x, y - s_y
 
-        range_diff = _euclid_dist_jacobian(delta_x, delta_y)
-        bearings_diff = _angle_jacobian(delta_x, delta_y)
-        non_zero = np.row_stack((range_diff, bearings_diff))
+        range_derivative = _euclid_dist_jacobian(delta_x, delta_y)
+        bearings_derivative = _angle_jacobian(delta_x, delta_y)
+        non_zero = np.row_stack((range_derivative, bearings_derivative))
 
         return np.column_stack((non_zero, np.zeros((2, 3))))
 
