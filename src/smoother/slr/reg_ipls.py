@@ -1,4 +1,4 @@
-"""Regularised Iterated Posterior Linearisation Smoother (Reg-IPLS)"""
+"""Levenberg-Marquardt regularised Iterated Posterior Linearisation Smoother (LM-IPLS)"""
 from functools import partial
 import numpy as np
 from src.smoother.base import Smoother
@@ -11,7 +11,7 @@ from src.slr.sigma_points import SigmaPointSlr
 
 
 class SigmaPointLmIpls(IteratedSmoother):
-    """Regularised Iterated Posterior Linearisation Smoother (Reg-IPLS)"""
+    """Levenberg-Marquardt regularised Iterated Posterior Linearisation Smoother (LM-IPLS)"""
 
     def __init__(self, motion_model, meas_model, sigma_point_method, num_iter, cost_improv_iter_lim, lambda_, nu):
         super().__init__()

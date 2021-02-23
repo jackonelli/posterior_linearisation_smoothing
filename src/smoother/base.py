@@ -148,6 +148,7 @@ class IteratedSmoother(Smoother):
         super().__init__()
         self._current_means = None
         self._current_covs = None
+        self._precomp_linearisations = []
         self._store_means = []
         self._store_covs = []
 

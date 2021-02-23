@@ -1,5 +1,7 @@
 # Bayesian filtering and smoothing
 
+_NB: This is a work in progress_
+
 This is the code base for the paper "Robust posterior linearisation smoothing".
 It also provides implementations for related papers
 
