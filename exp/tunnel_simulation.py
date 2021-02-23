@@ -24,7 +24,7 @@ from data.lm_ieks_paper.coord_turn_example import simulate_data
 from src.smoother.slr.reg_ipls import SigmaPointLmIpls
 from src.slr.sigma_points import SigmaPointSlr
 from src.sigma_points import SphericalCubature
-from src.cost import analytical_smoothing_cost, slr_smoothing_cost
+from src.cost import analytical_smoothing_cost, slr_smoothing_cost, slr_smoothing_cost_pre_comp
 from exp.lm_ieks_paper import plot_results, plot_cost
 from src.analytics import rmse, nees
 from src.models.range_bearing import to_cartesian_coords
@@ -94,6 +94,12 @@ def main():
         slr=SigmaPointSlr(sigma_point_method),
     )
 
+    # cost_fn_ipls = partial(
+    #     slr_smoothing_cost_pre_comp,
+    #     measurements=measurements,
+    #     m_1_0=prior_mean,
+    #     P_1_0=prior_cov,
+    # )
     # ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks, tmp_rmse, tmp_nees = run_smoothing(
     #     Ieks(motion_model, meas_model, num_iter), states, measurements, prior_mean, prior_cov, cost_fn_eks
     # )

@@ -39,8 +39,15 @@ class SigmaPointLmIpls(IteratedSmoother):
         filter_means, filter_covs, smooth_means, smooth_covs, _ = smoother.filter_and_smooth(
             measurements, m_1_0, P_1_0, None
         )
+        self._update_estimates(smooth_means, smooth_covs)
         # Fix cost function
-        cost_fn = partial(cost_fn_prototype, covs=smooth_covs)
+        cost_fn_prototype = partial(
+            slr_smoothing_cost_pre_comp,
+            measurements=measurements,
+            m_1_0=m_1_0,
+            P_1_0=P_1_0,
+        )
+        cost_fn = self.tmp(cost_fn_prototype)
         cost = cost_fn(smooth_means)
         return filter_means, filter_covs, smooth_means, smooth_covs, cost
 
@@ -48,7 +55,8 @@ class SigmaPointLmIpls(IteratedSmoother):
         """Filter and smoothing given an initial trajectory"""
         current_ms, current_Ps = init_traj
         current_mf, current_Pf = init_traj
-        self._update_estimates(current_ms, current_Ps)
+        if not self._cache._is_initialized():
+            self._update_estimates(current_ms, current_Ps)
         new_proto = partial(
             slr_smoothing_cost_pre_comp,
             measurements=measurements,
@@ -170,6 +178,10 @@ class _IplsCache:
             for mean_k, cov_k, slr_ in zip(means, covs, meas_slr)
         ]
         self.meas_bar = np.array([z_bar for z_bar, _, _ in meas_slr])
+
+    def _is_initialized(self):
+        # TODO: Full
+        return self.proc_lin is not None
 
 
 class _RegIplf(SigmaPointIplf):
