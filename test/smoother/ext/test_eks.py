@@ -43,6 +43,7 @@ class TestEks(unittest.TestCase):
         _, measurements, ss_mf, ss_ms = get_specific_states_from_file(
             Path.cwd() / "data/lm_ieks_paper", Type.Extended, None
         )
+        measurements = measurements[:, :2]
         eks = Eks(motion_model, meas_model)
         mf, Pf, ms, Ps, _cost = eks.filter_and_smooth(measurements, prior_mean, prior_cov)
         self.assertTrue(np.allclose(mf, ss_mf))

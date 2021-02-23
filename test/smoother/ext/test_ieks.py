@@ -46,6 +46,7 @@ class TestIeks(unittest.TestCase):
         _, measurements, ss_mf, ss_ms = get_specific_states_from_file(
             Path.cwd() / "data/lm_ieks_paper", Type.GN, num_iter
         )
+        measurements = measurements[:, :2]
 
         cost_fn = partial(
             analytical_smoothing_cost,
@@ -69,6 +70,8 @@ class TestIeks(unittest.TestCase):
         _, measurements, ss_mf, ss_ms = get_specific_states_from_file(
             Path.cwd() / "data/lm_ieks_paper", Type.GN, num_iter
         )
+        measurements = measurements[:, :2]
+
         ieks = Ieks(motion_model, meas_model, num_iter=num_iter)
         mf, Pf, ms, Ps, _iter_cost = ieks.filter_and_smooth_with_init_traj(
             measurements, prior_mean, prior_cov, init_traj, 1, cost_fn

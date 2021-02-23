@@ -41,6 +41,7 @@ class TestCost(unittest.TestCase):
         prior_cov = np.diag([0.1, 0.1, 1, 1, 1])
 
         _, measurements, _, ss_ms = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.GN, 10)
+        measurements = measurements[:, :2]
         self.assertAlmostEqual(
             analytical_smoothing_cost(ss_ms, measurements, prior_mean, prior_cov, motion_model, meas_model),
             1.039569495177240e03,

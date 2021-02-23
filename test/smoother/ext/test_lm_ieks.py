@@ -47,6 +47,7 @@ class TestLmIeks(unittest.TestCase):
         states, measurements, ss_mf, ss_ms = get_specific_states_from_file(
             Path.cwd() / "data/lm_ieks_paper", Type.LM, num_iter
         )
+        measurements = measurements[:, :2]
         lambda_ = 1e-2
         nu = 10
         cost_improv_iter_lim = 10
@@ -74,6 +75,8 @@ class TestLmIeks(unittest.TestCase):
         _, measurements, ss_mf, ss_ms = get_specific_states_from_file(
             Path.cwd() / "data/lm_ieks_paper", Type.LM, num_iter
         )
+        measurements = measurements[:, :2]
+
         ieks = LmIeks(motion_model, meas_model, num_iter, cost_improv_iter_lim, lambda_, nu)
         mf, Pf, ms, Ps, _iter_cost = ieks.filter_and_smooth_with_init_traj(
             measurements, prior_mean, prior_cov, init_traj, 1, cost_fn
