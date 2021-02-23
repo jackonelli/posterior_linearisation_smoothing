@@ -2,7 +2,7 @@
 from functools import partial
 import numpy as np
 from src.smoother.base import Smoother
-from src.cost import noop_cost
+from src.cost import slr_smoothing_cost_pre_comp
 from src.smoother.base import IteratedSmoother
 from src.filter.prlf import SigmaPointPrLf
 from src.smoother.slr.prls import SigmaPointPrLs
@@ -23,11 +23,10 @@ class SigmaPointLmIpls(IteratedSmoother):
         self._cost_improv_iter_lim = cost_improv_iter_lim
         self._lambda = lambda_
         self._nu = nu
+        self._cache = _IplsCache()
 
     def _motion_lin(self, _mean, _cov, time_step):
-        return self._slr.linear_params(
-            self._motion_model.map_set, self._current_means[time_step], self._current_covs[time_step]
-        )
+        return self._cache.proc_lin[time_step]
 
     # TODO: This should also have inner LM check
     def _first_iter(self, measurements, m_1_0, P_1_0, cost_fn_prototype):
@@ -50,7 +49,25 @@ class SigmaPointLmIpls(IteratedSmoother):
         current_ms, current_Ps = init_traj
         current_mf, current_Pf = init_traj
         self._update_estimates(current_ms, current_Ps)
+        new_cost_fn = partial(
+            slr_smoothing_cost_pre_comp,
+            measurements=measurements,
+            m_1_0=m_1_0,
+            P_1_0=P_1_0,
+            proc_bar=self._cache.proc_bar,
+            meas_bar=self._cache.meas_bar,
+            proc_cov=np.array(
+                [
+                    err_cov_k + self._motion_model.proc_noise(k)
+                    for k, (_, _, err_cov_k) in enumerate(self._cache.proc_lin)
+                ]
+            ),
+            meas_cov=np.array(
+                [err_cov_k + self._meas_model.meas_noise(k) for k, (_, _, err_cov_k) in enumerate(self._cache.meas_lin)]
+            ),
+        )
         prev_cost = cost_fn_prototype(current_ms, current_Ps)
+        assert np.allclose(new_cost_fn(current_ms), prev_cost)
         cost_iter = [prev_cost]
         self._log.debug(f"Initial cost: {prev_cost}")
         for iter_ in range(start_iter, self.num_iter + 1):
@@ -104,6 +121,43 @@ class SigmaPointLmIpls(IteratedSmoother):
 
     def _update_means_only(self, means):
         self._current_means = means.copy()
+        self._update_lin_cache()
+
+    def _update_estimates(self, means, covs):
+        """The 'previous estimates' which are used in the current iteration are stored in the smoother instance.
+        They should only be modified through this method.
+        """
+        super()._update_estimates(means, covs)
+        self._update_lin_cache()
+
+    def _update_lin_cache(self):
+        self._cache.update(
+            self._motion_model.map_set, self._meas_model.map_set, self._current_means, self._current_covs, self._slr
+        )
+
+
+class _IplsCache:
+    def __init__(self):
+        self.proc_lin = None
+        self.meas_lin = None
+        self.proc_bar = None
+        self.meas_bar = None
+
+    def update(self, motion_fn, meas_fn, means, covs, slr_method):
+        # TODO: single calc of sigma points.
+        proc_slr = [slr_method.slr(motion_fn, mean_k, cov_k) for mean_k, cov_k in zip(means, covs)]
+        self.proc_lin = [
+            slr_method.linear_params_from_slr(mean_k, cov_k, *slr_)
+            for mean_k, cov_k, slr_ in zip(means, covs, proc_slr)
+        ]
+        self.proc_bar = np.array([z_bar for z_bar, _, _ in proc_slr])
+
+        meas_slr = [slr_method.slr(meas_fn, mean_k, cov_k) for mean_k, cov_k in zip(means, covs)]
+        self.meas_lin = [
+            slr_method.linear_params_from_slr(mean_k, cov_k, *slr_)
+            for mean_k, cov_k, slr_ in zip(means, covs, meas_slr)
+        ]
+        self.meas_bar = np.array([z_bar for z_bar, _, _ in meas_slr])
 
 
 class _RegIplf(SigmaPointIplf):

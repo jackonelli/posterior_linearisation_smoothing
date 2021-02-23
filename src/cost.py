@@ -12,7 +12,7 @@ from src.slr.base import Slr
 LOGGER = logging.getLogger(__name__)
 
 
-def analytical_smoothing_cost(traj, meas, m_1_0, P_1_0, motion_model: MotionModel, meas_model: MeasModel):
+def analytical_smoothing_cost(traj, measurements, m_1_0, P_1_0, motion_model: MotionModel, meas_model: MeasModel):
     """Cost function for an optimisation problem used in the family of extended smoothers
 
     GN optimisation of this cost function will result in a linearised function
@@ -22,21 +22,54 @@ def analytical_smoothing_cost(traj, meas, m_1_0, P_1_0, motion_model: MotionMode
         traj: states for a time sequence 1, ..., K
             represented as a np.array(K, D_x).
             (The actual variable in the cost function)
-        meas: measurements for a time sequence 1, ..., K
+        measurements: measurements for a time sequence 1, ..., K
             represented as a np.array(K, D_y)
     """
     prior_diff = traj[0, :] - m_1_0
     _cost = prior_diff.T @ np.linalg.inv(P_1_0) @ prior_diff
 
     proc_diff = traj[1:, :] - motion_model.map_set(traj[:-1, :], None)
-    meas_diff = meas - meas_model.map_set(traj, None)
+    meas_diff = measurements - meas_model.map_set(traj, None)
     for k in range(0, traj.shape[0] - 1):
         _cost += proc_diff[k, :].T @ np.linalg.inv(motion_model.proc_noise(k)) @ proc_diff[k, :]
         # measurements are zero indexed, i.e. k-1 --> y_k
         if any(np.isnan(meas_diff[k, :])):
             continue
         _cost += meas_diff[k, :].T @ np.linalg.inv(meas_model.meas_noise(k)) @ meas_diff[k, :]
-    _cost += meas_diff[-1, :].T @ np.linalg.inv(meas_model.meas_noise(meas.shape[0])) @ meas_diff[-1, :]
+    _cost += meas_diff[-1, :].T @ np.linalg.inv(meas_model.meas_noise(measurements.shape[0])) @ meas_diff[-1, :]
+
+    return _cost
+
+
+def slr_smoothing_cost_pre_comp(traj, measurements, m_1_0, P_1_0, proc_bar, meas_bar, proc_cov, meas_cov):
+    """Cost function for an optimisation problem used in the family of slr smoothers
+
+    GN optimisation of this cost function will result in a linearised function
+    corresponding to the SLR Smoother (PrLS, PLS) et al.
+
+    Args:
+        traj: states for a time sequence 1, ..., K
+            represented as a np.array(K, D_x).
+            (The actual variable in the cost function)
+        covs: estimated covariances (means) for a time sequence 1, ..., K
+            represented as a np.array(K, D_x, D_x)
+        meas: measurements for a time sequence 1, ..., K
+            represented as a np.array(K, D_y)
+    """
+    prior_diff = traj[0, :] - m_1_0
+    _cost = prior_diff.T @ np.linalg.inv(P_1_0) @ prior_diff
+
+    proc_diff = traj[1:, :] - proc_bar[:-1, :]
+    meas_diff = measurements - meas_bar
+    # print(f"Fast: {proc_diff[0, :].T @ np.linalg.inv(proc_cov[0, :, :]) @ proc_diff[0, :]}")
+
+    for k in range(0, traj.shape[0] - 1):
+        _cost += proc_diff[k, :].T @ np.linalg.inv(proc_cov[k, :, :]) @ proc_diff[k, :]
+        if any(np.isnan(meas_diff[k, :])):
+            continue
+        # measurements are zero indexed, i.e. k-1 --> y_k
+        _cost += meas_diff[k, :].T @ np.linalg.inv(meas_cov[k, :, :]) @ meas_diff[k, :]
+    _cost += meas_diff[-1, :].T @ np.linalg.inv(meas_cov[-1, :, :]) @ meas_diff[-1, :]
 
     return _cost
 
