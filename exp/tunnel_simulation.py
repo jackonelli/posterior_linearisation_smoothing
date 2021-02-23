@@ -55,8 +55,9 @@ def main():
     pos = np.array([100, -100])
     # sigma_r = 2
     # sigma_phi = 0.5 * np.pi / 180
-    sigma_r = 8
-    sigma_phi = 2 * np.pi / 180
+    noise_factor = 8
+    sigma_r = 2 * noise_factor
+    sigma_phi = noise_factor * 0.5 * np.pi / 180
 
     R = np.diag([sigma_r ** 2, sigma_phi ** 2])
     meas_model = RangeBearing(pos, R)
@@ -70,6 +71,7 @@ def main():
 
     prior_mean = np.array([0, 0, 1, 0, 0])
     prior_cov = np.diag([0.1, 0.1, 1, 1, 1])
+    lm_reg = 1e-2
 
     results = []
     cost_fn_eks = partial(
@@ -98,7 +100,7 @@ def main():
     results.append((ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks[1:], "GN-IEKS"))
 
     ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks, tmp_rmse, tmp_nees = run_smoothing(
-        LmIeks(motion_model, meas_model, num_iter, cost_improv_iter_lim=10, lambda_=1e-2, nu=10),
+        LmIeks(motion_model, meas_model, num_iter, cost_improv_iter_lim=10, lambda_=lm_reg, nu=10),
         states,
         measurements,
         prior_mean,
@@ -118,7 +120,7 @@ def main():
     results.append((ms_gn_ipls, Ps_gn_ipls, cost_gn_ipls[1:], "GN-IPLS"))
     ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, rmses_lm_ipls, neeses_lm_ipls = run_smoothing(
         SigmaPointLmIpls(
-            motion_model, meas_model, sigma_point_method, num_iter, cost_improv_iter_lim=10, lambda_=1e-2, nu=10
+            motion_model, meas_model, sigma_point_method, num_iter, cost_improv_iter_lim=10, lambda_=lm_reg, nu=10
         ),
         states,
         measurements,
