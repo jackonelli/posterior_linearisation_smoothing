@@ -36,7 +36,7 @@ def analytical_smoothing_cost(traj, meas, m_1_0, P_1_0, motion_model: MotionMode
         if any(np.isnan(meas_diff[k, :])):
             continue
         _cost += meas_diff[k, :].T @ np.linalg.inv(meas_model.meas_noise(k)) @ meas_diff[k, :]
-    _cost += meas_diff[-1, :].T @ np.linalg.inv(meas_model.meas_noise(k)) @ meas_diff[-1, :]
+    _cost += meas_diff[-1, :].T @ np.linalg.inv(meas_model.meas_noise(meas.shape[0])) @ meas_diff[-1, :]
 
     return _cost
 
