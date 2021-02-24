@@ -47,7 +47,7 @@ class SigmaPointLmIpls(IteratedSmoother):
             m_1_0=m_1_0,
             P_1_0=P_1_0,
         )
-        cost_fn = self.tmp(cost_fn_prototype)
+        cost_fn = self.tmp(cost_fn_prototype, self._cache)
         cost = cost_fn(smooth_means)
         return filter_means, filter_covs, smooth_means, smooth_covs, cost
 
@@ -63,7 +63,7 @@ class SigmaPointLmIpls(IteratedSmoother):
             m_1_0=m_1_0,
             P_1_0=P_1_0,
         )
-        cost_fn = self.tmp(new_proto)
+        cost_fn = self.tmp(new_proto, self._cache)
         prev_cost = cost_fn_prototype(current_ms, current_Ps)
         assert np.allclose(cost_fn(current_ms), prev_cost)
         cost_iter = [prev_cost]
@@ -74,7 +74,7 @@ class SigmaPointLmIpls(IteratedSmoother):
             has_improved = False
 
             # Fix cost function
-            cost_fn = self.tmp(new_proto)
+            cost_fn = self.tmp(new_proto, self._cache)
             old_cost_fn = self._specialise_cost_fn(cost_fn_prototype, self._cost_fn_params())
             prev_cost = cost_fn(self._current_means)
             old_cost = old_cost_fn(self._current_means)
@@ -86,8 +86,18 @@ class SigmaPointLmIpls(IteratedSmoother):
                     # Note: here we want to run the base `Smoother` class method.
                     # I.e. we're getting the grandparent's method.
                     mf, Pf, current_ms, current_Ps, cost = super(IteratedSmoother, self).filter_and_smooth(
-                        measurements, m_1_0, P_1_0, old_cost_fn
+                        measurements, m_1_0, P_1_0, None
                     )
+                    tmp_cache = _IplsCache()
+                    tmp_cache.update(
+                        self._motion_model.map_set,
+                        self._meas_model.map_set,
+                        current_ms,
+                        self._current_covs,
+                        self._slr,
+                    )
+                    tmp_cost_fn = self.tmp(new_proto, tmp_cache)
+                    cost = tmp_cost_fn(current_ms)
                     self._log.debug(f"Cost: {cost}, lambda: {self._lambda}, loss_cand_no: {loss_cand_no}")
                     if cost < prev_cost:
                         self._lambda /= self._nu
@@ -99,29 +109,24 @@ class SigmaPointLmIpls(IteratedSmoother):
                     self._log.info(f"No cost improvement for {self._cost_improv_iter_lim} iterations, returning")
                     return current_mf, current_Pf, current_ms, current_Ps, np.array(cost_iter)
                 # Only update the means, this is to faithfully optimise the current cost fn.
-                self._update_means_only(current_ms)
-                cost_fn = self.tmp(new_proto)
+                self._update_means_only(current_ms, tmp_cache)
                 prev_cost = cost
             # Now, both means and covs are updated.
             self._update_estimates(current_ms, current_Ps)
-            cost_fn = self.tmp(new_proto)
             current_mf, current_Pf = mf, Pf
             cost_iter.append(cost)
         return current_mf, current_Pf, current_ms, current_Ps, np.array(cost_iter)
 
-    def tmp(self, new_proto):
+    def tmp(self, new_proto, cache: "_IplsCache"):
         return partial(
             new_proto,
-            proc_bar=self._cache.proc_bar,
-            meas_bar=self._cache.meas_bar,
+            proc_bar=cache.proc_bar,
+            meas_bar=cache.meas_bar,
             proc_cov=np.array(
-                [
-                    err_cov_k + self._motion_model.proc_noise(k)
-                    for k, (_, _, err_cov_k) in enumerate(self._cache.proc_lin)
-                ]
+                [err_cov_k + self._motion_model.proc_noise(k) for k, (_, _, err_cov_k) in enumerate(cache.proc_lin)]
             ),
             meas_cov=np.array(
-                [err_cov_k + self._meas_model.meas_noise(k) for k, (_, _, err_cov_k) in enumerate(self._cache.meas_lin)]
+                [err_cov_k + self._meas_model.meas_noise(k) for k, (_, _, err_cov_k) in enumerate(cache.meas_lin)]
             ),
         )
 
@@ -139,9 +144,12 @@ class SigmaPointLmIpls(IteratedSmoother):
     def _terminate_inner_loop(self, loss_cand_no):
         return loss_cand_no > 1
 
-    def _update_means_only(self, means):
+    def _update_means_only(self, means, pre_comp_cache=None):
         self._current_means = means.copy()
-        self._update_lin_cache()
+        if pre_comp_cache is None:
+            self._update_lin_cache()
+        else:
+            self._cache = pre_comp_cache
 
     def _update_estimates(self, means, covs):
         """The 'previous estimates' which are used in the current iteration are stored in the smoother instance.
