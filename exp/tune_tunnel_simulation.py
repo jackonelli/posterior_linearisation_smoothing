@@ -21,7 +21,7 @@ from src.utils import setup_logger
 from src.models.range_bearing import RangeBearing
 from src.models.coord_turn import LmCoordTurn
 from data.lm_ieks_paper.coord_turn_example import simulate_data
-from src.smoother.slr.reg_ipls import SigmaPointRegIpls
+from src.smoother.slr.lm_ipls import SigmaPointRegIpls
 from src.slr.sigma_points import SigmaPointSlr
 from src.sigma_points import SphericalCubature
 from src.cost import analytical_smoothing_cost, slr_smoothing_cost

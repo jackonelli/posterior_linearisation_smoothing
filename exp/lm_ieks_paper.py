@@ -26,7 +26,7 @@ from src.smoother.ext.eks import Eks
 from src.smoother.ext.ieks import Ieks
 from src.smoother.ext.lm_ieks import LmIeks
 from src.smoother.slr.ipls import SigmaPointIpls
-from src.smoother.slr.reg_ipls import SigmaPointLmIpls
+from src.smoother.slr.lm_ipls import SigmaPointLmIpls
 from src.slr.sigma_points import SigmaPointSlr
 from src.sigma_points import SphericalCubature
 from src.cost import analytical_smoothing_cost, slr_smoothing_cost, slr_smoothing_cost_pre_comp, noop_cost

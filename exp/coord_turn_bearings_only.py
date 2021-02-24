@@ -20,7 +20,7 @@ from src.smoother.slr.ipls import SigmaPointIpls
 from src.utils import setup_logger, tikz_2d_tab_to_file, tikz_err_bar_tab_to_file
 from src.models.range_bearing import MultiSensorRange
 from src.models.coord_turn import LmCoordTurn
-from src.smoother.slr.reg_ipls import SigmaPointLmIpls
+from src.smoother.slr.lm_ipls import SigmaPointLmIpls
 from src.slr.sigma_points import SigmaPointSlr
 from src.sigma_points import SphericalCubature
 from src.cost import analytical_smoothing_cost, slr_smoothing_cost
