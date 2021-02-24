@@ -70,8 +70,6 @@ def slr_smoothing_cost_pre_comp(traj, measurements, m_1_0, P_1_0, proc_bar, meas
         # measurements are zero indexed, i.e. k-1 --> y_k
         _cost += meas_diff[k, :].T @ np.linalg.inv(meas_cov[k, :, :]) @ meas_diff[k, :]
     _cost += meas_diff[-1, :].T @ np.linalg.inv(meas_cov[-1, :, :]) @ meas_diff[-1, :]
-    print(f"New: {_cost}")
-    print(f"Old: {meas_diff[-1, :]}")
 
     return _cost
 
@@ -124,9 +122,7 @@ def slr_smoothing_cost(
 
         # measurements are zero indexed, i.e. meas[k-1] --> y_k
         meas_diff_k = measurements[k, :] - meas_bar
-        _cost += meas_diff_k.T @ np.linalg.inv(meas_model.meas_noise(k)) @ meas_diff_k
-    print(f"Old: {_cost}")
-    print(f"Old: {meas_diff_k}")
+        _cost += meas_diff_k.T @ np.linalg.inv(meas_model.meas_noise(k) + Lambda_k) @ meas_diff_k
 
     return _cost
 
