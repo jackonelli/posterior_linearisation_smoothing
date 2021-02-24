@@ -113,7 +113,7 @@ class SigmaPointLmIpls(IteratedSmoother):
 
     def _filter_seq(self, measurements, m_1_0, P_1_0):
         lm_iplf = _LmIplf(self._motion_model, self._meas_model, self._sigma_point_method, self._lambda)
-        lm_iplf._update_estimates(self._current_means, self._current_covs)
+        lm_iplf._update_estimates(self._current_means, self._current_covs, self._cache)
         return lm_iplf.filter_seq(measurements, m_1_0, P_1_0)
 
     def _cost_fn_params(self):

@@ -15,10 +15,13 @@ class SigmaPointIplf(Filter):
         self._current_covs = None
         self._cache = SlrCache(self._motion_model.map_set, self._meas_model.map_set, self._slr)
 
-    def _update_estimates(self, means, covs):
+    def _update_estimates(self, means, covs, cache=None):
         self._current_means = means.copy()
         self._current_covs = covs.copy()
-        self._update_slr_cache()
+        if cache is None:
+            self._update_slr_cache()
+        else:
+            self._cache = cache
 
     def _update_slr_cache(self):
         self._cache.update(self._current_means, self._current_covs)
