@@ -89,7 +89,7 @@ def slr_smoothing_cost(
 
         # measurements are zero indexed, i.e. meas[k-1] --> y_k
         meas_diff_k = measurements[k, :] - meas_bar
-        _cost += meas_diff_k.T @ np.linalg.inv(meas_model.meas_noise(k)) @ meas_diff_k
+        _cost += meas_diff_k.T @ np.linalg.inv(meas_model.meas_noise(k) + Lambda_k) @ meas_diff_k
 
     return _cost
 
