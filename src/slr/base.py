@@ -44,3 +44,32 @@ class Slr(ABC):
     @abstractmethod
     def slr(self, fn, mean, cov):
         pass
+
+
+class SlrCache:
+    def __init__(self, motion_fn, meas_fn, slr_method):
+        self._motion_fn = motion_fn
+        self._meas_fn = meas_fn
+        self._slr = slr_method
+        self.proc_lin = None
+        self.meas_lin = None
+        self.proc_bar = None
+        self.meas_bar = None
+
+    def update(self, means, covs):
+        # TODO: single calc of sigma points.
+        proc_slr = [self._slr.slr(self._motion_fn, mean_k, cov_k) for mean_k, cov_k in zip(means, covs)]
+        self.proc_lin = [
+            self._slr.linear_params_from_slr(mean_k, cov_k, *slr_) for mean_k, cov_k, slr_ in zip(means, covs, proc_slr)
+        ]
+        self.proc_bar = np.array([z_bar for z_bar, _, _ in proc_slr])
+
+        meas_slr = [self._slr.slr(self._meas_fn, mean_k, cov_k) for mean_k, cov_k in zip(means, covs)]
+        self.meas_lin = [
+            self._slr.linear_params_from_slr(mean_k, cov_k, *slr_) for mean_k, cov_k, slr_ in zip(means, covs, meas_slr)
+        ]
+        self.meas_bar = np.array([z_bar for z_bar, _, _ in meas_slr])
+
+    def _is_initialized(self):
+        # TODO: Full
+        return self.proc_lin is not None

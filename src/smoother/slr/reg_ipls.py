@@ -3,6 +3,7 @@ from functools import partial
 import numpy as np
 from src.smoother.base import Smoother
 from src.cost import slr_smoothing_cost_pre_comp
+from src.slr.base import SlrCache
 from src.smoother.base import IteratedSmoother
 from src.filter.prlf import SigmaPointPrLf
 from src.smoother.slr.prls import SigmaPointPrLs
@@ -23,7 +24,7 @@ class SigmaPointLmIpls(IteratedSmoother):
         self._cost_improv_iter_lim = cost_improv_iter_lim
         self._lambda = lambda_
         self._nu = nu
-        self._cache = _IplsCache(self._motion_model.map_set, self._meas_model.map_set, self._slr)
+        self._cache = SlrCache(self._motion_model.map_set, self._meas_model.map_set, self._slr)
 
     def _motion_lin(self, _mean, _cov, time_step):
         return self._cache.proc_lin[time_step]
@@ -66,7 +67,7 @@ class SigmaPointLmIpls(IteratedSmoother):
                     mf, Pf, current_ms, current_Ps, cost = super(IteratedSmoother, self).filter_and_smooth(
                         measurements, m_1_0, P_1_0, None
                     )
-                    tmp_cache = _IplsCache(self._motion_model.map_set, self._meas_model.map_set, self._slr)
+                    tmp_cache = SlrCache(self._motion_model.map_set, self._meas_model.map_set, self._slr)
                     tmp_cache.update(
                         current_ms,
                         self._current_covs,
@@ -135,35 +136,6 @@ class SigmaPointLmIpls(IteratedSmoother):
 
     def _update_lin_cache(self):
         self._cache.update(self._current_means, self._current_covs)
-
-
-class _IplsCache:
-    def __init__(self, motion_fn, meas_fn, slr_method):
-        self._motion_fn = motion_fn
-        self._meas_fn = meas_fn
-        self._slr = slr_method
-        self.proc_lin = None
-        self.meas_lin = None
-        self.proc_bar = None
-        self.meas_bar = None
-
-    def update(self, means, covs):
-        # TODO: single calc of sigma points.
-        proc_slr = [self._slr.slr(self._motion_fn, mean_k, cov_k) for mean_k, cov_k in zip(means, covs)]
-        self.proc_lin = [
-            self._slr.linear_params_from_slr(mean_k, cov_k, *slr_) for mean_k, cov_k, slr_ in zip(means, covs, proc_slr)
-        ]
-        self.proc_bar = np.array([z_bar for z_bar, _, _ in proc_slr])
-
-        meas_slr = [self._slr.slr(self._meas_fn, mean_k, cov_k) for mean_k, cov_k in zip(means, covs)]
-        self.meas_lin = [
-            self._slr.linear_params_from_slr(mean_k, cov_k, *slr_) for mean_k, cov_k, slr_ in zip(means, covs, meas_slr)
-        ]
-        self.meas_bar = np.array([z_bar for z_bar, _, _ in meas_slr])
-
-    def _is_initialized(self):
-        # TODO: Full
-        return self.proc_lin is not None
 
 
 class _RegIplf(SigmaPointIplf):
