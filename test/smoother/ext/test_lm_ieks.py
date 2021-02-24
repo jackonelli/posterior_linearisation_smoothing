@@ -54,7 +54,7 @@ class TestLmIeks(unittest.TestCase):
 
         cost_fn = partial(
             analytical_smoothing_cost,
-            meas=measurements,
+            measurements=measurements,
             m_1_0=prior_mean,
             P_1_0=prior_cov,
             motion_model=motion_model,

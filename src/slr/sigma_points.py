@@ -15,7 +15,7 @@ class SigmaPointSlr(Slr):
             - Test that the weighted cov's work as intended.
         """
 
-        sigma_points, weights = self.sigma_points(mean, cov)
+        sigma_points, weights = self.gen_sigma_points(mean, cov)
         transf_sigma_points = fn(sigma_points)
         z_bar = weighted_avg(transf_sigma_points, weights)
         psi = weighted_cov(sigma_points, mean, transf_sigma_points, z_bar, weights)
@@ -23,7 +23,7 @@ class SigmaPointSlr(Slr):
 
         return z_bar, psi, phi
 
-    def sigma_points(self, mean, cov):
+    def gen_sigma_points(self, mean, cov):
         return self.sigma_point_method.sigma_points(mean, cov)
 
 

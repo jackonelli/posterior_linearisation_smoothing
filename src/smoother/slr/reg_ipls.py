@@ -123,7 +123,7 @@ class SigmaPointLmIpls(IteratedSmoother):
     def _update_means_only(self, means, pre_comp_cache=None):
         self._current_means = means.copy()
         if pre_comp_cache is None:
-            self._update_lin_cache()
+            self._update_slr_cache()
         else:
             self._cache = pre_comp_cache
 
@@ -132,9 +132,9 @@ class SigmaPointLmIpls(IteratedSmoother):
         They should only be modified through this method.
         """
         super()._update_estimates(means, covs)
-        self._update_lin_cache()
+        self._update_slr_cache()
 
-    def _update_lin_cache(self):
+    def _update_slr_cache(self):
         self._cache.update(self._current_means, self._current_covs)
 
 
