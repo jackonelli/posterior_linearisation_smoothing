@@ -23,7 +23,7 @@ class SigmaPointLmIpls(IteratedSmoother):
         self._cost_improv_iter_lim = cost_improv_iter_lim
         self._lambda = lambda_
         self._nu = nu
-        self._cache = _IplsCache()
+        self._cache = _IplsCache(self._motion_model.map_set, self._meas_model.map_set, self._slr)
 
     def _motion_lin(self, _mean, _cov, time_step):
         return self._cache.proc_lin[time_step]
@@ -41,15 +41,8 @@ class SigmaPointLmIpls(IteratedSmoother):
         )
         self._update_estimates(smooth_means, smooth_covs)
         # Fix cost function
-        cost_fn_prototype = partial(
-            slr_smoothing_cost_pre_comp,
-            measurements=measurements,
-            m_1_0=m_1_0,
-            P_1_0=P_1_0,
-        )
-        cost_fn = self.tmp(cost_fn_prototype, self._cache)
-        cost = cost_fn(smooth_means)
-        return filter_means, filter_covs, smooth_means, smooth_covs, cost
+        cost_fn = self._specialise_cost_fn(cost_fn_prototype, self._cache)
+        return filter_means, filter_covs, smooth_means, smooth_covs, cost_fn(smooth_means)
 
     def filter_and_smooth_with_init_traj(self, measurements, m_1_0, P_1_0, init_traj, start_iter, cost_fn_prototype):
         """Filter and smoothing given an initial trajectory"""
@@ -57,29 +50,14 @@ class SigmaPointLmIpls(IteratedSmoother):
         current_mf, current_Pf = init_traj
         if not self._cache._is_initialized():
             self._update_estimates(current_ms, current_Ps)
-        new_proto = partial(
-            slr_smoothing_cost_pre_comp,
-            measurements=measurements,
-            m_1_0=m_1_0,
-            P_1_0=P_1_0,
-        )
-        cost_fn = self.tmp(new_proto, self._cache)
-        prev_cost = cost_fn_prototype(current_ms, current_Ps)
-        assert np.allclose(cost_fn(current_ms), prev_cost)
+        cost_fn = self._specialise_cost_fn(cost_fn_prototype, self._cache)
+        prev_cost = cost_fn(current_ms)
         cost_iter = [prev_cost]
         self._log.debug(f"Initial cost: {prev_cost}")
         for iter_ in range(start_iter, self.num_iter + 1):
             self._log.debug(f"Iter: {iter_}")
             loss_cand_no = 1
             has_improved = False
-
-            # Fix cost function
-            cost_fn = self.tmp(new_proto, self._cache)
-            old_cost_fn = self._specialise_cost_fn(cost_fn_prototype, self._cost_fn_params())
-            prev_cost = cost_fn(self._current_means)
-            old_cost = old_cost_fn(self._current_means)
-
-            assert np.allclose(prev_cost, old_cost)
 
             while not self._terminate_inner_loop(loss_cand_no):
                 while has_improved is False and loss_cand_no <= self._cost_improv_iter_lim:
@@ -88,15 +66,12 @@ class SigmaPointLmIpls(IteratedSmoother):
                     mf, Pf, current_ms, current_Ps, cost = super(IteratedSmoother, self).filter_and_smooth(
                         measurements, m_1_0, P_1_0, None
                     )
-                    tmp_cache = _IplsCache()
+                    tmp_cache = _IplsCache(self._motion_model.map_set, self._meas_model.map_set, self._slr)
                     tmp_cache.update(
-                        self._motion_model.map_set,
-                        self._meas_model.map_set,
                         current_ms,
                         self._current_covs,
-                        self._slr,
                     )
-                    tmp_cost_fn = self.tmp(new_proto, tmp_cache)
+                    tmp_cost_fn = self._specialise_cost_fn(cost_fn_prototype, tmp_cache)
                     cost = tmp_cost_fn(current_ms)
                     self._log.debug(f"Cost: {cost}, lambda: {self._lambda}, loss_cand_no: {loss_cand_no}")
                     if cost < prev_cost:
@@ -113,13 +88,16 @@ class SigmaPointLmIpls(IteratedSmoother):
                 prev_cost = cost
             # Now, both means and covs are updated.
             self._update_estimates(current_ms, current_Ps)
+            # Fix cost function
+            cost_fn = self._specialise_cost_fn(cost_fn_prototype, self._cache)
             current_mf, current_Pf = mf, Pf
             cost_iter.append(cost)
         return current_mf, current_Pf, current_ms, current_Ps, np.array(cost_iter)
 
-    def tmp(self, new_proto, cache: "_IplsCache"):
+    def _specialise_cost_fn(self, cost_fn_prototype, params):
+        cache = params
         return partial(
-            new_proto,
+            cost_fn_prototype,
             proc_bar=cache.proc_bar,
             meas_bar=cache.meas_bar,
             proc_cov=np.array(
@@ -134,9 +112,6 @@ class SigmaPointLmIpls(IteratedSmoother):
         lm_iekf = _RegIplf(self._motion_model, self._meas_model, self._sigma_point_method, self._lambda)
         lm_iekf._update_estimates(self._current_means, self._current_covs)
         return lm_iekf.filter_seq(measurements, m_1_0, P_1_0)
-
-    def _specialise_cost_fn(self, cost_fn_prototype, params):
-        return partial(cost_fn_prototype, covs=params)
 
     def _cost_fn_params(self):
         return self._current_covs
@@ -159,31 +134,30 @@ class SigmaPointLmIpls(IteratedSmoother):
         self._update_lin_cache()
 
     def _update_lin_cache(self):
-        self._cache.update(
-            self._motion_model.map_set, self._meas_model.map_set, self._current_means, self._current_covs, self._slr
-        )
+        self._cache.update(self._current_means, self._current_covs)
 
 
 class _IplsCache:
-    def __init__(self):
+    def __init__(self, motion_fn, meas_fn, slr_method):
+        self._motion_fn = motion_fn
+        self._meas_fn = meas_fn
+        self._slr = slr_method
         self.proc_lin = None
         self.meas_lin = None
         self.proc_bar = None
         self.meas_bar = None
 
-    def update(self, motion_fn, meas_fn, means, covs, slr_method):
+    def update(self, means, covs):
         # TODO: single calc of sigma points.
-        proc_slr = [slr_method.slr(motion_fn, mean_k, cov_k) for mean_k, cov_k in zip(means, covs)]
+        proc_slr = [self._slr.slr(self._motion_fn, mean_k, cov_k) for mean_k, cov_k in zip(means, covs)]
         self.proc_lin = [
-            slr_method.linear_params_from_slr(mean_k, cov_k, *slr_)
-            for mean_k, cov_k, slr_ in zip(means, covs, proc_slr)
+            self._slr.linear_params_from_slr(mean_k, cov_k, *slr_) for mean_k, cov_k, slr_ in zip(means, covs, proc_slr)
         ]
         self.proc_bar = np.array([z_bar for z_bar, _, _ in proc_slr])
 
-        meas_slr = [slr_method.slr(meas_fn, mean_k, cov_k) for mean_k, cov_k in zip(means, covs)]
+        meas_slr = [self._slr.slr(self._meas_fn, mean_k, cov_k) for mean_k, cov_k in zip(means, covs)]
         self.meas_lin = [
-            slr_method.linear_params_from_slr(mean_k, cov_k, *slr_)
-            for mean_k, cov_k, slr_ in zip(means, covs, meas_slr)
+            self._slr.linear_params_from_slr(mean_k, cov_k, *slr_) for mean_k, cov_k, slr_ in zip(means, covs, meas_slr)
         ]
         self.meas_bar = np.array([z_bar for z_bar, _, _ in meas_slr])
 

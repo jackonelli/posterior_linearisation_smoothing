@@ -94,12 +94,12 @@ def main():
         slr=SigmaPointSlr(sigma_point_method),
     )
 
-    # cost_fn_ipls = partial(
-    #     slr_smoothing_cost_pre_comp,
-    #     measurements=measurements,
-    #     m_1_0=prior_mean,
-    #     P_1_0=prior_cov,
-    # )
+    cost_fn_ipls = partial(
+        slr_smoothing_cost_pre_comp,
+        measurements=measurements,
+        m_1_0=prior_mean,
+        P_1_0=prior_cov,
+    )
     # ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks, tmp_rmse, tmp_nees = run_smoothing(
     #     Ieks(motion_model, meas_model, num_iter), states, measurements, prior_mean, prior_cov, cost_fn_eks
     # )
