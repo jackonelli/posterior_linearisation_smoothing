@@ -17,7 +17,6 @@ from enum import Enum
 from timeit import timeit
 from functools import partial
 import logging
-import argparse
 from pathlib import Path
 from functools import partial
 import numpy as np
@@ -42,10 +41,9 @@ from exp.coord_turn_bearings_only import run_smoothing, calc_iter_metrics, mc_st
 
 
 def main():
-    args = parse_args()
     log = logging.getLogger(__name__)
     experiment_name = "lm_ieks"
-    setup_logger(f"logs/{experiment_name}.log", logging.DEBUG)
+    setup_logger(f"logs/{experiment_name}.log", logging.ERROR)
     log.info(f"Running experiment: {experiment_name}")
 
     dt = 0.01
@@ -71,20 +69,15 @@ def main():
     prior_mean = np.array([0, 0, 1, 0, 0])
     prior_cov = np.diag([0.1, 0.1, 1, 1, 1])
 
-    num_iter = 3
-    if args.random:
-        states, all_meas = simulate_data(sens_pos_1, sens_pos_2, std, dt, prior_mean[:-1], time_steps=500)
-    else:
-        states, all_meas, _, xs_ss = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.LM, num_iter)
+    num_iter = 1
+    np.random.seed(0)
+    states, all_meas, _, xs_ss = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.LM, num_iter)
+    K = all_meas.shape[0]
+    covs = np.array([prior_cov] * K) * (0.90 + np.random.rand() / 5)
 
-    if args.meas_type == MeasType.Range:
-        meas_model = MultiSensorRange(sensors, R)
-        measurements = all_meas[:, :2]
-    elif args.meas_type == MeasType.Bearings:
-        meas_model = MultiSensorBearings(sensors, R)
-        measurements = all_meas[:, 2:]
+    meas_model = MultiSensorRange(sensors, R)
+    measurements = all_meas[:, :2]
 
-    results = []
     cost_fn_eks = partial(
         analytical_smoothing_cost,
         measurements=measurements,
@@ -111,38 +104,46 @@ def main():
         m_1_0=prior_mean,
         P_1_0=prior_cov,
     )
-    num_samples = 2
     time_ieks = partial(
-        Ieks(motion_model, meas_model, num_iter).filter_and_smooth,
+        Ieks(motion_model, meas_model, num_iter).filter_and_smooth_with_init_traj,
         measurements,
         prior_mean,
         prior_cov,
+        (xs_ss, covs),
+        1,
         partial(noop_cost, covs=None),
     )
 
     time_lm_ieks = partial(
-        LmIeks(motion_model, meas_model, num_iter, 10, 1e-2, 10).filter_and_smooth,
+        LmIeks(motion_model, meas_model, num_iter, 10, 1e-2, 10).filter_and_smooth_with_init_traj,
         measurements,
         prior_mean,
         prior_cov,
+        (xs_ss, covs),
+        1,
         cost_fn_eks,
     )
     time_ipls = partial(
-        SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter).filter_and_smooth,
+        SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter).filter_and_smooth_with_init_traj,
         measurements,
         prior_mean,
         prior_cov,
+        (xs_ss, covs),
+        1,
         partial(noop_cost, covs=None),
     )
     time_lm_ipls = partial(
         SigmaPointLmIpls(
             motion_model, meas_model, sigma_point_method, num_iter, cost_improv_iter_lim=10, lambda_=1e-2, nu=10
-        ).filter_and_smooth,
+        ).filter_and_smooth_with_init_traj,
         measurements,
         prior_mean,
         prior_cov,
+        (xs_ss, covs),
+        1,
         new_cost_fn_ipls,
     )
+    num_samples = 10
     time_ieks = timeit(time_ieks, number=num_samples) / (num_iter * num_samples)
     time_lm_ieks = timeit(time_lm_ieks, number=num_samples) / (num_iter * num_samples)
     time_ipls = timeit(time_ipls, number=num_samples) / (num_iter * num_samples)
@@ -183,14 +184,6 @@ def plot_cost(ax, costs):
 class MeasType(Enum):
     Range = "range"
     Bearings = "bearings"
-
-
-def parse_args():
-    parser = argparse.ArgumentParser(description="LM-IEKS paper experiment.")
-    parser.add_argument("--random", action="store_true")
-    parser.add_argument("--meas_type", type=MeasType, required=True)
-
-    return parser.parse_args()
 
 
 if __name__ == "__main__":

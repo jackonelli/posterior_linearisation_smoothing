@@ -49,19 +49,19 @@ class SigmaPointLmIpls(IteratedSmoother):
         """Filter and smoothing given an initial trajectory"""
         current_ms, current_Ps = init_traj
         current_mf, current_Pf = init_traj
-        if not self._cache._is_initialized():
-            self._update_estimates(current_ms, current_Ps)
-        cost_fn = self._specialise_cost_fn(cost_fn_prototype, self._cache)
-        prev_cost = cost_fn(current_ms)
-        cost_iter = [prev_cost]
-        self._log.debug(f"Initial cost: {prev_cost}")
+        cost_iter = []
         for iter_ in range(start_iter, self.num_iter + 1):
+            # Important optimisation to only update the estimates when the estimates have changed.
+            if not self._cache._is_initialized() or iter_ is not start_iter:
+                self._update_estimates(current_ms, current_Ps)
+            cost_fn = self._specialise_cost_fn(cost_fn_prototype, self._cache)
+            prev_cost = cost_fn(current_ms)
+            cost_iter.append(prev_cost)
             self._log.debug(f"Iter: {iter_}")
             loss_cand_no = 1
             has_improved = False
 
             while not self._terminate_inner_loop(loss_cand_no):
-                print("checksum", self._current_means.sum() + self._current_covs.sum())
                 while has_improved is False and loss_cand_no <= self._cost_improv_iter_lim:
                     # Note: here we want to run the base `Smoother` class method.
                     # I.e. we're getting the grandparent's method.
@@ -84,17 +84,12 @@ class SigmaPointLmIpls(IteratedSmoother):
                     loss_cand_no += 1
                 if loss_cand_no == self._cost_improv_iter_lim + 1:
                     self._log.info(f"No cost improvement for {self._cost_improv_iter_lim} iterations, returning")
-                    print("checksum", self._current_means.sum() + self._current_covs.sum())
                     return current_mf, current_Pf, self._current_means, self._current_covs, np.array(cost_iter)
                 # Only update the means, this is to faithfully optimise the current cost fn.
+
+                # Curiously, branching here on the outer while cond. actually makes the code considerably slower
                 self._update_means_only(current_ms, tmp_cache)
                 prev_cost = cost
-            # Now, both means and covs are updated.
-            self._update_estimates(current_ms, current_Ps)
-            # Fix cost function
-            cost_fn = self._specialise_cost_fn(cost_fn_prototype, self._cache)
-            current_mf, current_Pf = mf, Pf
-            cost_iter.append(cost)
         return current_mf, current_Pf, current_ms, current_Ps, np.array(cost_iter)
 
     def _specialise_cost_fn(self, cost_fn_prototype, params):
