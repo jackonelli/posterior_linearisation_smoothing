@@ -69,7 +69,7 @@ def main():
     prior_mean = np.array([0, 0, 1, 0, 0])
     prior_cov = np.diag([0.1, 0.1, 1, 1, 1])
 
-    num_iter = 10
+    num_iter = args.num_iter
     if args.random:
         states, all_meas = simulate_data(sens_pos_1, sens_pos_2, std, dt, prior_mean[:-1], time_steps=500)
     else:
@@ -148,6 +148,7 @@ def main():
         cost_fn_ipls,
         None,
     )
+    print(cost_lm_ipls)
     results.append(
         (ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, "LM-IPLS"),
     )
@@ -194,6 +195,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="LM-IEKS paper experiment.")
     parser.add_argument("--random", action="store_true")
     parser.add_argument("--meas_type", type=MeasType, required=True)
+    parser.add_argument("--num_iter", type=int, default=10)
 
     return parser.parse_args()
 

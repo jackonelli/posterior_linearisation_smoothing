@@ -61,6 +61,7 @@ class SigmaPointLmIpls(IteratedSmoother):
             has_improved = False
 
             while not self._terminate_inner_loop(loss_cand_no):
+                print("checksum", self._current_means.sum() + self._current_covs.sum())
                 while has_improved is False and loss_cand_no <= self._cost_improv_iter_lim:
                     # Note: here we want to run the base `Smoother` class method.
                     # I.e. we're getting the grandparent's method.
@@ -83,7 +84,8 @@ class SigmaPointLmIpls(IteratedSmoother):
                     loss_cand_no += 1
                 if loss_cand_no == self._cost_improv_iter_lim + 1:
                     self._log.info(f"No cost improvement for {self._cost_improv_iter_lim} iterations, returning")
-                    return current_mf, current_Pf, current_ms, current_Ps, np.array(cost_iter)
+                    print("checksum", self._current_means.sum() + self._current_covs.sum())
+                    return current_mf, current_Pf, self._current_means, self._current_covs, np.array(cost_iter)
                 # Only update the means, this is to faithfully optimise the current cost fn.
                 self._update_means_only(current_ms, tmp_cache)
                 prev_cost = cost
