@@ -3,6 +3,7 @@ from src.smoother.base import IteratedSmoother
 from src.smoother.slr.prls import SigmaPointPrLs
 from src.filter.iplf import SigmaPointIplf
 from src.slr.sigma_points import SigmaPointSlr
+from src.slr.base import SlrCache
 from functools import partial
 
 
@@ -16,13 +17,10 @@ class SigmaPointIpls(IteratedSmoother):
         self._slr = SigmaPointSlr(sigma_point_method)
         self._sigma_point_method = sigma_point_method
         self.num_iter = num_iter
+        self._cache = SlrCache(self._motion_model.map_set, self._meas_model.map_set, self._slr)
 
     def _motion_lin(self, _mean, _cov, time_step):
-        return self._slr.linear_params(
-            self._mapping_with_time_step(self._motion_model.map_set, time_step=time_step),
-            self._current_means[time_step],
-            self._current_covs[time_step],
-        )
+        return self._cache.proc_lin[time_step]
 
     def _first_iter(self, measurements, m_1_0, P_1_0, cost_fn_prototype):
         smoother = SigmaPointPrLs(self._motion_model, self._meas_model, self._sigma_point_method)
@@ -38,3 +36,10 @@ class SigmaPointIpls(IteratedSmoother):
 
     def _cost_fn_params(self):
         return self._current_covs
+
+    def _update_estimates(self, means, covs):
+        """The 'previous estimates' which are used in the current iteration are stored in the smoother instance.
+        They should only be modified through this method.
+        """
+        super()._update_estimates(means, covs)
+        self._cache.update(self._current_means, self._current_covs)

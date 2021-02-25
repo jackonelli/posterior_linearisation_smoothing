@@ -3,7 +3,7 @@ Also known as the Extended Rauch-Tung-Striebel Smoother (ERTSS)
 """
 from src.smoother.base import Smoother
 from src.models.affine import AffineModel
-from src.filter.ekf import Ekf, ekf_lin
+from src.filter.ekf import Ekf, ext_lin
 
 
 class Eks(Smoother):
@@ -13,11 +13,11 @@ class Eks(Smoother):
         self._meas_model = meas_model
 
     def _motion_lin(self, mean, _cov, _time_step):
-        F, b = ekf_lin(self._motion_model, mean)
+        F, b = ext_lin(self._motion_model, mean)
         return (F, b, 0)
 
     def _meas_lin(self, mean, _cov, _time_step):
-        H, c = ekf_lin(self._meas_model, mean)
+        H, c = ext_lin(self._meas_model, mean)
         return (H, c, 0)
 
     def _filter_seq(self, measurements, m_1_0, P_1_0):

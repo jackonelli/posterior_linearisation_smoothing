@@ -156,3 +156,6 @@ class Filter(ABC):
     @staticmethod
     def _mapping_with_time_step(mapping, time_step):
         return partial(mapping, time_step=time_step)
+
+
+# TODO IterativeFilter base class

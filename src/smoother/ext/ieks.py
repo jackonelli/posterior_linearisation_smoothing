@@ -1,8 +1,8 @@
 """Iterated Extended Kalman Smoother (IEKS)"""
 from src.smoother.base import IteratedSmoother
 from src.smoother.ext.eks import Eks
-from src.filter.ekf import ekf_lin
-from src.filter.iekf import Iekf, ekf_lin
+from src.filter.ekf import ext_lin, ExtCache
+from src.filter.iekf import Iekf
 
 
 class Ieks(IteratedSmoother):
@@ -13,11 +13,10 @@ class Ieks(IteratedSmoother):
         self._motion_model = motion_model
         self._meas_model = meas_model
         self.num_iter = num_iter
+        self._cache = ExtCache(self._motion_model, self._meas_model)
 
     def _motion_lin(self, _mean, _cov, time_step):
-        mean = self._current_means[time_step, :]
-        F, b = ekf_lin(self._motion_model, mean)
-        return (F, b, 0)
+        return self._cache.motion_lin[time_step]
 
     def _first_iter(self, measurements, m_1_0, P_1_0, cost_fn):
         smoother = Eks(self._motion_model, self._meas_model)
@@ -27,3 +26,10 @@ class Ieks(IteratedSmoother):
         iekf = Iekf(self._motion_model, self._meas_model)
         iekf._update_estimates(self._current_means, self._current_covs)
         return iekf.filter_seq(measurements, m_1_0, P_1_0)
+
+    def _update_estimates(self, means, covs):
+        """The 'previous estimates' which are used in the current iteration are stored in the smoother instance.
+        They should only be modified through this method.
+        """
+        super()._update_estimates(means, covs)
+        self._cache.update(means, None)

@@ -125,18 +125,18 @@ def main():
         P_1_0=prior_cov,
     )
 
-    # ms_gn_ipls, Ps_gn_ipls, cost_gn_ipls, rmses_gn_ipls, neeses_gn_ipls = run_smoothing(
-    #     SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter),
-    #     states,
-    #     measurements,
-    #     prior_mean,
-    #     prior_cov,
-    #     noop_cost,
-    #     None,
-    # )
-    # results.append(
-    #     (ms_gn_ipls, Ps_gn_ipls, cost_gn_ipls, "GN-IPLS"),
-    # )
+    ms_gn_ipls, Ps_gn_ipls, cost_gn_ipls, rmses_gn_ipls, neeses_gn_ipls = run_smoothing(
+        SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter),
+        states,
+        measurements,
+        prior_mean,
+        prior_cov,
+        noop_cost,
+        None,
+    )
+    results.append(
+        (ms_gn_ipls, Ps_gn_ipls, cost_gn_ipls, "GN-IPLS"),
+    )
     ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, rmses_lm_ipls, neeses_lm_ipls = run_smoothing(
         SigmaPointLmIpls(
             motion_model, meas_model, sigma_point_method, num_iter, cost_improv_iter_lim=10, lambda_=1e-2, nu=10

@@ -2,8 +2,8 @@
 import numpy as np
 from src.smoother.ext.eks import Eks
 from src.smoother.base import IteratedSmoother
-from src.filter.ekf import ekf_lin
-from src.filter.iekf import Iekf, ekf_lin
+from src.filter.ekf import ext_lin, ExtCache
+from src.filter.iekf import Iekf
 
 
 class LmIeks(IteratedSmoother):
@@ -17,12 +17,10 @@ class LmIeks(IteratedSmoother):
         self._cost_improv_iter_lim = cost_improv_iter_lim
         self._lambda = lambda_
         self._nu = nu
-        self._lin_cache = []
+        self._cache = ExtCache(self._motion_model, self._meas_model)
 
     def _motion_lin(self, _mean, _cov, time_step):
-        mean = self._current_means[time_step, :]
-        F, b = ekf_lin(self._motion_model, mean)
-        return (F, b, 0)
+        return self._cache.motion_lin[time_step]
 
     # TODO: This should also have inner LM check
     def _first_iter(self, measurements, m_1_0, P_1_0, cost_fn):
@@ -63,7 +61,7 @@ class LmIeks(IteratedSmoother):
 
     def _filter_seq(self, measurements, m_1_0, P_1_0):
         lm_iekf = _LmIekf(self._motion_model, self._meas_model, self._lambda)
-        lm_iekf._update_estimates(self._current_means, self._current_covs)
+        lm_iekf._update_estimates(self._current_means, self._current_covs, self._cache)
         return lm_iekf.filter_seq(measurements, m_1_0, P_1_0)
 
     def _update_estimates(self, means, covs):
@@ -71,10 +69,7 @@ class LmIeks(IteratedSmoother):
         They should only be modified through this method.
         """
         super()._update_estimates(means, covs)
-        self._update_lin_cache()
-
-    def _update_lin_cache(self):
-        self._lin_cache = [ekf_lin(self._motion_model, mean_k) for mean_k in self._current_means]
+        self._cache.update(means, None)
 
 
 class _LmIekf(Iekf):
@@ -82,9 +77,6 @@ class _LmIekf(Iekf):
         super().__init__(motion_model, meas_model)
         self._lambda = lambda_
         self._current_means = None
-
-    def _update_estimates(self, means, _covs):
-        self._current_means = means
 
     def _update(self, y_k, m_k_kminus1, P_k_kminus1, R, linearization, time_step):
         """Filter update step
