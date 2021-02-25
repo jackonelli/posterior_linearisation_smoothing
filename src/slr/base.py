@@ -70,6 +70,6 @@ class SlrCache:
         ]
         self.meas_bar = np.array([z_bar for z_bar, _, _ in meas_slr])
 
-    def _is_initialized(self):
+    def is_initialized(self):
         # TODO: Full
         return self.proc_lin is not None

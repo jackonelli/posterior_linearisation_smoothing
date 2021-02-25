@@ -41,9 +41,10 @@ class SigmaPointLmIpls(IteratedSmoother):
             measurements, m_1_0, P_1_0, None
         )
         self._update_estimates(smooth_means, smooth_covs)
-        # Fix cost function
         cost_fn = self._specialise_cost_fn(cost_fn_prototype, self._cache)
-        return filter_means, filter_covs, smooth_means, smooth_covs, cost_fn(smooth_means)
+        cost = cost_fn(smooth_means)
+        self._log.debug(f"Initial cost: {cost}")
+        return filter_means, filter_covs, smooth_means, smooth_covs, cost
 
     def filter_and_smooth_with_init_traj(self, measurements, m_1_0, P_1_0, init_traj, start_iter, cost_fn_prototype):
         """Filter and smoothing given an initial trajectory"""
@@ -51,13 +52,17 @@ class SigmaPointLmIpls(IteratedSmoother):
         current_mf, current_Pf = init_traj
         cost_iter = []
         for iter_ in range(start_iter, self.num_iter + 1):
-            # Important optimisation to only update the estimates when the estimates have changed.
-            if not self._cache._is_initialized() or iter_ is not start_iter:
+            # Optimisation to only update the estimates when the estimates have changed.
+            # This method can be called either as part of the filter_and_smooth method,
+            # then the estimates are already updated in the _first_iter method,
+            # Or it can be called directly with an init_traj, then the update is needed
+            if not self._is_initialised() or iter_ is not start_iter:
                 self._update_estimates(current_ms, current_Ps)
             cost_fn = self._specialise_cost_fn(cost_fn_prototype, self._cache)
             prev_cost = cost_fn(current_ms)
             cost_iter.append(prev_cost)
             self._log.debug(f"Iter: {iter_}")
+
             loss_cand_no = 1
             has_improved = False
 
@@ -86,11 +91,15 @@ class SigmaPointLmIpls(IteratedSmoother):
                     self._log.info(f"No cost improvement for {self._cost_improv_iter_lim} iterations, returning")
                     return current_mf, current_Pf, self._current_means, self._current_covs, np.array(cost_iter)
                 # Only update the means, this is to faithfully optimise the current cost fn.
-
-                # Curiously, branching here on the outer while cond. actually makes the code considerably slower
+                # Curiously, skipping this update based on the outer while cond. actually makes the code slower
                 self._update_means_only(current_ms, tmp_cache)
                 prev_cost = cost
         return current_mf, current_Pf, current_ms, current_Ps, np.array(cost_iter)
+
+    def _filter_seq(self, measurements, m_1_0, P_1_0):
+        lm_iplf = _LmIplf(self._motion_model, self._meas_model, self._sigma_point_method, self._lambda)
+        lm_iplf._update_estimates(self._current_means, self._current_covs, self._cache)
+        return lm_iplf.filter_seq(measurements, m_1_0, P_1_0)
 
     def _specialise_cost_fn(self, cost_fn_prototype, params):
         cache = params
@@ -106,10 +115,8 @@ class SigmaPointLmIpls(IteratedSmoother):
             ),
         )
 
-    def _filter_seq(self, measurements, m_1_0, P_1_0):
-        lm_iplf = _LmIplf(self._motion_model, self._meas_model, self._sigma_point_method, self._lambda)
-        lm_iplf._update_estimates(self._current_means, self._current_covs, self._cache)
-        return lm_iplf.filter_seq(measurements, m_1_0, P_1_0)
+    def _is_initialised(self):
+        return self._cache.is_initialized() and self._current_means is not None and self._current_covs is not None
 
     def _cost_fn_params(self):
         return self._current_covs
