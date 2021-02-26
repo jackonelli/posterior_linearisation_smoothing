@@ -32,7 +32,7 @@ class SigmaPointIpls(IteratedSmoother):
         return iplf.filter_seq(measurements, m_1_0, P_1_0)
 
     def _specialise_cost_fn(self, cost_fn_prototype, params):
-        return partial(cost_fn_prototype, covs=params)
+        return partial(cost_fn_prototype, covs=params) if cost_fn_prototype is not None else None
 
     def _cost_fn_params(self):
         return self._current_covs

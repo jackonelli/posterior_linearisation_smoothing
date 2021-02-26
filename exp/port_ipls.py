@@ -35,7 +35,7 @@ Nmc = 1000
 num_mc_per_traj = 50
 
 motion_model = NonStationaryGrowth(alpha=0.9, beta=10, gamma=8, delta=1.2, proc_noise=1)
-meas_model = Cubic(coeff=1 / 20, proc_noise=1)
+meas_model = Cubic(coeff=1 / 20, meas_noise=1)
 sigma_point_method = UnscentedTransform(1, 0, 1 / 2)
 slr = SigmaPointSlr(sigma_point_method)
 

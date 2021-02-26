@@ -1,5 +1,6 @@
 """Statistical linear regression (SLR) with sigma points"""
 from abc import ABC, abstractmethod
+from functools import partial
 import numpy as np
 
 
@@ -58,13 +59,19 @@ class SlrCache:
 
     def update(self, means, covs):
         # TODO: single calc of sigma points.
-        proc_slr = [self._slr.slr(self._motion_fn, mean_k, cov_k) for mean_k, cov_k in zip(means, covs)]
+        proc_slr = [
+            self._slr.slr(partial(self._motion_fn, time_step=k), mean_k, cov_k)
+            for (k, (mean_k, cov_k)) in enumerate(zip(means, covs))
+        ]
         self.proc_lin = [
             self._slr.linear_params_from_slr(mean_k, cov_k, *slr_) for mean_k, cov_k, slr_ in zip(means, covs, proc_slr)
         ]
         self.proc_bar = np.array([z_bar for z_bar, _, _ in proc_slr])
 
-        meas_slr = [self._slr.slr(self._meas_fn, mean_k, cov_k) for mean_k, cov_k in zip(means, covs)]
+        meas_slr = [
+            self._slr.slr(partial(self._meas_fn, time_step=k), mean_k, cov_k)
+            for (k, (mean_k, cov_k)) in enumerate(zip(means, covs))
+        ]
         self.meas_lin = [
             self._slr.linear_params_from_slr(mean_k, cov_k, *slr_) for mean_k, cov_k, slr_ in zip(means, covs, meas_slr)
         ]

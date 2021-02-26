@@ -1,24 +1,24 @@
 """Quadratic meas model"""
 import numpy as np
-from src.models.base import MotionModel, Differentiable
+from src.models.base import MeasModel, Differentiable
 
 
-class Quadratic(MotionModel, Differentiable):
+class Quadratic(MeasModel, Differentiable):
     """
     state is
         x_k = actual state at time step k
     """
 
-    def __init__(self, inv_coeff: float, proc_noise):
+    def __init__(self, inv_coeff: float, meas_noise):
         # Rename? 'scale' perhaps
         self.inv_coeff = inv_coeff
-        self._proc_noise = proc_noise
+        self._meas_noise = meas_noise
 
     def mapping(self, state, time_step=None):
-        return state ** 2 / self.inv_coeff
+        return state ** 2 * self.inv_coeff
 
-    def proc_noise(self, _time_step):
-        return self._proc_noise
+    def meas_noise(self, _time_step):
+        return self._meas_noise
 
     def jacobian(self, state, _time_step=None):
-        return 2 * state / self.inv_coeff
+        return 2 * state * self.inv_coeff

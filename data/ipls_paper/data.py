@@ -1,8 +1,10 @@
 """Data for the experiment in the paper "Iteraterd posterior linearization smoother"
 """
 from pathlib import Path
+from typing import Tuple
 import numpy as np
 from src.models.nonstationary_growth import NonStationaryGrowth
+from src.models.base import MeasModel
 
 
 def simulate_data(
@@ -12,7 +14,7 @@ def simulate_data(
     prior_mean: float,
     prior_cov: float,
     model: NonStationaryGrowth,
-) -> (np.ndarray, np.ndarray):
+) -> Tuple[np.ndarray, np.ndarray]:
     num_trajs = num_mc_runs // num_mc_per_traj
 
     chol_ini = np.sqrt(prior_cov)
@@ -34,7 +36,7 @@ def simulate_data(
     return X_multi_series, noise_z
 
 
-def get_specific_states_from_file(data_root: Path) -> np.ndarray:
+def get_specific_states_from_file(data_root: Path) -> Tuple[np.ndarray, np.ndarray]:
     states_file = data_root / "states.csv"
     if states_file.exists():
         states = np.genfromtxt(states_file, dtype=float, delimiter=";", comments="#")
@@ -50,13 +52,13 @@ def get_specific_states_from_file(data_root: Path) -> np.ndarray:
     return states, noise.T
 
 
-def gen_measurements(states: np.ndarray, standard_normal_noise: np.ndarray):
+def gen_measurements(states: np.ndarray, standard_normal_noise: np.ndarray, meas_model: MeasModel):
     num_time_steps = states.shape[0]
     standard_normal_noise = standard_normal_noise.reshape((num_time_steps, 1))
-    std = 1
-    a = 1 / 20
+    time_step = None
+    std = meas_model.meas_noise(time_step)
     noise = std * standard_normal_noise
-    return a * states ** 3 + noise
+    return meas_model.map_set(states, time_step) + noise
 
 
 if __name__ == "__main__":
