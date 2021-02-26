@@ -77,6 +77,12 @@ class SlrCache:
         ]
         self.meas_bar = np.array([z_bar for z_bar, _, _ in meas_slr])
 
+    def bars(self):
+        return (self.proc_bar, self.meas_bar)
+
+    def error_covs(self):
+        return ([cov_k for (_, _, cov_k) in self.proc_lin], [cov_k for (_, _, cov_k) in self.meas_lin])
+
     def is_initialized(self):
         # TODO: Full
         return self.proc_lin is not None

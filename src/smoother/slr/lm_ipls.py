@@ -41,7 +41,7 @@ class SigmaPointLmIpls(IteratedSmoother):
             measurements, m_1_0, P_1_0, None
         )
         self._update_estimates(smooth_means, smooth_covs)
-        cost_fn = self._specialise_cost_fn(cost_fn_prototype, self._cache)
+        cost_fn = self._specialise_cost_fn(cost_fn_prototype, (self._cache.bars(), self._cache.error_covs()))
         cost = cost_fn(smooth_means)
         self._log.debug(f"Initial cost: {cost}")
         return filter_means, filter_covs, smooth_means, smooth_covs, cost
@@ -58,7 +58,7 @@ class SigmaPointLmIpls(IteratedSmoother):
             # Or it can be called directly with an init_traj, then the update is needed
             if not self._is_initialised() or iter_ is not start_iter:
                 self._update_estimates(current_ms, current_Ps)
-            cost_fn = self._specialise_cost_fn(cost_fn_prototype, self._cache)
+            cost_fn = self._specialise_cost_fn(cost_fn_prototype, (self._cache.bars(), self._cache.error_covs()))
             prev_cost = cost_fn(current_ms)
             cost_iter.append(prev_cost)
             self._log.debug(f"Iter: {iter_}")
@@ -73,12 +73,23 @@ class SigmaPointLmIpls(IteratedSmoother):
                     mf, Pf, current_ms, current_Ps, cost = super(IteratedSmoother, self).filter_and_smooth(
                         measurements, m_1_0, P_1_0, None
                     )
+
+                    # Create a temporary cache. Linearisation is still done with self._cache until the present iterate
+                    # is accepted. The cost is calculated with a hybrid: proc_bar, meas_bar from the tmp_cache but
+                    # linearisation err. covariance from self._cache.
                     tmp_cache = SlrCache(self._motion_model.map_set, self._meas_model.map_set, self._slr)
+                    # TODO: Since we only care about the bars here, we could potentially optimise and only calc. the
+                    # bars and skip the linearisation.
+                    # This would only be faster if the iterate is rejected since we still do the remaining calc.
+                    # (the linearisation) when the iterate is accepted.
                     tmp_cache.update(
                         current_ms,
                         self._current_covs,
                     )
-                    tmp_cost_fn = self._specialise_cost_fn(cost_fn_prototype, tmp_cache)
+                    # Note: here we take the new bars but the old error_covs.
+                    tmp_cost_fn = self._specialise_cost_fn(
+                        cost_fn_prototype, (tmp_cache.bars(), self._cache.error_covs())
+                    )
                     cost = tmp_cost_fn(current_ms)
                     self._log.debug(f"Cost: {cost}, lambda: {self._lambda}, loss_cand_no: {loss_cand_no}")
                     if cost < prev_cost:
@@ -92,7 +103,7 @@ class SigmaPointLmIpls(IteratedSmoother):
                     return current_mf, current_Pf, self._current_means, self._current_covs, np.array(cost_iter)
                 # Only update the means, this is to faithfully optimise the current cost fn.
                 # Curiously, skipping this update based on the outer while cond. actually makes the code slower
-                self._update_means_only(current_ms, tmp_cache)
+                # self._update_means_only(current_ms, tmp_cache)
                 prev_cost = cost
         return current_mf, current_Pf, current_ms, current_Ps, np.array(cost_iter)
 
@@ -102,17 +113,21 @@ class SigmaPointLmIpls(IteratedSmoother):
         return lm_iplf.filter_seq(measurements, m_1_0, P_1_0)
 
     def _specialise_cost_fn(self, cost_fn_prototype, params):
-        cache = params
+        (
+            (proc_bar, meas_bar),
+            (
+                proc_lin_cov,
+                meas_lin_cov,
+            ),
+        ) = params
         return partial(
             cost_fn_prototype,
-            proc_bar=cache.proc_bar,
-            meas_bar=cache.meas_bar,
+            proc_bar=proc_bar,
+            meas_bar=meas_bar,
             proc_cov=np.array(
-                [err_cov_k + self._motion_model.proc_noise(k) for k, (_, _, err_cov_k) in enumerate(cache.proc_lin)]
+                [err_cov_k + self._motion_model.proc_noise(k) for k, err_cov_k in enumerate(proc_lin_cov)]
             ),
-            meas_cov=np.array(
-                [err_cov_k + self._meas_model.meas_noise(k) for k, (_, _, err_cov_k) in enumerate(cache.meas_lin)]
-            ),
+            meas_cov=np.array([err_cov_k + self._meas_model.meas_noise(k) for k, err_cov_k in enumerate(meas_lin_cov)]),
         )
 
     def _is_initialised(self):
