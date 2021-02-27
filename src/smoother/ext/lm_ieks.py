@@ -20,7 +20,7 @@ class LmIeks(IteratedSmoother):
         self._cache = ExtCache(self._motion_model, self._meas_model)
 
     def _motion_lin(self, _mean, _cov, time_step):
-        return self._cache.motion_lin[time_step]
+        return self._cache.motion_lin[time_step - 1]
 
     # TODO: This should also have inner LM check
     def _first_iter(self, measurements, m_1_0, P_1_0, cost_fn):

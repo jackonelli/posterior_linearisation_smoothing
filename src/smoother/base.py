@@ -73,7 +73,8 @@ class Smoother(ABC):
                 P_kminus1_kminus1,
                 m_k_kminus1,
                 P_k_kminus1,
-                self._motion_lin(m_kminus1_kminus1, P_kminus1_kminus1, k - 1),
+                # TODO: k should be 'k-1' here? Or not maybe
+                self._motion_lin(m_kminus1_kminus1, P_kminus1_kminus1, k),
             )
             smooth_means[k - 1, :] = m_kminus1_K
             smooth_covs[k - 1, :, :] = P_kminus1_K

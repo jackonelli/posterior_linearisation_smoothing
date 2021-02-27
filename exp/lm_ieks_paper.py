@@ -92,30 +92,30 @@ def main():
         meas_model=meas_model,
     )
 
-    # ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks, rmses_gn_ieks, neeses_gn_ieks = run_smoothing(
-    #     Ieks(motion_model, meas_model, num_iter),
-    #     states,
-    #     measurements,
-    #     prior_mean,
-    #     prior_cov,
-    #     cost_fn_eks,
-    #     (np.zeros((measurements.shape[0], prior_mean.shape[0])), None),
-    # )
-    # results.append(
-    #     (ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks[1:], "GN-IEKS"),
-    # )
-    # ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks, rmses_lm_ieks, neeses_lm_ieks = run_smoothing(
-    #     LmIeks(motion_model, meas_model, num_iter, 10, 1e-2, 10),
-    #     states,
-    #     measurements,
-    #     prior_mean,
-    #     prior_cov,
-    #     cost_fn_eks,
-    #     (np.zeros((measurements.shape[0], prior_mean.shape[0])), None),
-    # )
-    # results.append(
-    #     (ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks[1:], "LM-IEKS"),
-    # )
+    ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks, rmses_gn_ieks, neeses_gn_ieks = run_smoothing(
+        Ieks(motion_model, meas_model, num_iter),
+        states,
+        measurements,
+        prior_mean,
+        prior_cov,
+        cost_fn_eks,
+        (np.zeros((measurements.shape[0], prior_mean.shape[0])), None),
+    )
+    results.append(
+        (ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks[1:], "GN-IEKS"),
+    )
+    ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks, rmses_lm_ieks, neeses_lm_ieks = run_smoothing(
+        LmIeks(motion_model, meas_model, num_iter, 10, 1e-2, 10),
+        states,
+        measurements,
+        prior_mean,
+        prior_cov,
+        cost_fn_eks,
+        (np.zeros((measurements.shape[0], prior_mean.shape[0])), None),
+    )
+    results.append(
+        (ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks[1:], "LM-IEKS"),
+    )
 
     sigma_point_method = SphericalCubature()
     cost_fn_ipls = partial(

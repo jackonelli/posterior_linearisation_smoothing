@@ -27,7 +27,7 @@ class SigmaPointLmIpls(IteratedSmoother):
         self._cache = SlrCache(self._motion_model.map_set, self._meas_model.map_set, self._slr)
 
     def _motion_lin(self, _mean, _cov, time_step):
-        return self._cache.proc_lin[time_step]
+        return self._cache.proc_lin[time_step - 1]
 
     # TODO: This should also have inner LM check
     def _first_iter(self, measurements, m_1_0, P_1_0, cost_fn_prototype):
@@ -164,11 +164,12 @@ class _LmIplf(SigmaPointIplf):
         Overrides (extends) the ordinary KF update with an extra pseudo-measurement of the previous state
         See base class for full docs
         """
+        store_ind = time_step - 1
         m_k_k, P_k_k = super()._update(y_k, m_k_kminus1, P_k_kminus1, R, linearization, time_step)
         D_x = m_k_kminus1.shape[0]
         S = P_k_k + 1 / self._lambda * np.eye(D_x)
         K = P_k_k @ np.linalg.inv(S)
-        m_k_K = self._current_means[time_step, :]
+        m_k_K = self._current_means[store_ind, :]
         m_k_k = m_k_k + (K @ (m_k_K - m_k_k)).reshape(m_k_k.shape)
         P_k_k = P_k_k - K @ S @ K.T
 
