@@ -57,7 +57,7 @@ def main():
 
     traj_idx = _mc_iter_to_traj_idx(0, num_mc_per_traj)
     traj = trajs[:, traj_idx].reshape((K, 1))
-    min_K = 3
+    min_K = 50
     traj = traj[:min_K, :]
     meas = gen_measurements(traj, noise[:min_K, 0], meas_model)
     prior_mean = np.atleast_1d(5)
@@ -71,7 +71,6 @@ def main():
         P_1_0=prior_cov,
     )
 
-    print(meas.sum())
     num_iter = 1
     ipls = SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter)
     lm_ipls = SigmaPointLmIpls(

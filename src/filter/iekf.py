@@ -20,10 +20,10 @@ class Iekf(Filter):
             self._cache = cache
 
     def _motion_lin(self, _mean, _cov, time_step):
-        return self._cache.motion_lin[time_step]
+        return self._cache.motion_lin[time_step - 1]
 
     def _meas_lin(self, _mean, _cov, time_step):
-        return self._cache.meas_lin[time_step]
+        return self._cache.meas_lin[time_step - 1]
 
     def _proc_noise(self, time_step):
         return self._motion_model.proc_noise(time_step)

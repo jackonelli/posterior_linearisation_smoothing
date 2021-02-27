@@ -64,8 +64,8 @@ class TestLmIeks(unittest.TestCase):
         K = measurements.shape[0]
         init_traj = (np.zeros((K, prior_mean.shape[0])), None)
 
-        ieks = LmIeks(motion_model, meas_model, num_iter, cost_improv_iter_lim, lambda_, nu)
-        mf, Pf, ms, Ps, _iter_cost = ieks.filter_and_smooth_with_init_traj(
+        lm_ieks = LmIeks(motion_model, meas_model, num_iter, cost_improv_iter_lim, lambda_, nu)
+        mf, Pf, ms, Ps, _iter_cost = lm_ieks.filter_and_smooth_with_init_traj(
             measurements, prior_mean, prior_cov, init_traj, 1, cost_fn
         )
         self.assertTrue(np.allclose(mf, ss_mf))
@@ -77,8 +77,8 @@ class TestLmIeks(unittest.TestCase):
         )
         measurements = measurements[:, :2]
 
-        ieks = LmIeks(motion_model, meas_model, num_iter, cost_improv_iter_lim, lambda_, nu)
-        mf, Pf, ms, Ps, _iter_cost = ieks.filter_and_smooth_with_init_traj(
+        lm_ieks = LmIeks(motion_model, meas_model, num_iter, cost_improv_iter_lim, lambda_, nu)
+        mf, Pf, ms, Ps, _iter_cost = lm_ieks.filter_and_smooth_with_init_traj(
             measurements, prior_mean, prior_cov, init_traj, 1, cost_fn
         )
         self.assertTrue(np.allclose(mf, ss_mf))
@@ -86,5 +86,3 @@ class TestLmIeks(unittest.TestCase):
         # Summation over the time steps and columns of the cov seq.
         matlab_covs_sum = np.array([1.8843, 0.3417, 20.4884, 2.2148, 498.6999])
         self.assertTrue(np.allclose(Ps.sum(0).sum(1), matlab_covs_sum, rtol=1e-4, atol=1e-4))
-        calc_nees = np.mean(nees(states, ms[:, :-1], Ps[:, :-1, :-1]))
-        # self.assertAlmostEqual(calc_nees, 2.2094012168057)

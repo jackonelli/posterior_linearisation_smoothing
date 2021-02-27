@@ -45,7 +45,7 @@ class Filter(ABC):
 
         # first step
         y_1 = measurements[0]
-        m_1_1, P_1_1 = self._update(y_1, m_1_0, P_1_0, self._meas_noise(0), self._meas_lin(m_1_0, P_1_0, 0), 0)
+        m_1_1, P_1_1 = self._update(y_1, m_1_0, P_1_0, self._meas_noise(0), self._meas_lin(m_1_0, P_1_0, 1), 0)
 
         pred_means[0, :] = m_1_0
         pred_covs[0, :, :] = P_1_0
@@ -55,7 +55,9 @@ class Filter(ABC):
         # Shift to next time step
         m_kminus1_kminus1 = m_1_1
         P_kminus1_kminus1 = P_1_1
-        for k in np.arange(1, K):
+        for k in np.arange(2, K + 1):
+            # time step starts at 1, while storing arrays are zero-indexed.
+            store_ind = k - 1
             m_k_kminus1, P_k_kminus1 = self._predict(
                 m_kminus1_kminus1,
                 P_kminus1_kminus1,
@@ -63,7 +65,7 @@ class Filter(ABC):
                 self._motion_lin(m_kminus1_kminus1, P_kminus1_kminus1, k - 1),
             )
 
-            y_k = measurements[k]
+            y_k = measurements[store_ind]
             m_k_k, P_k_k = self._update(
                 y_k,
                 m_k_kminus1,
@@ -72,10 +74,10 @@ class Filter(ABC):
                 self._meas_lin(m_k_kminus1, P_k_kminus1, k),
                 k,
             )
-            pred_means[k, :] = m_k_kminus1
-            pred_covs[k, :, :] = P_k_kminus1
-            filter_means[k, :] = m_k_k
-            filter_covs[k, :, :] = P_k_k
+            pred_means[store_ind, :] = m_k_kminus1
+            pred_covs[store_ind, :, :] = P_k_kminus1
+            filter_means[store_ind, :] = m_k_k
+            filter_covs[store_ind, :, :] = P_k_k
             # Shift to next time step
             m_kminus1_kminus1 = m_k_k
             P_kminus1_kminus1 = P_k_k
@@ -96,6 +98,7 @@ class Filter(ABC):
             P_k_kminus1: P_{k | k-1}
         """
         A, b, Omega = linearization
+        # print(f"Pred: {A}, {b}, {Omega}")
         m_k_kminus1 = A @ m_kminus1_kminus1 + b
         P_k_kminus1 = A @ P_kminus1_kminus1 @ A.T + Omega + Q
         P_k_kminus1 = (P_k_kminus1 + P_k_kminus1.T) / 2
@@ -119,7 +122,7 @@ class Filter(ABC):
         """
         if not any(np.isnan(y_k)):
             H, c, Lambda = linearization
-            # print("c", c)
+            # print(f"Upd {H}, {c}, {Lambda}")
             y_mean = H @ m_k_kminus1 + c
             S = H @ P_k_kminus1 @ H.T + R + Lambda
             K = P_k_kminus1 @ H.T @ np.linalg.inv(S)
