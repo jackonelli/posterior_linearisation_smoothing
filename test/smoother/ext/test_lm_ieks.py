@@ -81,7 +81,7 @@ class TestLmIeks(unittest.TestCase):
         mf, Pf, ms, Ps, _iter_cost = lm_ieks.filter_and_smooth_with_init_traj(
             measurements, prior_mean, prior_cov, init_traj, 1, cost_fn
         )
-        self.assertTrue(np.allclose(mf, ss_mf))
+        self.assertTrue(np.allclose(mf, ss_mf, atol=1e-5))
         self.assertTrue(np.allclose(ms, ss_ms))
         # Summation over the time steps and columns of the cov seq.
         matlab_covs_sum = np.array([1.8843, 0.3417, 20.4884, 2.2148, 498.6999])
