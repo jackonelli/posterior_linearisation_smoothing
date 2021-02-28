@@ -36,7 +36,7 @@ def simulate_data(
     return X_multi_series, noise_z
 
 
-def get_specific_states_from_file(data_root: Path) -> Tuple[np.ndarray, np.ndarray]:
+def get_specific_states_from_file(data_root: Path) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     states_file = data_root / "states.csv"
     if states_file.exists():
         states = np.genfromtxt(states_file, dtype=float, delimiter=";", comments="#")
@@ -49,7 +49,19 @@ def get_specific_states_from_file(data_root: Path) -> Tuple[np.ndarray, np.ndarr
     else:
         raise FileNotFoundError(f"No noise data file at '{noise_file}'")
 
-    return states, noise.T
+    xs_file = data_root / "xs_1.csv"
+    if xs_file.exists():
+        xs = np.genfromtxt(xs_file, dtype=float, delimiter=";", comments="#")
+    else:
+        raise FileNotFoundError(f"No means data file at '{xs_file}'")
+
+    Ps_file = data_root / "Ps_1.csv"
+    if Ps_file.exists():
+        Ps = np.genfromtxt(Ps_file, dtype=float, delimiter=";", comments="#")
+    else:
+        raise FileNotFoundError(f"No covs data file at '{Ps_file}'")
+
+    return states, noise.T, xs, Ps
 
 
 def gen_measurements(states: np.ndarray, standard_normal_noise: np.ndarray, meas_model: MeasModel):
