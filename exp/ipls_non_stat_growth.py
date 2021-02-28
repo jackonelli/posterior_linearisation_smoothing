@@ -37,7 +37,7 @@ def main():
     num_mc_runs = 1000  # 1000 in original exp
     num_mc_per_traj = 50
     num_trajs = num_mc_runs // num_mc_per_traj
-    trajs, noise = get_specific_states_from_file(Path.cwd() / "data/ipls_paper")
+    trajs, noise, _, _ = get_specific_states_from_file(Path.cwd() / "data/ipls_paper")
     assert trajs.shape == (K, num_trajs)
     assert noise.shape == (K, num_mc_runs)
 
