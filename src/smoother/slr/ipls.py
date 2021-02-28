@@ -20,7 +20,7 @@ class SigmaPointIpls(IteratedSmoother):
         self._cache = SlrCache(self._motion_model.map_set, self._meas_model.map_set, self._slr)
 
     def _motion_lin(self, _mean, _cov, time_step):
-        return self._cache.proc_lin[time_step]
+        return self._cache.proc_lin[time_step - 1]
 
     def _first_iter(self, measurements, m_1_0, P_1_0, cost_fn_prototype):
         smoother = SigmaPointPrLs(self._motion_model, self._meas_model, self._sigma_point_method)
