@@ -9,7 +9,7 @@ import unittest
 import numpy as np
 from src.filter.ekf import Ekf
 from src.models.range_bearing import MultiSensorRange
-from src.models.coord_turn import LmCoordTurn
+from src.models.coord_turn import CoordTurn
 from data.lm_ieks_paper.coord_turn_example import Type, get_specific_states_from_file
 from pathlib import Path
 
@@ -28,7 +28,7 @@ class TestEkf(unittest.TestCase):
                 [0, 0, 0, 0, dt * qw],
             ]
         )
-        motion_model = LmCoordTurn(dt, Q)
+        motion_model = CoordTurn(dt, Q)
 
         sens_pos_1 = np.array([-1.5, 0.5])
         sens_pos_2 = np.array([1, 1])

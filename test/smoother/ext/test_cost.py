@@ -10,7 +10,7 @@ from pathlib import Path
 import numpy as np
 from src.cost import analytical_smoothing_cost
 from src.models.range_bearing import MultiSensorRange
-from src.models.coord_turn import LmCoordTurn
+from src.models.coord_turn import CoordTurn
 from data.lm_ieks_paper.coord_turn_example import get_specific_states_from_file, Type
 
 
@@ -28,7 +28,7 @@ class TestCost(unittest.TestCase):
                 [0, 0, 0, 0, dt * qw],
             ]
         )
-        motion_model = LmCoordTurn(dt, Q)
+        motion_model = CoordTurn(dt, Q)
 
         sens_pos_1 = np.array([-1.5, 0.5])
         sens_pos_2 = np.array([1, 1])

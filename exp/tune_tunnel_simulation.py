@@ -19,7 +19,7 @@ from src.smoother.ext.lm_ieks import LmIeks
 from src.smoother.slr.ipls import SigmaPointIpls
 from src.utils import setup_logger
 from src.models.range_bearing import RangeBearing
-from src.models.coord_turn import LmCoordTurn
+from src.models.coord_turn import CoordTurn
 from data.lm_ieks_paper.coord_turn_example import simulate_data
 from src.smoother.slr.lm_ipls import SigmaPointRegIpls
 from src.slr.sigma_points import SigmaPointSlr
@@ -87,7 +87,7 @@ def main():
             sigma_v = v_scale * 1
             sigma_omega = omega_scale * np.pi / 180
             Q = np.diag([eps, eps, sampling_period * sigma_v ** 2, eps, sampling_period * sigma_omega ** 2])
-            motion_model = LmCoordTurn(sampling_period, Q)
+            motion_model = CoordTurn(sampling_period, Q)
 
             cost_fn_eks = partial(
                 analytical_smoothing_cost,

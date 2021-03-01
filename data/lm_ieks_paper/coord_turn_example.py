@@ -13,7 +13,7 @@ import numpy as np
 from scipy.linalg import expm
 from matplotlib import pyplot as plt
 from src.models.range_bearing import RangeBearing, MultiSensorRange, MultiSensorBearings
-from src.models.coord_turn import LmCoordTurn
+from src.models.coord_turn import CoordTurn
 
 LOGGER = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ class Type(Enum):
 
 
 def simulate_data(
-    motion_model: LmCoordTurn,
+    motion_model: CoordTurn,
     meas_model: Union[MultiSensorRange, MultiSensorBearings],
     x_0,
     time_steps,

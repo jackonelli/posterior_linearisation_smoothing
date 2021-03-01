@@ -2,7 +2,7 @@
 import logging
 from functools import partial
 import numpy as np
-from src.models.coord_turn import LmCoordTurn
+from src.models.coord_turn import CoordTurn
 from src.models.range_bearing import RangeBearing
 from src.slr.sigma_points import SigmaPointSlr
 from src.smoother.slr.ipls import SigmaPointIpls
@@ -31,7 +31,7 @@ def main():
     sigma_v = v_scale * 1
     sigma_omega = omega_scale * np.pi / 180
     Q = np.diag([0, 0, sampling_period * sigma_v ** 2, 0, sampling_period * sigma_omega ** 2])
-    motion_model = LmCoordTurn(sampling_period, Q)
+    motion_model = CoordTurn(sampling_period, Q)
 
     # Meas model
     pos = np.array([100, -100])

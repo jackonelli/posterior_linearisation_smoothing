@@ -19,7 +19,7 @@ from src.smoother.ext.lm_ieks import LmIeks
 from src.smoother.slr.ipls import SigmaPointIpls
 from src.utils import setup_logger, tikz_2d_tab_to_file, tikz_err_bar_tab_to_file
 from src.models.range_bearing import MultiSensorBearings
-from src.models.coord_turn import LmCoordTurn
+from src.models.coord_turn import CoordTurn
 from src.smoother.slr.lm_ipls import SigmaPointLmIpls
 from src.slr.sigma_points import SigmaPointSlr
 from src.sigma_points import SphericalCubature
@@ -49,7 +49,7 @@ def main():
             [0, 0, 0, 0, dt * qw],
         ]
     )
-    motion_model = LmCoordTurn(dt, Q)
+    motion_model = CoordTurn(dt, Q)
 
     sens_pos_1 = np.array([-1.5, 0.5])
     sens_pos_2 = np.array([1, 1])
@@ -61,9 +61,9 @@ def main():
     prior_mean = np.array([0, 0, 1, 0, 0])
     prior_cov = np.diag([0.1, 0.1, 1, 1, 1])
 
-    num_iter = 1
+    num_iter = 5
 
-    num_mc_samples = 1
+    num_mc_samples = 5
 
     rmses_gn_ieks = np.zeros((num_mc_samples, num_iter))
     rmses_lm_ieks = np.zeros((num_mc_samples, num_iter))
@@ -76,7 +76,7 @@ def main():
     neeses_lm_ipls = np.zeros((num_mc_samples, num_iter))
     for mc_iter in range(num_mc_samples):
         log.info(f"MC iter: {mc_iter+1}/{num_mc_samples}")
-        states, measurements = simulate_data(sens_pos_1, sens_pos_2, std, dt, prior_mean[:-1], time_steps=500)
+        states, measurements = simulate_data(motion_model, meas_model, prior_mean[:-1], time_steps=500)
         cost_fn_eks = partial(
             analytical_smoothing_cost,
             measurements=measurements,
@@ -166,7 +166,6 @@ def run_smoothing(smoother, states, measurements, prior_mean, prior_cov, cost_fn
     Some iterative smoothers may return early if they exceed the limit on the number of loss-improving trials.
     In those cases, the metrics are extended with the last element to a list of length `smoother.num_iter`
     """
-    print(smoother)
     if init_traj is not None:
         _, _, ms, Ps, iter_cost = smoother.filter_and_smooth_with_init_traj(
             measurements, prior_mean, prior_cov, init_traj, 1, cost_fn
@@ -177,7 +176,6 @@ def run_smoothing(smoother, states, measurements, prior_mean, prior_cov, cost_fn
     else:
         _, _, ms, Ps, iter_cost = smoother.filter_and_smooth(measurements, prior_mean, prior_cov, cost_fn)
         stored_est = list(smoother.stored_estimates())
-    print(len(stored_est))
     rmses = calc_iter_metrics(
         lambda means, covs, states: rmse(means[:, :-1], states), stored_est, states, smoother.num_iter
     )

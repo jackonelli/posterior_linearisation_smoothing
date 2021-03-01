@@ -35,7 +35,7 @@ from src.utils import setup_logger
 from src.analytics import rmse
 from src.visualization import to_tikz, write_to_tikz_file
 from src.models.range_bearing import MultiSensorRange, MultiSensorBearings
-from src.models.coord_turn import LmCoordTurn
+from src.models.coord_turn import CoordTurn
 from data.lm_ieks_paper.coord_turn_example import Type, get_specific_states_from_file, simulate_data
 from exp.coord_turn_bearings_only import run_smoothing, calc_iter_metrics, mc_stats
 
@@ -58,7 +58,7 @@ def main():
             [0, 0, 0, 0, dt * qw],
         ]
     )
-    motion_model = LmCoordTurn(dt, Q)
+    motion_model = CoordTurn(dt, Q)
 
     sens_pos_1 = np.array([-1.5, 0.5])
     sens_pos_2 = np.array([1, 1])
