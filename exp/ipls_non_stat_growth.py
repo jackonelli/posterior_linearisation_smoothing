@@ -58,7 +58,7 @@ def main():
     states, meas = simulate_data(K, prior_mean, prior_cov, motion_model, meas_model)
 
     # The paper simply states that "[t]he SLRs have been implemented using the unscented transform
-    # with N s = 2n x + 1 sigma-points and the weight of the sigma-point located on the mean is 1/3."
+    # with N = 2 D_x + 1 sigma-points and the weight of the sigma-point located on the mean is 1/3."
 
     # The following settings ensures that:
     # a) w_0 (the weight of the mean sigma point) is 1/3
@@ -78,10 +78,9 @@ def main():
         P_1_0=prior_cov,
     )
 
-    num_iter = 1
-    ipls = SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter)
+    ipls = SigmaPointIpls(motion_model, meas_model, sigma_point_method, args.num_iter)
     lm_ipls = SigmaPointLmIpls(
-        motion_model, meas_model, sigma_point_method, num_iter, cost_improv_iter_lim=10, lambda_=1e-4, nu=10
+        motion_model, meas_model, sigma_point_method, args.num_iter, cost_improv_iter_lim=10, lambda_=1e-4, nu=10
     )
 
     results = []

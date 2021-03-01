@@ -165,6 +165,8 @@ class IteratedSmoother(Smoother):
             return mf, Pf, ms, Ps, tmp_cost
         else:
             iter_cost = np.array([first_cost])
+            if not self._is_initialised():
+                self._update_estimates(current_ms, current_Ps)
             return mf, Pf, current_ms, current_Ps, iter_cost
 
     def filter_and_smooth_with_init_traj(self, measurements, m_1_0, P_1_0, init_traj, start_iter, cost_fn_prototype):
@@ -206,6 +208,9 @@ class IteratedSmoother(Smoother):
     def stored_estimates(self):
         for means, covs in zip(self._store_means, self._store_covs):
             yield means, covs
+
+    def _is_initialised(self):
+        return self._current_means is not None or self._current_covs is not None
 
     @abstractmethod
     def _first_iter(measurements, m_1_0, P_1_0, cost_fn):
