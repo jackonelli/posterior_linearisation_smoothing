@@ -28,7 +28,7 @@ class SigmaPointIpls(IteratedSmoother):
 
     def _filter_seq(self, measurements, m_1_0, P_1_0):
         iplf = SigmaPointIplf(self._motion_model, self._meas_model, self._sigma_point_method)
-        iplf._update_estimates(self._current_means, self._current_covs)
+        iplf._update_estimates(self._current_means, self._current_covs, self._cache)
         return iplf.filter_seq(measurements, m_1_0, P_1_0)
 
     def _specialise_cost_fn(self, cost_fn_prototype, params):

@@ -24,7 +24,7 @@ class Ieks(IteratedSmoother):
 
     def _filter_seq(self, measurements, m_1_0, P_1_0):
         iekf = Iekf(self._motion_model, self._meas_model)
-        iekf._update_estimates(self._current_means, self._current_covs)
+        iekf._update_estimates(self._current_means, self._current_covs, self._cache)
         return iekf.filter_seq(measurements, m_1_0, P_1_0)
 
     def _update_estimates(self, means, covs):
