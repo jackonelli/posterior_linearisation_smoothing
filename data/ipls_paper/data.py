@@ -9,6 +9,29 @@ from src.models.base import MeasModel
 
 def simulate_data(
     num_steps: int,
+    prior_mean: float,
+    prior_cov: float,
+    motion_model: NonStationaryGrowth,
+    meas_model: MeasModel,
+) -> Tuple[np.ndarray, np.ndarray]:
+    chol_ini = np.sqrt(prior_cov)
+    chol_Q = np.sqrt(motion_model.proc_noise(None))
+
+    states = np.empty((num_steps, 1))
+    xk = prior_mean + chol_ini * np.random.randn()
+    for k in range(1, num_steps):
+        xk_pred = motion_model.mapping(xk, k) + chol_Q * np.random.randn()
+        states[k] = xk_pred
+        xk = xk_pred
+
+    chol_R = np.sqrt(meas_model.meas_noise(None))
+    meas_noise = chol_R * np.random.randn(num_steps, 1)
+    meas = meas_model.map_set(states) + meas_noise
+    return states, meas
+
+
+def simulate_multiple_trajs(
+    num_steps: int,
     num_mc_runs: int,
     num_mc_per_traj: int,
     prior_mean: float,

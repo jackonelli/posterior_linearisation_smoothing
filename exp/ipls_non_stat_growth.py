@@ -5,6 +5,8 @@ Reproducing the experiment in the paper:
     "Iteraterd posterior linearization smoother"
 """
 
+import argparse
+from enum import Enum
 import logging
 from functools import partial
 from pathlib import Path
@@ -20,7 +22,7 @@ from src.filter.prlf import SigmaPointPrLf
 from src.smoother.slr.ipls import SigmaPointIpls
 from src.smoother.slr.lm_ipls import SigmaPointLmIpls
 from src.smoother.slr.ipls import SigmaPointIpls
-from data.ipls_paper.data import get_specific_states_from_file, gen_measurements
+from data.ipls_paper.data import get_specific_states_from_file, gen_measurements, simulate_data
 from src.cost import slr_smoothing_cost_pre_comp
 from src import visualization as vis
 from src.analytics import rmse
@@ -28,22 +30,32 @@ import matplotlib.pyplot as plt
 
 
 def main():
+    args = parse_args()
     log = logging.getLogger(__name__)
     experiment_name = "ipls"
     setup_logger(f"logs/{experiment_name}.log", logging.DEBUG)
     log.info(f"Running experiment: {experiment_name}")
     K = 50
     D_x = 1
-    num_mc_runs = 1000  # 1000 in original exp
-    num_mc_per_traj = 50
-    num_trajs = num_mc_runs // num_mc_per_traj
-    trajs, noise, _, _ = get_specific_states_from_file(Path.cwd() / "data/ipls_paper")
-    assert trajs.shape == (K, num_trajs)
-    assert noise.shape == (K, num_mc_runs)
-
     motion_model = NonStationaryGrowth(alpha=0.9, beta=10, gamma=8, delta=1.2, proc_noise=1)
-    meas_model = Cubic(coeff=1 / 20, meas_noise=1)
-    meas_model = Quadratic(inv_coeff=1 / 20, meas_noise=1)
+
+    meas_model = (
+        Cubic(coeff=1 / 20, meas_noise=1) if args.meas_type == MeasType.Cubic else Quadratic(coeff=1 / 20, meas_noise=1)
+    )
+
+    prior_mean = np.atleast_1d(5)
+    prior_cov = np.atleast_2d([4])
+
+    # MC DATA
+    # num_mc_runs = 1000  # 1000 in original exp
+    # num_mc_per_traj = 50
+    # num_trajs = num_mc_runs // num_mc_per_traj
+    # trajs, noise, _, _ = get_specific_states_from_file(Path.cwd() / "data/ipls_paper")
+    # assert trajs.shape == (K, num_trajs)
+    # assert noise.shape == (K, num_mc_runs)
+    # meas = gen_measurements(traj, noise[:, 0], meas_model)
+
+    states, meas = simulate_data(K, prior_mean, prior_cov, motion_model, meas_model)
 
     # The paper simply states that "[t]he SLRs have been implemented using the unscented transform
     # with N s = 2n x + 1 sigma-points and the weight of the sigma-point located on the mean is 1/3."
@@ -55,14 +67,9 @@ def main():
     assert sigma_point_method.weights(D_x)[0][0] == 1 / 3
     assert np.allclose(sigma_point_method.weights(D_x)[0], sigma_point_method.weights(D_x)[1])
 
-    traj_idx = _mc_iter_to_traj_idx(0, num_mc_per_traj)
-    traj = trajs[:, traj_idx].reshape((K, 1))
-    min_K = 50
-    traj = traj[:min_K, :]
-    meas = gen_measurements(traj, noise[:min_K, 0], meas_model)
-    prior_mean = np.atleast_1d(5)
-    prior_cov = np.atleast_2d([4])
-    # prior_mean = np.atleast_1d(traj[0])
+    # traj_idx = _mc_iter_to_traj_idx(0, num_mc_per_traj)
+    # traj = trajs[:, traj_idx].reshape((K, 1))
+    # traj = traj[:min_K, :]
 
     cost_fn_ipls = partial(
         slr_smoothing_cost_pre_comp,
@@ -82,7 +89,7 @@ def main():
     results.append((ipls_ms, ipls_Ps, "IPLS"))
     _, _, lm_ipls_ms, lm_ipls_Ps, _ = lm_ipls.filter_and_smooth(meas, prior_mean, prior_cov, cost_fn=cost_fn_ipls)
     results.append((lm_ipls_ms, lm_ipls_Ps, "LM-IPLS"))
-    plot_results(traj, meas, results)
+    plot_results(states, meas, results)
     # filter_squared_errs = np.zeros((K, 1))
     # smooth_squared_errs = np.zeros((K, 1))
     # for mc_iter in range(num_mc_runs):
@@ -112,6 +119,20 @@ def plot_results(traj, meas, means_and_covs):
 
 def _mc_iter_to_traj_idx(mc_iter: int, num_mc_per_traj) -> int:
     return int(mc_iter / num_mc_per_traj)
+
+
+class MeasType(Enum):
+    Quadratic = "quadratic"
+    Cubic = "cubic"
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="LM-IEKS paper experiment.")
+    parser.add_argument("--random", action="store_true")
+    parser.add_argument("--meas_type", type=MeasType, required=True)
+    parser.add_argument("--num_iter", type=int, default=10)
+
+    return parser.parse_args()
 
 
 if __name__ == "__main__":
