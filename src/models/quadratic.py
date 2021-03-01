@@ -1,5 +1,4 @@
 """Quadratic meas model"""
-import numpy as np
 from src.models.base import MeasModel, Differentiable
 
 
