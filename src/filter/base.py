@@ -45,7 +45,7 @@ class Filter(ABC):
 
         # first step
         y_1 = measurements[0]
-        m_1_1, P_1_1 = self._update(y_1, m_1_0, P_1_0, self._meas_noise(0), self._meas_lin(m_1_0, P_1_0, 1), 0)
+        m_1_1, P_1_1 = self._update(y_1, m_1_0, P_1_0, self._meas_noise(1), self._meas_lin(m_1_0, P_1_0, 1), 1)
 
         pred_means[0, :] = m_1_0
         pred_covs[0, :, :] = P_1_0
