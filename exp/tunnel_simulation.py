@@ -24,12 +24,14 @@ from data.lm_ieks_paper.coord_turn_example import simulate_data
 from src.smoother.slr.lm_ipls import SigmaPointLmIpls
 from src.slr.sigma_points import SigmaPointSlr
 from src.sigma_points import SphericalCubature
-from src.cost import analytical_smoothing_cost, slr_smoothing_cost, slr_smoothing_cost_pre_comp
+from src.cost import noop_cost, analytical_smoothing_cost, slr_smoothing_cost, slr_smoothing_cost_pre_comp
 from exp.lm_ieks_paper import plot_results, plot_cost
 from src.analytics import rmse, nees
 from src.models.range_bearing import to_cartesian_coords
 from data.tunnel_traj import get_states_and_meas
 from exp.coord_turn_bearings_only import calc_iter_metrics
+from src.visualization import to_tikz, write_to_tikz_file
+from pathlib import Path
 
 
 def main():
@@ -76,7 +78,7 @@ def main():
     results = []
     cost_fn_eks = partial(
         analytical_smoothing_cost,
-        meas=measurements,
+        measurements=measurements,
         m_1_0=prior_mean,
         P_1_0=prior_cov,
         motion_model=motion_model,
@@ -100,30 +102,30 @@ def main():
         m_1_0=prior_mean,
         P_1_0=prior_cov,
     )
-    # ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks, tmp_rmse, tmp_nees = run_smoothing(
-    #     Ieks(motion_model, meas_model, num_iter), states, measurements, prior_mean, prior_cov, cost_fn_eks
-    # )
-    # results.append((ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks[1:], "GN-IEKS"))
+    ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks, rmses_gn_ieks, neeses_gn_ieks = run_smoothing(
+        Ieks(motion_model, meas_model, num_iter), states, measurements, prior_mean, prior_cov, cost_fn_eks
+    )
+    results.append((ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks[1:], "GN-IEKS"))
 
-    # ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks, tmp_rmse, tmp_nees = run_smoothing(
-    #     LmIeks(motion_model, meas_model, num_iter, cost_improv_iter_lim=10, lambda_=lm_reg, nu=10),
-    #     states,
-    #     measurements,
-    #     prior_mean,
-    #     prior_cov,
-    #     cost_fn_eks,
-    # )
-    # results.append((ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks[1:], "LM-IEKS"))
+    ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks, rmses_lm_ieks, neeses_lm_ieks = run_smoothing(
+        LmIeks(motion_model, meas_model, num_iter, cost_improv_iter_lim=10, lambda_=lm_reg, nu=10),
+        states,
+        measurements,
+        prior_mean,
+        prior_cov,
+        cost_fn_eks,
+    )
+    results.append((ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks[1:], "LM-IEKS"))
 
-    # ms_gn_ipls, Ps_gn_ipls, cost_gn_ipls, rmses_gn_ipls, neeses_gn_ipls = run_smoothing(
-    #     SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter),
-    #     states,
-    #     measurements,
-    #     prior_mean,
-    #     prior_cov,
-    #     cost_fn_ipls,
-    # )
-    # results.append((ms_gn_ipls, Ps_gn_ipls, cost_gn_ipls[1:], "GN-IPLS"))
+    ms_gn_ipls, Ps_gn_ipls, cost_gn_ipls, rmses_gn_ipls, neeses_gn_ipls = run_smoothing(
+        SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter),
+        states,
+        measurements,
+        prior_mean,
+        prior_cov,
+        noop_cost,
+    )
+    results.append((ms_gn_ipls, Ps_gn_ipls, cost_gn_ipls[1:], "GN-IPLS"))
     ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, rmses_lm_ipls, neeses_lm_ipls = run_smoothing(
         SigmaPointLmIpls(
             motion_model, meas_model, sigma_point_method, num_iter, cost_improv_iter_lim=10, lambda_=lm_reg, nu=10
@@ -141,26 +143,28 @@ def main():
         cartes_meas,
         skip_cov=10,
     )
-    # plot_metrics(
-    #     [
-    #         (cost_gn_ieks[1:], "GN-IEKS"),
-    #         (cost_lm_ieks[1:], "LM-IEKS"),
-    #         (cost_gn_ipls[1:], "GN-IPLS"),
-    #         (cost_lm_ipls[1:], "LM-IPLS"),
-    #     ],
-    #     [
-    #         (rmses_gn_ieks, "GN-IEKS"),
-    #         (rmses_lm_ieks, "LM-IEKS"),
-    #         (rmses_gn_ipls, "LM-IPLS"),
-    #         (rmses_lm_ipls, "LM-IPLS"),
-    #     ],
-    #     [
-    #         (neeses_gn_ieks, "GN-IEKS"),
-    #         (neeses_lm_ieks, "LM-IEKS"),
-    #         (neeses_gn_ipls, "LM-IPLS"),
-    #         (neeses_lm_ipls, "LM-IPLS"),
-    #     ],
-    # )
+    plot_metrics(
+        [
+            (cost_gn_ieks[1:], "GN-IEKS"),
+            (cost_lm_ieks[1:], "LM-IEKS"),
+            (cost_gn_ipls[1:], "GN-IPLS"),
+            (cost_lm_ipls[1:], "LM-IPLS"),
+        ],
+        [
+            (rmses_gn_ieks, "GN-IEKS"),
+            (rmses_lm_ieks, "LM-IEKS"),
+            (rmses_gn_ipls, "LM-IPLS"),
+            (rmses_lm_ipls, "LM-IPLS"),
+        ],
+        [
+            (neeses_gn_ieks, "GN-IEKS"),
+            (neeses_lm_ieks, "LM-IEKS"),
+            (neeses_gn_ipls, "LM-IPLS"),
+            (neeses_lm_ipls, "LM-IPLS"),
+        ],
+    )
+    # tikz_res = [(label, ms) for ms, _, _, label in results]
+    # tikz_2d_tab_to_file(tikz_res, Path.cwd() / "tmp_tikz")
 
 
 def run_smoothing(smoother, states, measurements, prior_mean, prior_cov, cost_fn, init_traj=None):

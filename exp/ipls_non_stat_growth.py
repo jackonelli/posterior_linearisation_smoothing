@@ -17,19 +17,21 @@ from src.models.nonstationary_growth import NonStationaryGrowth
 from src.models.cubic import Cubic
 from src.models.quadratic import Quadratic
 from src.sigma_points import UnscentedTransform
+from src.smoother.ext.ieks import Ieks
+from src.smoother.ext.lm_ieks import LmIeks
 from src.filter.iplf import SigmaPointIplf
 from src.filter.prlf import SigmaPointPrLf
 from src.smoother.slr.ipls import SigmaPointIpls
 from src.smoother.slr.lm_ipls import SigmaPointLmIpls
-from src.smoother.slr.ipls import SigmaPointIpls
 from data.ipls_paper.data import get_specific_states_from_file, gen_measurements, simulate_data
-from src.cost import slr_smoothing_cost_pre_comp
-from src import visualization as vis
+from src.cost import slr_smoothing_cost_pre_comp, analytical_smoothing_cost
 from src.analytics import rmse
 import matplotlib.pyplot as plt
+from src.utils import tikz_1d_tab_format, tikz_err_bar_tab_format
 
 
 def main():
+    np.random.seed(1)
     args = parse_args()
     log = logging.getLogger(__name__)
     experiment_name = "ipls"
@@ -71,6 +73,35 @@ def main():
     # traj = trajs[:, traj_idx].reshape((K, 1))
     # traj = traj[:min_K, :]
 
+    results = []
+    cost_fn_eks = partial(
+        analytical_smoothing_cost,
+        measurements=meas,
+        m_1_0=prior_mean,
+        P_1_0=prior_cov,
+        motion_model=motion_model,
+        meas_model=meas_model,
+    )
+
+    ieks = Ieks(motion_model, meas_model, args.num_iter)
+    ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks, rmses_gn_ieks, neeses_gn_ieks = ieks.filter_and_smooth(
+        meas,
+        prior_mean,
+        prior_cov,
+        cost_fn_eks,
+    )
+    results.append(
+        (ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks[1:], "GN-IEKS"),
+    )
+    # lm_ieks = LmIeks(motion_model, meas_model, args.num_iter, 10, 1e-2, 10)
+    # ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks, rmses_lm_ieks, neeses_lm_ieks = lm_ieks.filter_and_smooth(
+    #     states,
+    #     meas,
+    #     prior_mean,
+    #     prior_cov,
+    #     cost_fn_eks,
+    #     None,
+    # )
     cost_fn_ipls = partial(
         slr_smoothing_cost_pre_comp,
         measurements=meas,
@@ -83,11 +114,11 @@ def main():
         motion_model, meas_model, sigma_point_method, args.num_iter, cost_improv_iter_lim=10, lambda_=1e-4, nu=10
     )
 
-    results = []
     _, _, ipls_ms, ipls_Ps, _ = ipls.filter_and_smooth(meas, prior_mean, prior_cov, cost_fn=None)
     results.append((ipls_ms, ipls_Ps, "IPLS"))
     _, _, lm_ipls_ms, lm_ipls_Ps, _ = lm_ipls.filter_and_smooth(meas, prior_mean, prior_cov, cost_fn=cost_fn_ipls)
     results.append((lm_ipls_ms, lm_ipls_Ps, "LM-IPLS"))
+    tikz_results(states, meas, results)
     plot_results(states, meas, results)
     # filter_squared_errs = np.zeros((K, 1))
     # smooth_squared_errs = np.zeros((K, 1))
@@ -109,10 +140,25 @@ def main():
     # ms, Pf = mf.reshape((K,)), Pf.reshape((K,))
 
 
+def tikz_results(traj, meas, means_and_covs):
+    dir_ = Path.cwd().parent / "paper/fig/non_stat_growth"
+    dir_ = Path.cwd() / "tmp_tikz"
+    for data, label in [(traj, "states"), (meas, "meas")]:
+        vis.write_to_tikz_file(tikz_1d_tab_format(data.squeeze()), dir_, f"{label.lower()}.data")
+    for mean, var, label in means_and_covs:
+        vis.write_to_tikz_file(
+            tikz_err_bar_tab_format(np.arange(1, len(mean) + 1), mean.squeeze(), np.sqrt(var.squeeze())),
+            dir_,
+            f"{label.lower()}.data",
+        )
+
+
 def plot_results(traj, meas, means_and_covs):
     K = meas.shape[0]
     means_and_covs = [(means, covs.reshape((K,)), label) for means, covs, label in means_and_covs]
-    vis.plot_1d_est(traj, meas, means_and_covs)
+    fig, ax = plt.subplots()
+    vis.plot_1d_est(traj, meas, means_and_covs, ax=ax)
+    # vis.write_to_tikz_file(vis.to_tikz(fig), Path.cwd(), "nonstat")
     plt.show()
 
 

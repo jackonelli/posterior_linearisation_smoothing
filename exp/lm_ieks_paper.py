@@ -173,6 +173,7 @@ def plot_results(states, trajs_and_costs, meas, skip_cov=50):
         skip_cov=skip_cov,
         ax=ax_1,
     )
+    write_to_tikz_file(to_tikz(fig), Path.cwd(), "aba.tikz")
     plt.show()
 
 
