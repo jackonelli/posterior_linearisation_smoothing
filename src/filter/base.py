@@ -122,7 +122,6 @@ class Filter(ABC):
         """
         if not any(np.isnan(y_k)):
             H, c, Lambda = linearization
-            # print(f"Upd {H}, {c}, {Lambda}")
             y_mean = H @ m_k_kminus1 + c
             S = H @ P_k_kminus1 @ H.T + R + Lambda
             K = P_k_kminus1 @ H.T @ np.linalg.inv(S)

@@ -50,7 +50,7 @@ class CoordTurn(MotionModel, Differentiable):
     def proc_noise(self, _k):
         return self._proc_noise
 
-    def jacobian(self, state):
+    def jacobian(self, state, _time_step):
         dt = self._dt
         w = state[4]
         if w == 0:

@@ -24,7 +24,7 @@ from src.filter.prlf import SigmaPointPrLf
 from src.smoother.slr.ipls import SigmaPointIpls
 from src.smoother.slr.lm_ipls import SigmaPointLmIpls
 from data.ipls_paper.data import get_specific_states_from_file, gen_measurements, simulate_data
-from src.cost import slr_smoothing_cost_pre_comp, analytical_smoothing_cost
+from src.cost import slr_smoothing_cost_pre_comp, analytical_smoothing_cost_time_dep
 from src.analytics import rmse
 import matplotlib.pyplot as plt
 from src.utils import tikz_1d_tab_format, tikz_err_bar_tab_format
@@ -75,7 +75,7 @@ def main():
 
     results = []
     cost_fn_eks = partial(
-        analytical_smoothing_cost,
+        analytical_smoothing_cost_time_dep,
         measurements=meas,
         m_1_0=prior_mean,
         P_1_0=prior_cov,
@@ -91,17 +91,18 @@ def main():
         cost_fn_eks,
     )
     results.append(
-        (ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks[1:], "GN-IEKS"),
+        (ms_gn_ieks, Ps_gn_ieks, "GN-IEKS"),
     )
-    # lm_ieks = LmIeks(motion_model, meas_model, args.num_iter, 10, 1e-2, 10)
-    # ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks, rmses_lm_ieks, neeses_lm_ieks = lm_ieks.filter_and_smooth(
-    #     states,
-    #     meas,
-    #     prior_mean,
-    #     prior_cov,
-    #     cost_fn_eks,
-    #     None,
-    # )
+    lm_ieks = LmIeks(motion_model, meas_model, args.num_iter, 10, 1e-2, 10)
+    ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks, rmses_lm_ieks, neeses_lm_ieks = lm_ieks.filter_and_smooth(
+        meas,
+        prior_mean,
+        prior_cov,
+        cost_fn_eks,
+    )
+    results.append(
+        (ms_lm_ieks, Ps_lm_ieks, "LM-IEKS"),
+    )
     cost_fn_ipls = partial(
         slr_smoothing_cost_pre_comp,
         measurements=meas,
@@ -118,7 +119,7 @@ def main():
     results.append((ipls_ms, ipls_Ps, "IPLS"))
     _, _, lm_ipls_ms, lm_ipls_Ps, _ = lm_ipls.filter_and_smooth(meas, prior_mean, prior_cov, cost_fn=cost_fn_ipls)
     results.append((lm_ipls_ms, lm_ipls_Ps, "LM-IPLS"))
-    tikz_results(states, meas, results)
+    # tikz_results(states, meas, results)
     plot_results(states, meas, results)
     # filter_squared_errs = np.zeros((K, 1))
     # smooth_squared_errs = np.zeros((K, 1))
@@ -175,7 +176,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="LM-IEKS paper experiment.")
     parser.add_argument("--random", action="store_true")
     parser.add_argument("--meas_type", type=MeasType, required=True)
-    parser.add_argument("--num_iter", type=int, default=10)
+    parser.add_argument("--num_iter", type=int, default=3)
 
     return parser.parse_args()
 

@@ -15,7 +15,7 @@ class NonStationaryGrowth(MotionModel, Differentiable):
         self.beta = beta
         self.gamma = gamma
         self.delta = delta
-        self._proc_noise = proc_noise
+        self._proc_noise = np.atleast_2d(proc_noise)
 
     def mapping(self, state, time_step):
         term_1 = self.alpha * state
@@ -26,5 +26,7 @@ class NonStationaryGrowth(MotionModel, Differentiable):
     def proc_noise(self, _time_step):
         return self._proc_noise
 
-    def jacobian(self, state):
-        raise NotImplementedError
+    def jacobian(self, state, time_step=None):
+        state_sq = state ** 2
+        derivative = self.alpha + self.beta * (1 - state_sq) / (1 + state_sq) ** 2
+        return derivative.reshape((1, 1))

@@ -14,6 +14,7 @@ LOGGER = logging.getLogger(__name__)
 
 def analytical_smoothing_cost(traj, measurements, m_1_0, P_1_0, motion_model: MotionModel, meas_model: MeasModel):
     """Cost function for an optimisation problem used in the family of extended smoothers
+    Efficient implementation which assumes that the motion and meas models have no explicit dependency on the time step.
 
     GN optimisation of this cost function will result in a linearised function
     corresponding to the Iterated Extended Kalman Smoother (IEKS).
@@ -31,6 +32,46 @@ def analytical_smoothing_cost(traj, measurements, m_1_0, P_1_0, motion_model: Mo
     proc_diff = traj[1:, :] - motion_model.map_set(traj[:-1, :], None)
     meas_diff = measurements - meas_model.map_set(traj, None)
     for k in range(0, traj.shape[0] - 1):
+        _cost += proc_diff[k, :].T @ np.linalg.inv(motion_model.proc_noise(k)) @ proc_diff[k, :]
+        # measurements are zero indexed, i.e. k-1 --> y_k
+        if any(np.isnan(meas_diff[k, :])):
+            continue
+        _cost += meas_diff[k, :].T @ np.linalg.inv(meas_model.meas_noise(k)) @ meas_diff[k, :]
+    _cost += meas_diff[-1, :].T @ np.linalg.inv(meas_model.meas_noise(measurements.shape[0])) @ meas_diff[-1, :]
+
+    return _cost
+
+
+def analytical_smoothing_cost_time_dep(
+    traj, measurements, m_1_0, P_1_0, motion_model: MotionModel, meas_model: MeasModel
+):
+    """Cost function for an optimisation problem used in the family of extended smoothers
+    General formulation which does not assume that the motion and meas models is the same for all time steps.
+
+    GN optimisation of this cost function will result in a linearised function
+    corresponding to the Iterated Extended Kalman Smoother (IEKS).
+
+    Args:
+        traj: states for a time sequence 1, ..., K
+            represented as a np.array(K, D_x).
+            (The actual variable in the cost function)
+        measurements: measurements for a time sequence 1, ..., K
+            represented as a np.array(K, D_y)
+    """
+    prior_diff = traj[0, :] - m_1_0
+    _cost = prior_diff.T @ np.linalg.inv(P_1_0) @ prior_diff
+
+    K, D_x = traj.shape
+    _, D_y = measurements.shape
+    proc_diff = np.empty((K - 1, D_x))
+    meas_diff = np.empty((K, D_y))
+    # TODO: collapse into singel loop.
+    for k in range(1, K + 1):
+        k_ind = k - 1
+        if k < K:
+            proc_diff[k_ind, :] = traj[k, :] - motion_model.mapping(traj[k - 1, :], k - 1)
+        meas_diff[k_ind, :] = measurements[k_ind, :] - meas_model.mapping(traj[k_ind, :], k)
+    for k in range(0, K - 1):
         _cost += proc_diff[k, :].T @ np.linalg.inv(motion_model.proc_noise(k)) @ proc_diff[k, :]
         # measurements are zero indexed, i.e. k-1 --> y_k
         if any(np.isnan(meas_diff[k, :])):
