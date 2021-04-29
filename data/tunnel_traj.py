@@ -4,7 +4,6 @@ import numpy as np
 from scipy.stats import multivariate_normal as mvn
 from src.models.coord_turn import CoordTurn
 from src.models.range_bearing import RangeBearing
-from src.utils import tikz_2d_tab_to_file
 from src.models.range_bearing import to_cartesian_coords
 
 

@@ -137,6 +137,6 @@ def to_tikz(fig):
 
 
 def write_to_tikz_file(tikz_string, tikz_dir, name):
-    file_name = tikz_dir / (name + ".tikz")
+    file_name = tikz_dir / name
     with open(file_name, "w") as tikz_file:
         tikz_file.write(tikz_string)
