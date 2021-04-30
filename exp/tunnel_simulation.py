@@ -41,7 +41,7 @@ def main():
     log.info(f"Running experiment: {experiment_name}")
 
     np.random.seed(2)
-    num_iter = 3
+    num_iter = 10
 
     # Motion model
     sampling_period = 0.1
@@ -57,7 +57,7 @@ def main():
     pos = np.array([100, -100])
     # sigma_r = 2
     # sigma_phi = 0.5 * np.pi / 180
-    noise_factor = 8
+    noise_factor = 4
     sigma_r = 2 * noise_factor
     sigma_phi = noise_factor * 0.5 * np.pi / 180
 
@@ -66,7 +66,7 @@ def main():
 
     # Generate data
     range_ = (0, None)
-    tunnel_segment = [145, 165]
+    tunnel_segment = [140, 175]
     # tunnel_segment = [None, None]
     states, measurements = get_states_and_meas(meas_model, R, range_, tunnel_segment)
     cartes_meas = np.apply_along_axis(partial(to_cartesian_coords, pos=pos), 1, measurements)
@@ -123,7 +123,7 @@ def main():
         measurements,
         prior_mean,
         prior_cov,
-        noop_cost,
+        cost_fn_ipls,
     )
     results.append((ms_gn_ipls, Ps_gn_ipls, cost_gn_ipls[1:], "GN-IPLS"))
     ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, rmses_lm_ipls, neeses_lm_ipls = run_smoothing(
@@ -148,18 +148,18 @@ def main():
             (cost_gn_ieks[1:], "GN-IEKS"),
             (cost_lm_ieks[1:], "LM-IEKS"),
             (cost_gn_ipls[1:], "GN-IPLS"),
-            (cost_lm_ipls[1:], "LM-IPLS"),
+            (cost_lm_ipls[0:], "LM-IPLS"),
         ],
         [
             (rmses_gn_ieks, "GN-IEKS"),
             (rmses_lm_ieks, "LM-IEKS"),
-            (rmses_gn_ipls, "LM-IPLS"),
+            (rmses_gn_ipls, "GN-IPLS"),
             (rmses_lm_ipls, "LM-IPLS"),
         ],
         [
             (neeses_gn_ieks, "GN-IEKS"),
             (neeses_lm_ieks, "LM-IEKS"),
-            (neeses_gn_ipls, "LM-IPLS"),
+            (neeses_gn_ipls, "GN-IPLS"),
             (neeses_lm_ipls, "LM-IPLS"),
         ],
     )
@@ -197,12 +197,12 @@ def run_smoothing(smoother, states, measurements, prior_mean, prior_cov, cost_fn
 
 
 def plot_metrics(costs, rmses, neeses):
-    iter_ticks = np.arange(1, len(costs[0][0]) + 1)
+    iter_ticks = np.arange(1, len(rmses[0][0]) + 1)
     fig, (cost_ax, rmse_ax, nees_ax) = plt.subplots(3)
-    for cost, label in costs:
-        cost_ax.plot(iter_ticks, cost, label=label)
-    cost_ax.set_title("Cost")
-    cost_ax.legend()
+    # for cost, label in costs:
+    #     cost_ax.plot(iter_ticks, cost, label=label)
+    # cost_ax.set_title("Cost")
+    # cost_ax.legend()
     for rmse_, label in rmses:
         rmse_ax.plot(iter_ticks, rmse_, label=label)
     rmse_ax.set_title("RMSE")

@@ -17,8 +17,8 @@ from src.smoother.ext.eks import Eks
 from src.smoother.ext.ieks import Ieks
 from src.smoother.ext.lm_ieks import LmIeks
 from src.smoother.slr.ipls import SigmaPointIpls
-from src.utils import setup_logger
-from src.models.range_bearing import MultiSensorBearings
+from src.utils import setup_logger, tikz_err_bar_tab_format
+from src.models.range_bearing import MultiSensorRange
 from src.models.coord_turn import CoordTurn
 from src.smoother.slr.lm_ipls import SigmaPointLmIpls
 from src.slr.sigma_points import SigmaPointSlr
@@ -33,7 +33,7 @@ from data.lm_ieks_paper.coord_turn_example import simulate_data
 
 def main():
     log = logging.getLogger(__name__)
-    experiment_name = "ct_bearings_only"
+    experiment_name = "ct_range_only"
     setup_logger(f"logs/{experiment_name}.log", logging.INFO)
     log.info(f"Running experiment: {experiment_name}")
     np.random.seed(0)
@@ -56,14 +56,14 @@ def main():
     sensors = np.row_stack((sens_pos_1, sens_pos_2))
     std = 0.5
     R = std ** 2 * np.eye(2)
-    meas_model = MultiSensorBearings(sensors, R)
+    meas_model = MultiSensorRange(sensors, R)
 
     prior_mean = np.array([0, 0, 1, 0, 0])
     prior_cov = np.diag([0.1, 0.1, 1, 1, 1])
 
     num_iter = 5
 
-    num_mc_samples = 5
+    num_mc_samples = 2
 
     rmses_gn_ieks = np.zeros((num_mc_samples, num_iter))
     rmses_lm_ieks = np.zeros((num_mc_samples, num_iter))
@@ -77,6 +77,7 @@ def main():
     for mc_iter in range(num_mc_samples):
         log.info(f"MC iter: {mc_iter+1}/{num_mc_samples}")
         states, measurements = simulate_data(motion_model, meas_model, prior_mean[:-1], time_steps=500)
+        measurements = measurements[:, :2]
         cost_fn_eks = partial(
             analytical_smoothing_cost,
             measurements=measurements,
@@ -155,7 +156,7 @@ def main():
     # tikz_stats(Path.cwd().parent / "paper/fig/ct_bearings_only_metrics/", "RMSE", rmse_stats)
     # tikz_stats(Path.cwd().parent / "paper/fig/ct_bearings_only_metrics/", "NEES", nees_stats)
     tikz_stats(Path.cwd() / "tmp_results", "RMSE", rmse_stats)
-    tikz_stats(Path.cwd() / "paper/fig/ct_bearings_only_metrics/", "NEES", nees_stats)
+    tikz_stats(Path.cwd() / "tmp_results", "NEES", nees_stats)
     plot_stats(rmse_stats, "RMSE")
     plot_stats(nees_stats, "NEES")
 
@@ -210,7 +211,7 @@ def tikz_stats(dir_, name, stats):
     iter_range = np.arange(1, num_iter + 1)
     stats = [(mc_stats(stat_), label) for stat_, label in stats]
     for (mean, err), label in stats:
-        tikz_err_bar_tab_to_file(iter_range, mean, err, dir_ / name.lower() / f"{label.lower()}.data")
+        write_to_tikz_file(tikz_err_bar_tab_format(iter_range, mean, err), dir_ / name.lower(), f"{label.lower()}.data")
 
 
 def save_stats(res_dir: Path, name: str, stats):

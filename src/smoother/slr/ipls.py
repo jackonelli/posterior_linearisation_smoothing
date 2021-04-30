@@ -1,10 +1,11 @@
 """Sigma point Iterated posterior linearisation smoother (IPLS)"""
+from functools import partial
+import numpy as np
 from src.smoother.base import IteratedSmoother
 from src.smoother.slr.prls import SigmaPointPrLs
 from src.filter.iplf import SigmaPointIplf
 from src.slr.sigma_points import SigmaPointSlr
 from src.slr.base import SlrCache
-from functools import partial
 
 
 class SigmaPointIpls(IteratedSmoother):
@@ -32,10 +33,25 @@ class SigmaPointIpls(IteratedSmoother):
         return iplf.filter_seq(measurements, m_1_0, P_1_0)
 
     def _specialise_cost_fn(self, cost_fn_prototype, params):
-        return partial(cost_fn_prototype, covs=params) if cost_fn_prototype is not None else None
+        (
+            (proc_bar, meas_bar),
+            (
+                proc_lin_cov,
+                meas_lin_cov,
+            ),
+        ) = params
+        return partial(
+            cost_fn_prototype,
+            proc_bar=proc_bar,
+            meas_bar=meas_bar,
+            proc_cov=np.array(
+                [err_cov_k + self._motion_model.proc_noise(k) for k, err_cov_k in enumerate(proc_lin_cov)]
+            ),
+            meas_cov=np.array([err_cov_k + self._meas_model.meas_noise(k) for k, err_cov_k in enumerate(meas_lin_cov)]),
+        )
 
     def _cost_fn_params(self):
-        return self._current_covs
+        return self._cache.bars(), self._cache.error_covs()
 
     def _update_estimates(self, means, covs):
         """The 'previous estimates' which are used in the current iteration are stored in the smoother instance.
