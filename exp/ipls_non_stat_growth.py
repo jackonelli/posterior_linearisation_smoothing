@@ -110,13 +110,14 @@ def main():
         P_1_0=prior_cov,
     )
 
-    ipls = SigmaPointIpls(motion_model, meas_model, sigma_point_method, args.num_iter)
+    gn_ipls = SigmaPointIpls(motion_model, meas_model, sigma_point_method, args.num_iter)
+    _, _, gn_ipls_ms, gn_ipls_Ps, _ = gn_ipls.filter_and_smooth(meas, prior_mean, prior_cov, cost_fn=cost_fn_ipls)
+
+    results.append((gn_ipls_ms, gn_ipls_Ps, "GN-IPLS"))
     lm_ipls = SigmaPointLmIpls(
         motion_model, meas_model, sigma_point_method, args.num_iter, cost_improv_iter_lim=10, lambda_=1e-4, nu=10
     )
 
-    _, _, ipls_ms, ipls_Ps, _ = ipls.filter_and_smooth(meas, prior_mean, prior_cov, cost_fn=None)
-    results.append((ipls_ms, ipls_Ps, "IPLS"))
     _, _, lm_ipls_ms, lm_ipls_Ps, _ = lm_ipls.filter_and_smooth(meas, prior_mean, prior_cov, cost_fn=cost_fn_ipls)
     results.append((lm_ipls_ms, lm_ipls_Ps, "LM-IPLS"))
     # tikz_results(states, meas, results)
