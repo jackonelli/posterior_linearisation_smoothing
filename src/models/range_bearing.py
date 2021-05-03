@@ -90,6 +90,36 @@ class MultiSensorBearings(MeasModel, Differentiable):
         return means + noise
 
 
+class BearingsVaryingSensors(MeasModel, Differentiable):
+    """Special bearings measurement model
+
+    Combines two sep. models
+    """
+
+    def __init__(self, model_1, model_2, model_2_time_steps):
+        self._model_1 = model_1
+        self._model_2 = model_2
+        self._model_2_tss = model_2_time_steps
+
+    def _select_model(self, time_step):
+        if time_step in self._model_2_tss:
+            return self._model_2
+        else:
+            return self._model_1
+
+    def mapping(self, state, time_step):
+        model = self._select_model(time_step)
+        return model.mapping(state, time_step)
+
+    def meas_noise(self, time_step):
+        model = self._select_model(time_step)
+        return model._meas_noise
+
+    def jacobian(self, state, time_step=None):
+        model = self._select_model(time_step)
+        return model.jacobian(state, time_step)
+
+
 def _euclid_dist(p_1, p_2):
     return np.sqrt(np.sum((p_1 - p_2) ** 2))
 

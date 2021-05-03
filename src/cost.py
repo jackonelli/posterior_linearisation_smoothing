@@ -26,18 +26,19 @@ def analytical_smoothing_cost(traj, measurements, m_1_0, P_1_0, motion_model: Mo
         measurements: measurements for a time sequence 1, ..., K
             represented as a np.array(K, D_y)
     """
+    K = len(measurements)
     prior_diff = traj[0, :] - m_1_0
     _cost = prior_diff.T @ np.linalg.inv(P_1_0) @ prior_diff
 
     proc_diff = traj[1:, :] - motion_model.map_set(traj[:-1, :], None)
     meas_diff = measurements - meas_model.map_set(traj, None)
-    for k in range(0, traj.shape[0] - 1):
+    for k in range(0, K - 1):
         _cost += proc_diff[k, :].T @ np.linalg.inv(motion_model.proc_noise(k)) @ proc_diff[k, :]
         # measurements are zero indexed, i.e. k-1 --> y_k
         if any(np.isnan(meas_diff[k, :])):
             continue
         _cost += meas_diff[k, :].T @ np.linalg.inv(meas_model.meas_noise(k)) @ meas_diff[k, :]
-    _cost += meas_diff[-1, :].T @ np.linalg.inv(meas_model.meas_noise(measurements.shape[0])) @ meas_diff[-1, :]
+    _cost += meas_diff[-1, :].T @ np.linalg.inv(meas_model.meas_noise(K)) @ meas_diff[-1, :]
 
     return _cost
 

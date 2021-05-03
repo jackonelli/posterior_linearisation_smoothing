@@ -38,7 +38,7 @@ class Filter(ABC):
             pred_covs (K, D_x, D_x): Filter error covariance
         """
 
-        K = measurements.shape[0]
+        K = len(measurements)
 
         filter_means, filter_covs = self._init_estimates(m_1_0, K)
         pred_means, pred_covs = self._init_estimates(m_1_0, K)
