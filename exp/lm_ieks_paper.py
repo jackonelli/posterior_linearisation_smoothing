@@ -72,14 +72,16 @@ def main():
     num_iter = args.num_iter
     if args.meas_type == MeasType.Range:
         meas_model = MultiSensorRange(sensors, R)
+        meas_cols = np.array([0, 1])
     elif args.meas_type == MeasType.Bearings:
         meas_model = MultiSensorBearings(sensors, R)
+        meas_cols = np.array([2, 3])
 
     if args.random:
         states, measurements = simulate_data(motion_model, meas_model, prior_mean[:-1], time_steps=500)
     else:
         states, all_meas, _, xs_ss = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.LM, num_iter)
-        measurements = all_meas[:, 2:]
+        measurements = all_meas[:, meas_cols]
 
     results = []
     cost_fn_eks = partial(
