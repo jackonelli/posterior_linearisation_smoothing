@@ -63,22 +63,29 @@ def analytical_smoothing_cost_time_dep(
     _cost = prior_diff.T @ np.linalg.inv(P_1_0) @ prior_diff
 
     K, D_x = traj.shape
-    _, D_y = measurements.shape
-    proc_diff = np.empty((K - 1, D_x))
-    meas_diff = np.empty((K, D_y))
+    # _, D_y = measurements.shape
+    # proc_diff = np.empty((K - 1, D_x))
+    # meas_diff = np.empty((K, D_y))
     # TODO: collapse into singel loop.
     for k in range(1, K + 1):
         k_ind = k - 1
         if k < K:
-            proc_diff[k_ind, :] = traj[k, :] - motion_model.mapping(traj[k - 1, :], k - 1)
-        meas_diff[k_ind, :] = measurements[k_ind, :] - meas_model.mapping(traj[k_ind, :], k)
-    for k in range(0, K - 1):
-        _cost += proc_diff[k, :].T @ np.linalg.inv(motion_model.proc_noise(k)) @ proc_diff[k, :]
-        # measurements are zero indexed, i.e. k-1 --> y_k
-        if any(np.isnan(meas_diff[k, :])):
+            proc_diff_k = traj[k_ind + 1, :] - motion_model.mapping(traj[k_ind, :], k)
+            _cost += proc_diff_k.T @ np.linalg.inv(motion_model.proc_noise(k)) @ proc_diff_k
+        meas_k = measurements[k_ind]
+        if any(np.isnan(meas_k)):
             continue
-        _cost += meas_diff[k, :].T @ np.linalg.inv(meas_model.meas_noise(k)) @ meas_diff[k, :]
-    _cost += meas_diff[-1, :].T @ np.linalg.inv(meas_model.meas_noise(measurements.shape[0])) @ meas_diff[-1, :]
+        meas_diff_k = meas_k - meas_model.mapping(traj[k_ind, :], k)
+        _cost += meas_diff_k.T @ np.linalg.inv(meas_model.meas_noise(k)) @ meas_diff_k
+    # for k in range(0, K - 1):
+    #     proc_diff_k = traj[k + 1, :] - motion_model.mapping(traj[k, :], k)
+    #     meas_diff = traj[k, :] - motion_model.mapping(traj[k, :], k)
+    #     _cost += proc_diff[k, :].T @ np.linalg.inv(motion_model.proc_noise(k)) @ proc_diff[k, :]
+    #     # measurements are zero indexed, i.e. k-1 --> y_k
+    #     if any(np.isnan(meas_diff[k, :])):
+    #         continue
+    #     _cost += meas_diff[k, :].T @ np.linalg.inv(meas_model.meas_noise(k)) @ meas_diff[k, :]
+    # _cost += meas_diff[-1, :].T @ np.linalg.inv(meas_model.meas_noise(measurements.shape[0])) @ meas_diff[-1, :]
 
     return _cost
 
@@ -140,17 +147,34 @@ def slr_smoothing_cost_pre_comp(traj, measurements, m_1_0, P_1_0, proc_bar, meas
     prior_diff = traj[0, :] - m_1_0
     _cost = prior_diff.T @ np.linalg.inv(P_1_0) @ prior_diff
 
-    proc_diff = traj[1:, :] - proc_bar[:-1, :]
-    meas_diff = measurements - meas_bar
+    K = len(measurements)
+    # for k in range(1, K + 1):
+    #     k_ind = k - 1
+    #     if k < K:
+    #         proc_diff_k = traj[k_ind + 1, :] - proc_bar[k, :]
+    #         _cost += proc_diff_k.T @ np.linalg.inv(proc_cov[k_ind, :, :]) @ proc_diff_k
+    #     meas_k = measurements[k_ind]
+    #     if any(np.isnan(meas_k)):
+    #         continue
+    #     meas_diff_k = meas_k - meas_bar[k_ind]
+    #     _cost += meas_diff_k.T @ np.linalg.inv(meas_cov[k_ind, :, :]) @ meas_diff_k
+
     # print(f"Fast: {proc_diff[0, :].T @ np.linalg.inv(proc_cov[0, :, :]) @ proc_diff[0, :]}")
 
-    for k in range(0, traj.shape[0] - 1):
-        _cost += proc_diff[k, :].T @ np.linalg.inv(proc_cov[k, :, :]) @ proc_diff[k, :]
-        if any(np.isnan(meas_diff[k, :])):
+    # for cov in meas_cov[:10]:
+    #     print(cov.shape)
+    for k in range(1, K + 1):
+        k_ind = k - 1
+        if k < K:
+            proc_diff_k = traj[k_ind + 1, :] - proc_bar[k_ind]
+            _cost += proc_diff_k.T @ np.linalg.inv(proc_cov[k_ind, :, :]) @ proc_diff_k
+        meas_k = measurements[k_ind]
+        # print(k, meas_k.shape, meas_cov.shape)
+        if any(np.isnan(meas_k)):
             continue
         # measurements are zero indexed, i.e. k-1 --> y_k
-        _cost += meas_diff[k, :].T @ np.linalg.inv(meas_cov[k, :, :]) @ meas_diff[k, :]
-    _cost += meas_diff[-1, :].T @ np.linalg.inv(meas_cov[-1, :, :]) @ meas_diff[-1, :]
+        meas_diff_k = meas_k - meas_bar[k_ind]
+        _cost += meas_diff_k.T @ np.linalg.inv(meas_cov[k_ind, :, :]) @ meas_diff_k
 
     return _cost
 
@@ -208,7 +232,7 @@ def slr_smoothing_cost(
     return _cost
 
 
-def noop_cost(means, covs):
+def slr_noop_cost(traj, proc_bar, meas_bar, proc_cov, meas_cov):
     LOGGER.warning("Using the dummy loss")
     return None
 

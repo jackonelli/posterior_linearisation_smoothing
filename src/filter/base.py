@@ -28,6 +28,8 @@ class Filter(ABC):
 
         Args:
             measurements (K, D_y): Measurement sequence for times 1,..., K
+                The measurement seq can be any "iteratable" container of np arrays,
+                as long as `len(measurements) = K`.
             m_0_0 (D_x,): Prior mean for time 1
             P_0_0 (D_x, D_x): Prior covariance for time 1
 
@@ -66,6 +68,8 @@ class Filter(ABC):
             )
 
             y_k = measurements[store_ind]
+            # if k < 7:
+            #     print(k, y_k, self._meas_lin(m_k_kminus1, P_k_kminus1, k)[0].shape)
             m_k_k, P_k_k = self._update(
                 y_k,
                 m_k_kminus1,
@@ -123,7 +127,10 @@ class Filter(ABC):
         if not any(np.isnan(y_k)):
             H, c, Lambda = linearization
             y_mean = H @ m_k_kminus1 + c
+            # print(f"k={_time_step} - y: {y_mean.shape} c: {c.shape}, H: {H.shape}, R: {R.shape} L: {Lambda.shape}")
+            # print(f"{_time_step}: {y_mean.shape}")
             S = H @ P_k_kminus1 @ H.T + R + Lambda
+            # print(f"S: {S.shape}, H: {H.shape}, R: {R.shape}")
             K = P_k_kminus1 @ H.T @ np.linalg.inv(S)
 
             m_k_k = m_k_kminus1 + (K @ (y_k - y_mean)).reshape(m_k_kminus1.shape)

@@ -23,7 +23,7 @@ from src.models.coord_turn import CoordTurn
 from src.smoother.slr.lm_ipls import SigmaPointLmIpls
 from src.slr.sigma_points import SigmaPointSlr
 from src.sigma_points import SphericalCubature
-from src.cost import analytical_smoothing_cost, slr_smoothing_cost_pre_comp, noop_cost
+from src.cost import analytical_smoothing_cost, slr_smoothing_cost_pre_comp, slr_noop_cost
 from src.analytics import rmse, nees
 from src.visualization import to_tikz, write_to_tikz_file
 from data.lm_ieks_paper.coord_turn_example import simulate_data
@@ -118,7 +118,7 @@ def main():
             measurements,
             prior_mean,
             prior_cov,
-            noop_cost,
+            slr_noop_cost,
         )
         rmses_gn_ipls[mc_iter, :] = tmp_rmse
         neeses_gn_ipls[mc_iter, :] = tmp_nees

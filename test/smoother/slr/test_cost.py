@@ -19,7 +19,7 @@ from data.lm_ieks_paper.coord_turn_example import get_specific_states_from_file,
 
 
 class TestCost(unittest.TestCase):
-    def test_cmp_with_ss_impl(self):
+    def test_cmp_pre_comp_with_on_the_fly(self):
         dt = 0.01
         qc = 0.01
         qw = 10

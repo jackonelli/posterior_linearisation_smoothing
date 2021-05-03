@@ -29,7 +29,7 @@ from src.smoother.slr.ipls import SigmaPointIpls
 from src.smoother.slr.lm_ipls import SigmaPointLmIpls
 from src.slr.sigma_points import SigmaPointSlr
 from src.sigma_points import SphericalCubature
-from src.cost import analytical_smoothing_cost, slr_smoothing_cost, slr_smoothing_cost_pre_comp, noop_cost
+from src.cost import analytical_smoothing_cost, slr_smoothing_cost_pre_comp, slr_noop_cost
 from src.utils import setup_logger
 from src.analytics import rmse
 from src.visualization import to_tikz, write_to_tikz_file
@@ -130,7 +130,7 @@ def main():
         measurements,
         prior_mean,
         prior_cov,
-        noop_cost,
+        slr_noop_cost,
         None,
     )
     results.append(

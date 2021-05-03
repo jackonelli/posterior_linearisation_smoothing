@@ -86,7 +86,7 @@ class MultiSensorBearings(MeasModel, Differentiable):
     def sample(self, states):
         means = self.map_set(states)
         num_samples, D_y = means.shape
-        noise = mvn.rvs(mean=np.zeros((D_y,)), cov=self.meas_noise(None), size=num_samples)
+        noise = mvn.rvs(mean=np.zeros((D_y,)), cov=self.meas_noise(None), size=num_samples).reshape(means.shape)
         return means + noise
 
 
@@ -96,16 +96,19 @@ class BearingsVaryingSensors(MeasModel, Differentiable):
     Combines two sep. models
     """
 
-    def __init__(self, model_1, model_2, model_2_time_steps):
-        self._model_1 = model_1
-        self._model_2 = model_2
-        self._model_2_tss = model_2_time_steps
+    def __init__(self, default_model, alt_model, alt_model_time_steps):
+        self._default_model = default_model
+        self._alt_model = alt_model
+        self._alt_model_tss = alt_model_time_steps
 
     def _select_model(self, time_step):
-        if time_step in self._model_2_tss:
-            return self._model_2
+        if time_step in self._alt_model_tss:
+            return self._alt_model
         else:
-            return self._model_1
+            return self._default_model
+
+    def alt_tss(self):
+        return np.array(list(self._alt_model_tss))
 
     def mapping(self, state, time_step):
         model = self._select_model(time_step)

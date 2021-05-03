@@ -30,7 +30,7 @@ from src.smoother.slr.ipls import SigmaPointIpls
 from src.smoother.slr.lm_ipls import SigmaPointLmIpls
 from src.slr.sigma_points import SigmaPointSlr
 from src.sigma_points import SphericalCubature
-from src.cost import analytical_smoothing_cost, slr_smoothing_cost, noop_cost, slr_smoothing_cost_pre_comp
+from src.cost import analytical_smoothing_cost, slr_smoothing_cost, slr_noop_cost, slr_smoothing_cost_pre_comp
 from src.utils import setup_logger
 from src.analytics import rmse
 from src.visualization import to_tikz, write_to_tikz_file
@@ -111,7 +111,7 @@ def main():
         prior_cov,
         (xs_ss, covs),
         1,
-        partial(noop_cost, covs=None),
+        partial(slr_noop_cost, covs=None),
     )
 
     time_lm_ieks = partial(
@@ -130,7 +130,7 @@ def main():
         prior_cov,
         (xs_ss, covs),
         1,
-        partial(noop_cost, covs=None),
+        partial(slr_noop_cost, covs=None),
     )
     time_lm_ipls = partial(
         SigmaPointLmIpls(
