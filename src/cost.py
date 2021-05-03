@@ -161,20 +161,17 @@ def slr_smoothing_cost_pre_comp(traj, measurements, m_1_0, P_1_0, proc_bar, meas
 
     # print(f"Fast: {proc_diff[0, :].T @ np.linalg.inv(proc_cov[0, :, :]) @ proc_diff[0, :]}")
 
-    # for cov in meas_cov[:10]:
-    #     print(cov.shape)
     for k in range(1, K + 1):
         k_ind = k - 1
         if k < K:
             proc_diff_k = traj[k_ind + 1, :] - proc_bar[k_ind]
-            _cost += proc_diff_k.T @ np.linalg.inv(proc_cov[k_ind, :, :]) @ proc_diff_k
+            _cost += proc_diff_k.T @ np.linalg.inv(proc_cov[k_ind]) @ proc_diff_k
         meas_k = measurements[k_ind]
-        # print(k, meas_k.shape, meas_cov.shape)
         if any(np.isnan(meas_k)):
             continue
         # measurements are zero indexed, i.e. k-1 --> y_k
         meas_diff_k = meas_k - meas_bar[k_ind]
-        _cost += meas_diff_k.T @ np.linalg.inv(meas_cov[k_ind, :, :]) @ meas_diff_k
+        _cost += meas_diff_k.T @ np.linalg.inv(meas_cov[k_ind]) @ meas_diff_k
 
     return _cost
 

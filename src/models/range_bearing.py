@@ -110,6 +110,10 @@ class BearingsVaryingSensors(MeasModel, Differentiable):
     def alt_tss(self):
         return np.array(list(self._alt_model_tss))
 
+    def map_set(self, states, time_step):
+        model = self._select_model(time_step)
+        return model.map_set(states, time_step)
+
     def mapping(self, state, time_step):
         model = self._select_model(time_step)
         return model.mapping(state, time_step)
