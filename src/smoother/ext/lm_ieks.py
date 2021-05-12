@@ -2,7 +2,7 @@
 import numpy as np
 from src.smoother.ext.eks import Eks
 from src.smoother.base import IteratedSmoother
-from src.filter.ekf import ext_lin, ExtCache
+from src.filter.ekf import ExtCache
 from src.filter.iekf import Iekf
 
 

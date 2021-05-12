@@ -36,7 +36,7 @@ from src.visualization import to_tikz, write_to_tikz_file
 from src.models.range_bearing import MultiSensorRange, MultiSensorBearings
 from src.models.coord_turn import CoordTurn
 from data.lm_ieks_paper.coord_turn_example import Type, get_specific_states_from_file, simulate_data
-from exp.coord_turn_bearings_only import run_smoothing, calc_iter_metrics, mc_stats
+from exp.ct_bearings_only import run_smoothing, calc_iter_metrics, mc_stats
 
 
 def main():

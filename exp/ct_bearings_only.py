@@ -61,9 +61,9 @@ def main():
     prior_mean = np.array([0, 0, 1, 0, 0])
     prior_cov = np.diag([0.1, 0.1, 1, 1, 1])
 
-    num_iter = 5
+    num_iter = 10
 
-    num_mc_samples = 2
+    num_mc_samples = 100
 
     rmses_gn_ieks = np.zeros((num_mc_samples, num_iter))
     rmses_lm_ieks = np.zeros((num_mc_samples, num_iter))

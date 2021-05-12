@@ -1,5 +1,3 @@
-import logging
-from functools import partial
 import numpy as np
 from pathlib import Path
 import matplotlib.pyplot as plt
@@ -9,7 +7,7 @@ from src.smoother.ext.eks import Eks
 from src.smoother.ext.ieks import Ieks
 from src.smoother.ext.lm_ieks import LmIeks
 from src.smoother.slr.ipls import SigmaPointIpls
-from src.utils import setup_logger, tikz_2d_tab_to_file
+from src.utils import setup_logger
 from src.models.range_bearing import MultiSensorRange
 from src.models.coord_turn import CoordTurn
 from src.smoother.slr.lm_ipls import SigmaPointLmIpls
@@ -25,9 +23,11 @@ from exp.lm_ieks_paper import plot_results, plot_cost
 def main():
 
     rmse_stats = [(np.loadtxt(Path.cwd() / "results/rmse/gn-ieks.csv"), "GN-IEKS")]
-    tikz_stats(Path.cwd() / "tikz", "RMSE", rmse_stats)
-    # plot_stats(rmse_stats, "RMSE")
-    # plot_stats(nees_stats, "NEES")
+    nees_stats = [(np.loadtxt(Path.cwd() / "results/nees/lm-ipls.csv"), "LM-IEKS")]
+    nees = nees_stats[0][0]
+    print(np.max(nees, 0))
+    plot_stats(nees_stats, "RMSE")
+    # tikz_stats(Path.cwd() / "tmp_results/corrected", "LM-IEKS", rmse_stats)
 
 
 def tikz_stats(dir_, name, stats):
