@@ -234,7 +234,7 @@ def slr_noop_cost(traj, proc_bar, meas_bar, proc_cov, meas_cov):
     return None
 
 
-def _ss_cost(means, measurements, m_1_0, P_1_0, Q, R, f_fun, h_fun):
+def ss_cost(means, measurements, m_1_0, P_1_0, Q, R, f_fun, h_fun):
     """Direct port of Simo Särkkä's matlab cost fn
 
     Only kept here for debugging purposes

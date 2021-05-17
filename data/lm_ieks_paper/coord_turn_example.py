@@ -22,6 +22,7 @@ class Type(Enum):
     Extended = "ext"
     GN = "gn"
     LM = "lm"
+    LineSearch = "line_search"
 
 
 def simulate_data(
