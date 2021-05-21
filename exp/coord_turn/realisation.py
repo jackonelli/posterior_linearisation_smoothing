@@ -13,7 +13,6 @@ The problem is evaluated for
 - Reg-IPLS (LM-IPLS)
 """
 
-from enum import Enum
 import logging
 import argparse
 from pathlib import Path
@@ -27,6 +26,7 @@ from src.smoother.ext.ieks import Ieks
 from src.smoother.ext.lm_ieks import LmIeks
 from src.smoother.slr.ipls import SigmaPointIpls
 from src.smoother.slr.lm_ipls import SigmaPointLmIpls
+from src.smoother.ext.ls_ieks import LsIeks
 from src.slr.sigma_points import SigmaPointSlr
 from src.sigma_points import SphericalCubature
 from src.cost import analytical_smoothing_cost, slr_smoothing_cost_pre_comp, slr_noop_cost
@@ -36,7 +36,7 @@ from src.visualization import to_tikz, write_to_tikz_file
 from src.models.range_bearing import MultiSensorRange, MultiSensorBearings
 from src.models.coord_turn import CoordTurn
 from data.lm_ieks_paper.coord_turn_example import Type, get_specific_states_from_file, simulate_data
-from exp.ct_bearings_only import run_smoothing, calc_iter_metrics, mc_stats
+from exp.coord_turn.common import MeasType, run_smoothing, calc_iter_metrics, mc_stats
 
 
 def main():
@@ -68,6 +68,8 @@ def main():
 
     prior_mean = np.array([0, 0, 1, 0, 0])
     prior_cov = np.diag([0.1, 0.1, 1, 1, 1])
+
+    lambda_ = 1e-4
 
     num_iter = args.num_iter
     if args.meas_type == MeasType.Range:
@@ -106,7 +108,7 @@ def main():
         (ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks[1:], "GN-IEKS"),
     )
     ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks, rmses_lm_ieks, neeses_lm_ieks = run_smoothing(
-        LmIeks(motion_model, meas_model, num_iter, 10, 1e-2, 10),
+        LmIeks(motion_model, meas_model, num_iter, 10, lambda_, 10),
         states,
         measurements,
         prior_mean,
@@ -140,7 +142,7 @@ def main():
     )
     ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, rmses_lm_ipls, neeses_lm_ipls = run_smoothing(
         SigmaPointLmIpls(
-            motion_model, meas_model, sigma_point_method, num_iter, cost_improv_iter_lim=10, lambda_=1e-2, nu=10
+            motion_model, meas_model, sigma_point_method, num_iter, cost_improv_iter_lim=10, lambda_=lambda_, nu=10
         ),
         states,
         measurements,
@@ -185,11 +187,6 @@ def plot_cost(ax, costs):
     ax.set_xlabel("Iteration number i")
     ax.set_ylabel("$L_{LM}$")
     ax.set_title("Cost function")
-
-
-class MeasType(Enum):
-    Range = "range"
-    Bearings = "bearings"
 
 
 def parse_args():

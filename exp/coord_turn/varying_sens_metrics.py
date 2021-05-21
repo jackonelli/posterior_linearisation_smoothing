@@ -43,7 +43,7 @@ from exp.ct_bearings_only import run_smoothing, calc_iter_metrics, mc_stats
 def main():
     args = parse_args()
     log = logging.getLogger(__name__)
-    experiment_name = "ct_bearings_only_varying_sens"
+    experiment_name = "ct_only_varying_sens"
     setup_logger(f"logs/{experiment_name}.log", logging.DEBUG)
     log.info(f"Running experiment: {experiment_name}")
 
