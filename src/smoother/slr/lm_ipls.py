@@ -1,7 +1,6 @@
 """Levenberg-Marquardt regularised Iterated Posterior Linearisation Smoother (LM-IPLS)"""
 from functools import partial
 import numpy as np
-from src.smoother.base import Smoother
 from src.cost import slr_smoothing_cost_pre_comp
 from src.slr.base import SlrCache
 from src.smoother.base import IteratedSmoother
@@ -103,7 +102,6 @@ class SigmaPointLmIpls(IteratedSmoother):
                     return current_mf, current_Pf, self._current_means, self._current_covs, np.array(cost_iter)
                 # Only update the means, this is to faithfully optimise the current cost fn.
                 # Curiously, skipping this update based on the outer while cond. actually makes the code slower
-                # self._update_means_only(current_ms, tmp_cache)
                 prev_cost = cost
         return current_mf, current_Pf, current_ms, current_Ps, np.array(cost_iter)
 
@@ -122,9 +120,9 @@ class SigmaPointLmIpls(IteratedSmoother):
         ) = params
         return partial(
             cost_fn_prototype,
-            proc_bar=proc_bar,
+            motion_bar=proc_bar,
             meas_bar=meas_bar,
-            proc_cov=[err_cov_k + self._motion_model.proc_noise(k) for k, err_cov_k in enumerate(proc_lin_cov, 1)],
+            motion_cov=[err_cov_k + self._motion_model.proc_noise(k) for k, err_cov_k in enumerate(proc_lin_cov, 1)],
             meas_cov=[err_cov_k + self._meas_model.meas_noise(k) for k, err_cov_k in enumerate(meas_lin_cov, 1)],
         )
 

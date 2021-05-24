@@ -44,6 +44,17 @@ class Slr(ABC):
 
     @abstractmethod
     def slr(self, fn, mean, cov):
+        """Compute SLR quantities z_bar, psi, phi."""
+        pass
+
+    @abstractmethod
+    def calc_z_bar(self, fn, mean, cov):
+        """Compute SLR quantity z_bar
+
+        Semantically identical to calling
+        `z_bar, _, _ = self.slr(fn, mean, cov)`
+        but more efficient in practice since it avoids computing the covariances.
+        """
         pass
 
 

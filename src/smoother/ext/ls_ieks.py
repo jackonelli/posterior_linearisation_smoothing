@@ -39,7 +39,7 @@ class LsIeks(IteratedSmoother):
             mf, Pf, current_ms, current_Ps, cost = super(IteratedSmoother, self).filter_and_smooth(
                 measurements, m_1_0, P_1_0, cost_fn
             )
-            grid_ms, _, grid_cost = self._ls_method.search_next(self._current_means, current_ms)
+            grid_ms, alpha, grid_cost = self._ls_method.search_next(self._current_means, current_ms)
             if grid_cost > cost:
                 self._log.warning(f"Grid search did not decrease, defaulting to plain IEKS.")
                 self._update_estimates(current_ms, current_Ps)

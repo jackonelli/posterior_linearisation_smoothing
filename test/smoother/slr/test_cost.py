@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 from functools import partial
 import numpy as np
-from src.cost import slr_smoothing_cost, slr_smoothing_cost_pre_comp
+from src.cost import slr_smoothing_cost, slr_smoothing_cost_pre_comp, slr_smoothing_cost_means
 from src.models.range_bearing import MultiSensorRange
 from src.models.coord_turn import CoordTurn
 from src.slr.base import SlrCache
@@ -19,7 +19,7 @@ from data.lm_ieks_paper.coord_turn_example import get_specific_states_from_file,
 
 
 class TestCost(unittest.TestCase):
-    def test_cmp_pre_comp_with_on_the_fly(self):
+    def test_cmp_slr_costs(self):
         dt = 0.01
         qc = 0.01
         qw = 10
@@ -69,29 +69,64 @@ class TestCost(unittest.TestCase):
         )
 
         slr_cache.update(ss_ms, covs)
-        pre_comp = partial(
-            new_proto,
-            proc_bar=slr_cache.proc_bar,
-            meas_bar=slr_cache.meas_bar,
-            proc_cov=np.array(
+
+        varying_means_proto = partial(
+            slr_smoothing_cost_means,
+            measurements=measurements,
+            m_1_0=prior_mean,
+            P_1_0=prior_cov,
+            estimated_covs=covs,
+            motion_fn=motion_model.map_set,
+            meas_fn=meas_model.map_set,
+            slr_method=SigmaPointSlr(SphericalCubature()),
+        )
+        varying_means = partial(
+            varying_means_proto,
+            motion_cov=np.array(
                 [err_cov_k + motion_model.proc_noise(k) for k, (_, _, err_cov_k) in enumerate(slr_cache.proc_lin)]
             ),
             meas_cov=np.array(
                 [err_cov_k + meas_model.meas_noise(k) for k, (_, _, err_cov_k) in enumerate(slr_cache.meas_lin)]
             ),
         )
+
+        pre_comp = partial(
+            new_proto,
+            motion_bar=slr_cache.proc_bar,
+            meas_bar=slr_cache.meas_bar,
+            motion_cov=np.array(
+                [err_cov_k + motion_model.proc_noise(k) for k, (_, _, err_cov_k) in enumerate(slr_cache.proc_lin)]
+            ),
+            meas_cov=np.array(
+                [err_cov_k + meas_model.meas_noise(k) for k, (_, _, err_cov_k) in enumerate(slr_cache.meas_lin)]
+            ),
+        )
+
         self.assertAlmostEqual(pre_comp(ss_ms), on_the_fly(ss_ms))
+        self.assertAlmostEqual(pre_comp(ss_ms), varying_means(ss_ms))
+
         _, measurements, _, ss_ms = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.GN, 1)
         slr_cache.update(ss_ms, covs)
         pre_comp = partial(
             new_proto,
-            proc_bar=slr_cache.proc_bar,
+            motion_bar=slr_cache.proc_bar,
             meas_bar=slr_cache.meas_bar,
-            proc_cov=np.array(
+            motion_cov=np.array(
                 [err_cov_k + motion_model.proc_noise(k) for k, (_, _, err_cov_k) in enumerate(slr_cache.proc_lin)]
             ),
             meas_cov=np.array(
                 [err_cov_k + meas_model.meas_noise(k) for k, (_, _, err_cov_k) in enumerate(slr_cache.meas_lin)]
             ),
         )
+        varying_means = partial(
+            varying_means_proto,
+            motion_cov=np.array(
+                [err_cov_k + motion_model.proc_noise(k) for k, (_, _, err_cov_k) in enumerate(slr_cache.proc_lin)]
+            ),
+            meas_cov=np.array(
+                [err_cov_k + meas_model.meas_noise(k) for k, (_, _, err_cov_k) in enumerate(slr_cache.meas_lin)]
+            ),
+        )
+
         self.assertAlmostEqual(pre_comp(ss_ms), on_the_fly(ss_ms))
+        self.assertAlmostEqual(pre_comp(ss_ms), varying_means(ss_ms))

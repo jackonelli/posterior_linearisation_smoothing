@@ -6,12 +6,12 @@ from scipy.linalg import sqrtm
 
 class SigmaPointMethod(ABC):
     @abstractmethod
-    def sigma_points(mean, cov):
+    def gen_sigma_points(self, mean, cov):
         pass
 
 
 class SphericalCubature(SigmaPointMethod):
-    def sigma_points(self, mean, cov):
+    def gen_sigma_points(_self, mean, cov):
         D_x = mean.shape[0]
         cov = np.atleast_2d(cov)
         sqrt_cov = sqrtm(cov)
@@ -49,7 +49,7 @@ class UnscentedTransform(SigmaPointMethod):
         tmp_w = 1 / (2 * (np.arange(1, 2 * D_x) + lambda_))
         return np.concatenate((w_m_0, tmp_w)), np.concatenate((w_c_0, tmp_w))
 
-    def sigma_points(self, mean, cov):
+    def gen_sigma_points(self, mean, cov):
         D_x = mean.shape[0]
         cov = np.atleast_2d(cov)
         sqrt_cov = sqrtm(cov)

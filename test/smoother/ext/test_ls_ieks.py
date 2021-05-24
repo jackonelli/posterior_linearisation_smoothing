@@ -64,4 +64,4 @@ class TestIeks(unittest.TestCase):
         mf, Pf, ms, Ps, _iter_cost = ieks.filter_and_smooth_with_init_traj(
             measurements, prior_mean, prior_cov, init_traj, 1, cost_fn
         )
-        self.assertTrue(np.allclose(ms.sum(), 1223.9428357356326))
+        self.assertAlmostEqual(ms.sum(), 1223.9428357356326)

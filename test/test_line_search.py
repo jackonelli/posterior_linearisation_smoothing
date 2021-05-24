@@ -61,7 +61,6 @@ class TestIeks(unittest.TestCase):
         )
 
         K = measurements.shape[0]
-        D_x = prior_mean.shape[0]
         init_traj = (np.zeros((K, prior_mean.shape[0])), None)
         ieks = Ieks(motion_model, meas_model, num_iter)
         _, _, x_0, _, _ = ieks.filter_and_smooth_with_init_traj(
@@ -74,7 +73,7 @@ class TestIeks(unittest.TestCase):
 
         num_grid_points = 10
         ls = GridSearch(cost_fn, num_grid_points)
-        next_x, alpha = ls.search_next(x_0, x_1)
+        next_x, alpha, _ = ls.search_next(x_0, x_1)
         self.assertEqual(next_x.shape, x_0.shape)
         self.assertTrue(np.allclose(next_x, x_0 + alpha * (x_1 - x_0)))
 

@@ -13,7 +13,7 @@ class TestSlr(unittest.TestCase):
         ut = UnscentedTransform(1, 0, 1 / 2)
         mean = np.atleast_1d(6.27)
         cov = np.atleast_2d(2.0198)
-        sp, weights = ut.sigma_points(mean, cov)
+        sp, weights = ut.gen_sigma_points(mean, cov)
         self.assertTrue(np.allclose(sp, np.array([6.27, 8.01060, 4.52939]).reshape((3, 1))))
 
         slr_ = SigmaPointSlr(ut)

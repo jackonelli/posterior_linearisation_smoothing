@@ -30,10 +30,10 @@ def analytical_smoothing_cost(traj, measurements, m_1_0, P_1_0, motion_model: Mo
     prior_diff = traj[0, :] - m_1_0
     _cost = prior_diff.T @ np.linalg.inv(P_1_0) @ prior_diff
 
-    proc_diff = traj[1:, :] - motion_model.map_set(traj[:-1, :], None)
+    motion_diff = traj[1:, :] - motion_model.map_set(traj[:-1, :], None)
     meas_diff = measurements - meas_model.map_set(traj, None)
     for k in range(0, K - 1):
-        _cost += proc_diff[k, :].T @ np.linalg.inv(motion_model.proc_noise(k)) @ proc_diff[k, :]
+        _cost += motion_diff[k, :].T @ np.linalg.inv(motion_model.proc_noise(k)) @ motion_diff[k, :]
         # measurements are zero indexed, i.e. k-1 --> y_k
         if any(np.isnan(meas_diff[k, :])):
             continue
@@ -64,23 +64,23 @@ def analytical_smoothing_cost_time_dep(
 
     K, D_x = traj.shape
     # _, D_y = measurements.shape
-    # proc_diff = np.empty((K - 1, D_x))
+    # motion_diff = np.empty((K - 1, D_x))
     # meas_diff = np.empty((K, D_y))
     # TODO: collapse into singel loop.
     for k in range(1, K + 1):
         k_ind = k - 1
         if k < K:
-            proc_diff_k = traj[k_ind + 1, :] - motion_model.mapping(traj[k_ind, :], k)
-            _cost += proc_diff_k.T @ np.linalg.inv(motion_model.proc_noise(k)) @ proc_diff_k
+            motion_diff_k = traj[k_ind + 1, :] - motion_model.mapping(traj[k_ind, :], k)
+            _cost += motion_diff_k.T @ np.linalg.inv(motion_model.proc_noise(k)) @ motion_diff_k
         meas_k = measurements[k_ind]
         if any(np.isnan(meas_k)):
             continue
         meas_diff_k = meas_k - meas_model.mapping(traj[k_ind, :], k)
         _cost += meas_diff_k.T @ np.linalg.inv(meas_model.meas_noise(k)) @ meas_diff_k
     # for k in range(0, K - 1):
-    #     proc_diff_k = traj[k + 1, :] - motion_model.mapping(traj[k, :], k)
+    #     motion_diff_k = traj[k + 1, :] - motion_model.mapping(traj[k, :], k)
     #     meas_diff = traj[k, :] - motion_model.mapping(traj[k, :], k)
-    #     _cost += proc_diff[k, :].T @ np.linalg.inv(motion_model.proc_noise(k)) @ proc_diff[k, :]
+    #     _cost += motion_diff[k, :].T @ np.linalg.inv(motion_model.proc_noise(k)) @ motion_diff[k, :]
     #     # measurements are zero indexed, i.e. k-1 --> y_k
     #     if any(np.isnan(meas_diff[k, :])):
     #         continue
@@ -109,10 +109,10 @@ def analytical_smoothing_cost_lm_ext(
     prior_diff = traj[0, :] - m_1_0
     _cost = prior_diff.T @ np.linalg.inv(P_1_0) @ prior_diff
 
-    proc_diff = traj[1:, :] - motion_model.map_set(traj[:-1, :], None)
+    motion_diff = traj[1:, :] - motion_model.map_set(traj[:-1, :], None)
     meas_diff = measurements - meas_model.map_set(traj, None)
     for k in range(0, traj.shape[0] - 1):
-        _cost += proc_diff[k, :].T @ np.linalg.inv(motion_model.proc_noise(k)) @ proc_diff[k, :]
+        _cost += motion_diff[k, :].T @ np.linalg.inv(motion_model.proc_noise(k)) @ motion_diff[k, :]
         # measurements are zero indexed, i.e. k-1 --> y_k
         if any(np.isnan(meas_diff[k, :])):
             continue
@@ -129,7 +129,7 @@ def _lm_ext(x, prev_x, lambda_):
     return lambda_ * ((x - prev_x) ** 2).sum()
 
 
-def slr_smoothing_cost_pre_comp(traj, measurements, m_1_0, P_1_0, proc_bar, meas_bar, proc_cov, meas_cov):
+def slr_smoothing_cost_pre_comp(traj, measurements, m_1_0, P_1_0, motion_bar, meas_bar, motion_cov, meas_cov):
     """Cost function for an optimisation problem used in the family of slr smoothers
 
     GN optimisation of this cost function will result in a linearised function
@@ -164,8 +164,8 @@ def slr_smoothing_cost_pre_comp(traj, measurements, m_1_0, P_1_0, proc_bar, meas
     for k in range(1, K + 1):
         k_ind = k - 1
         if k < K:
-            proc_diff_k = traj[k_ind + 1, :] - proc_bar[k_ind]
-            _cost += proc_diff_k.T @ np.linalg.inv(proc_cov[k_ind]) @ proc_diff_k
+            motion_diff_k = traj[k_ind + 1, :] - motion_bar[k_ind]
+            _cost += motion_diff_k.T @ np.linalg.inv(motion_cov[k_ind]) @ motion_diff_k
         meas_k = measurements[k_ind]
         if any(np.isnan(meas_k)):
             continue
@@ -174,6 +174,38 @@ def slr_smoothing_cost_pre_comp(traj, measurements, m_1_0, P_1_0, proc_bar, meas
         _cost += meas_diff_k.T @ np.linalg.inv(meas_cov[k_ind]) @ meas_diff_k
 
     return _cost
+
+
+def slr_smoothing_cost_means(
+    traj, measurements, m_1_0, P_1_0, estimated_covs, motion_fn, meas_fn, motion_cov, meas_cov, slr_method
+):
+    """Cost function for an optimisation problem used in the family of slr smoothers
+
+    GN optimisation of this cost function will result in a linearised function
+    corresponding to the SLR Smoother (PrLS, PLS) et al.
+
+    The purpose of this cost function is to efficienctly emulate the fixation of the covariances
+    while varying with the means.
+
+    Args:
+        traj: states for a time sequence 1, ..., K
+            represented as a np.array(K, D_x).
+            (The actual variable in the cost function)
+        covs: estimated covariances (means) for a time sequence 1, ..., K
+            represented as a np.array(K, D_x, D_x)
+        meas: measurements for a time sequence 1, ..., K
+            represented as a np.array(K, D_y)
+    """
+    motion_bar = [
+        slr_method.calc_z_bar(partial(motion_fn, time_step=k), mean_k, cov_k)
+        for (k, (mean_k, cov_k)) in enumerate(zip(traj, estimated_covs), 1)
+    ]
+
+    meas_bar = [
+        slr_method.calc_z_bar(partial(meas_fn, time_step=k), mean_k, cov_k)
+        for (k, (mean_k, cov_k)) in enumerate(zip(traj, estimated_covs), 1)
+    ]
+    return slr_smoothing_cost_pre_comp(traj, measurements, m_1_0, P_1_0, motion_bar, meas_bar, motion_cov, meas_cov)
 
 
 def slr_smoothing_cost(
@@ -207,11 +239,11 @@ def slr_smoothing_cost(
     for k in range(0, traj.shape[0] - 1):
         mean_k = traj[k, :]
         cov_k = covs[k, :, :]
-        proc_bar, psi, phi = slr.slr(motion_mapping, mean_k, cov_k)
-        _, _, Omega_k = slr.linear_params_from_slr(mean_k, cov_k, proc_bar, psi, phi)
+        motion_bar, psi, phi = slr.slr(motion_mapping, mean_k, cov_k)
+        _, _, Omega_k = slr.linear_params_from_slr(mean_k, cov_k, motion_bar, psi, phi)
 
-        proc_diff_k = traj[k + 1, :] - proc_bar
-        _cost += proc_diff_k.T @ np.linalg.inv(motion_model.proc_noise(k) + Omega_k) @ proc_diff_k
+        motion_diff_k = traj[k + 1, :] - motion_bar
+        _cost += motion_diff_k.T @ np.linalg.inv(motion_model.proc_noise(k) + Omega_k) @ motion_diff_k
 
     meas_mapping = partial(meas_model.map_set, time_step=None)
     for k in range(0, traj.shape[0]):
@@ -229,7 +261,7 @@ def slr_smoothing_cost(
     return _cost
 
 
-def slr_noop_cost(traj, proc_bar, meas_bar, proc_cov, meas_cov):
+def slr_noop_cost(traj, motion_bar, meas_bar, motion_cov, meas_cov):
     LOGGER.warning("Using the dummy loss")
     return None
 

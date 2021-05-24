@@ -15,20 +15,25 @@ class SigmaPointSlr(Slr):
             - Test that the weighted cov's work as intended.
         """
 
-        # print(f"slr: {mean}, {cov}")
         sigma_points, weights = self.gen_sigma_points(mean, cov)
         transf_sigma_points = fn(sigma_points)
-        # print(f"SLR sp: {sigma_points}")
-        # print(f"SLR transf sp: {transf_sigma_points}")
         z_bar = weighted_avg(transf_sigma_points, weights)
         psi = weighted_cov(sigma_points, mean, transf_sigma_points, z_bar, weights)
         phi = weighted_cov(transf_sigma_points, z_bar, transf_sigma_points, z_bar, weights)
-        # print(f"SLR par: {z_bar}, {psi}, {phi}")
 
         return z_bar, psi, phi
 
     def gen_sigma_points(self, mean, cov):
-        return self.sigma_point_method.sigma_points(mean, cov)
+        return self.sigma_point_method.gen_sigma_points(mean, cov)
+
+    def calc_z_bar(self, fn, mean, cov):
+        """Sigma point SLR for z_bar only"""
+
+        sigma_points, weights = self.gen_sigma_points(mean, cov)
+        transf_sigma_points = fn(sigma_points)
+        z_bar = weighted_avg(transf_sigma_points, weights)
+
+        return z_bar
 
 
 def weighted_avg(vectors: np.ndarray, weights: np.ndarray) -> np.ndarray:
