@@ -1,6 +1,8 @@
 from enum import Enum
 import numpy as np
+import matplotlib.pyplot as plt
 from src.analytics import rmse, nees
+import src.visualization as vis
 
 
 class MeasType(Enum):
@@ -55,3 +57,21 @@ def calc_iter_metrics(metric_fn, estimates, states, num_iter):
             )
         )
     return metrics
+
+
+def plot_results(states, trajs_and_costs, meas, skip_cov=50):
+    means_and_covs = [(ms, Ps, f"{label}-{len(cost)}") for (ms, Ps, cost, label) in trajs_and_costs]
+    # costs = [
+    #     (cost, f"{label}-{len(cost)}") for (_, _, cost, label) in trajs_and_costs
+    # ]
+    # _, (ax_1, ax_2) = plt.subplots(1, 2)
+    fig, ax_1 = plt.subplots()
+    vis.plot_2d_est(
+        states,
+        meas=meas,
+        means_and_covs=means_and_covs,
+        sigma_level=2,
+        skip_cov=skip_cov,
+        ax=ax_1,
+    )
+    plt.show()

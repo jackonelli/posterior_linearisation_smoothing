@@ -38,7 +38,7 @@ from src.visualization import to_tikz, write_to_tikz_file
 from src.models.range_bearing import MultiSensorRange, MultiSensorBearings
 from src.models.coord_turn import CoordTurn
 from data.lm_ieks_paper.coord_turn_example import Type, get_specific_states_from_file, simulate_data
-from exp.coord_turn.common import MeasType, run_smoothing, calc_iter_metrics, mc_stats
+from exp.coord_turn.common import MeasType, run_smoothing, calc_iter_metrics, mc_stats, plot_results
 
 
 def main():
@@ -190,26 +190,6 @@ def main():
         results,
         None,
     )
-
-
-# TODO: Sep module?
-def plot_results(states, trajs_and_costs, meas, skip_cov=50):
-    means_and_covs = [(ms, Ps, f"{label}-{len(cost)}") for (ms, Ps, cost, label) in trajs_and_costs]
-    # costs = [
-    #     (cost, f"{label}-{len(cost)}") for (_, _, cost, label) in trajs_and_costs
-    # ]
-    # _, (ax_1, ax_2) = plt.subplots(1, 2)
-    fig, ax_1 = plt.subplots()
-    vis.plot_2d_est(
-        states,
-        meas=meas,
-        means_and_covs=means_and_covs,
-        sigma_level=2,
-        skip_cov=skip_cov,
-        ax=ax_1,
-    )
-    write_to_tikz_file(to_tikz(fig), Path.cwd(), "aba.tikz")
-    plt.show()
 
 
 def plot_cost(ax, costs):

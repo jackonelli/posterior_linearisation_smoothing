@@ -42,9 +42,9 @@ class SigmaPointIpls(IteratedSmoother):
         ) = params
         return partial(
             cost_fn_prototype,
-            proc_bar=proc_bar,
+            motion_bar=proc_bar,
             meas_bar=meas_bar,
-            proc_cov=np.array(
+            motion_cov=np.array(
                 [err_cov_k + self._motion_model.proc_noise(k) for k, err_cov_k in enumerate(proc_lin_cov)]
             ),
             meas_cov=[err_cov_k + self._meas_model.meas_noise(k) for k, err_cov_k in enumerate(meas_lin_cov)],

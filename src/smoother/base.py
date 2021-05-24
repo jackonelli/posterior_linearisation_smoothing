@@ -176,6 +176,8 @@ class IteratedSmoother(Smoother):
         TODO: Can this be made to make overrides unnec? Adding rejection predicate perhaps.
         """
         current_ms, current_Ps = init_traj
+        # If self.num_iter is too low to enter the iter loop
+        mf, Pf = init_traj
         self._update_estimates(current_ms, current_Ps)
         cost_fn = self._specialise_cost_fn(cost_fn_prototype, self._cost_fn_params())
         cost_iter = [cost_fn(current_ms)] if cost_fn is not None else [None]

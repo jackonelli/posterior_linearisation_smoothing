@@ -45,7 +45,10 @@ class LmIeks(IteratedSmoother):
                     measurements, m_1_0, P_1_0, cost_fn
                 )
                 self._log.debug(f"Cost: {_cost}, lambda: {self._lambda}")
-                if _cost < prev_cost:
+                if not self._lambda > 0.0:
+                    self._log.info("lambda=0, skipping cost check")
+                    has_improved = True
+                elif _cost < prev_cost:
                     self._lambda /= self._nu
                     has_improved = True
                 else:
@@ -85,11 +88,12 @@ class _LmIekf(Iekf):
         """
         store_ind = time_step - 1
         m_k_k, P_k_k = super()._update(y_k, m_k_kminus1, P_k_kminus1, R, linearization, time_step)
-        D_x = m_k_kminus1.shape[0]
-        S = P_k_k + 1 / self._lambda * np.eye(D_x)
-        K = P_k_k @ np.linalg.inv(S)
-        m_k_K = self._current_means[store_ind, :]
-        m_k_k = m_k_k + (K @ (m_k_K - m_k_k)).reshape(m_k_k.shape)
-        P_k_k = P_k_k - K @ S @ K.T
+        if self._lambda > 0.0:
+            D_x = m_k_kminus1.shape[0]
+            S = P_k_k + 1 / self._lambda * np.eye(D_x)
+            K = P_k_k @ np.linalg.inv(S)
+            m_k_K = self._current_means[store_ind, :]
+            m_k_k = m_k_k + (K @ (m_k_K - m_k_k)).reshape(m_k_k.shape)
+            P_k_k = P_k_k - K @ S @ K.T
 
         return m_k_k, P_k_k

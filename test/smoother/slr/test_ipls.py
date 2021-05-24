@@ -27,7 +27,7 @@ from src.analytics import rmse
 import matplotlib.pyplot as plt
 
 
-class TestIeks(unittest.TestCase):
+class TestIpls(unittest.TestCase):
     def test_cmp_with_ss_impl(self):
         K = 50
         trajs, noise, ms_cmp, Ps_cmp = get_specific_states_from_file(Path.cwd() / "data/ipls_paper")

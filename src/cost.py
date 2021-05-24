@@ -262,7 +262,7 @@ def slr_smoothing_cost(
 
 
 def slr_noop_cost(traj, motion_bar, meas_bar, motion_cov, meas_cov):
-    LOGGER.warning("Using the dummy loss")
+    LOGGER.debug("Using the dummy loss")
     return None
 
 

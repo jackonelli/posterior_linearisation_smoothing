@@ -28,7 +28,7 @@ from src.cost import analytical_smoothing_cost, slr_smoothing_cost_pre_comp, slr
 from src.analytics import rmse, nees
 from src.visualization import to_tikz, write_to_tikz_file
 from data.lm_ieks_paper.coord_turn_example import simulate_data
-from exp.coord_turn.common import MeasType, run_smoothing, mc_stats, calc_iter_metrics
+from exp.coord_turn.common import MeasType, run_smoothing, mc_stats, calc_iter_metrics, plot_results
 
 
 def main():
@@ -37,7 +37,8 @@ def main():
     experiment_name = "ct_constant_sens"
     setup_logger(f"logs/{experiment_name}.log", logging.INFO)
     log.info(f"Running experiment: {experiment_name}")
-    np.random.seed(0)
+    if not args.random:
+        np.random.seed(0)
     dt = 0.01
     qc = 0.01
     qw = 10
@@ -61,6 +62,9 @@ def main():
 
     prior_mean = np.array([0, 0, 1, 0, 0])
     prior_cov = np.diag([0.1, 0.1, 1, 1, 1])
+
+    lambda_ = 0e-2
+    nu = 10
 
     num_iter = args.num_iter
     if args.meas_type == MeasType.Range:
@@ -88,6 +92,8 @@ def main():
         log.info(f"MC iter: {mc_iter+1}/{num_mc_samples}")
         states, measurements = simulate_data(motion_model, meas_model, prior_mean[:-1], time_steps=500)
         measurements = measurements[:, :2]
+        if mc_iter != 5:
+            continue
         cost_fn_eks = partial(
             analytical_smoothing_cost,
             measurements=measurements,
@@ -105,24 +111,24 @@ def main():
             P_1_0=prior_cov,
         )
 
-        ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks, tmp_rmse, tmp_nees = run_smoothing(
-            Ieks(motion_model, meas_model, num_iter), states, measurements, prior_mean, prior_cov, cost_fn_eks
-        )
-        rmses_gn_ieks[mc_iter, :] = tmp_rmse
-        neeses_gn_ieks[mc_iter, :] = tmp_nees
+        # ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks, tmp_rmse, tmp_nees = run_smoothing(
+        #     Ieks(motion_model, meas_model, num_iter), states, measurements, prior_mean, prior_cov, cost_fn_eks
+        # )
+        # rmses_gn_ieks[mc_iter, :] = tmp_rmse
+        # neeses_gn_ieks[mc_iter, :] = tmp_nees
 
-        ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks, tmp_rmse, tmp_nees = run_smoothing(
-            LmIeks(motion_model, meas_model, num_iter, cost_improv_iter_lim=10, lambda_=1e-2, nu=10),
-            states,
-            measurements,
-            prior_mean,
-            prior_cov,
-            cost_fn_eks,
-        )
-        rmses_lm_ieks[mc_iter, :] = tmp_rmse
-        neeses_lm_ieks[mc_iter, :] = tmp_nees
+        # ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks, tmp_rmse, tmp_nees = run_smoothing(
+        #     LmIeks(motion_model, meas_model, num_iter, cost_improv_iter_lim=10, lambda_=lambda_, nu=nu),
+        #     states,
+        #     measurements,
+        #     prior_mean,
+        #     prior_cov,
+        #     cost_fn_eks,
+        # )
+        # rmses_lm_ieks[mc_iter, :] = tmp_rmse
+        # neeses_lm_ieks[mc_iter, :] = tmp_nees
 
-        ms_gn_ipls, Ps_gn_ipls, cost_gn_ipls, tmp_rmse, tmp_nees = run_smoothing(
+        ms_ipls, Ps_ipls, cost_ipls, tmp_rmse, tmp_nees = run_smoothing(
             SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter),
             states,
             measurements,
@@ -135,13 +141,22 @@ def main():
 
         ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, tmp_rmse, tmp_nees = run_smoothing(
             SigmaPointLmIpls(
-                motion_model, meas_model, sigma_point_method, num_iter, cost_improv_iter_lim=10, lambda_=1e-4, nu=10
+                motion_model, meas_model, sigma_point_method, num_iter, cost_improv_iter_lim=10, lambda_=lambda_, nu=nu
             ),
             states,
             measurements,
             prior_mean,
             prior_cov,
             cost_fn_ipls,
+        )
+        print(tmp_nees)
+        plot_results(
+            states,
+            [
+                # (ms_ipls, Ps_ipls, cost_ipls, "IPLS"),
+                (ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, "LM-IPLS")
+            ],
+            None,
         )
         rmses_lm_ipls[mc_iter, :] = tmp_rmse
         neeses_lm_ipls[mc_iter, :] = tmp_nees
@@ -221,6 +236,7 @@ def parse_args():
     parser.add_argument("--meas_type", type=MeasType, required=True)
     parser.add_argument("--num_iter", type=int, default=10)
     parser.add_argument("--num_mc_samples", type=int, default=100)
+    parser.add_argument("--random", action="store_true")
 
     return parser.parse_args()
 

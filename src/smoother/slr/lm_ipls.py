@@ -48,7 +48,8 @@ class SigmaPointLmIpls(IteratedSmoother):
     def filter_and_smooth_with_init_traj(self, measurements, m_1_0, P_1_0, init_traj, start_iter, cost_fn_prototype):
         """Filter and smoothing given an initial trajectory"""
         current_ms, current_Ps = init_traj
-        current_mf, current_Pf = init_traj
+        # If self.num_iter is too low to enter the iter loop
+        mf, Pf = init_traj
         cost_iter = []
         for iter_ in range(start_iter, self.num_iter + 1):
             # Optimisation to only update the estimates when the estimates have changed.
@@ -91,7 +92,10 @@ class SigmaPointLmIpls(IteratedSmoother):
                     )
                     cost = tmp_cost_fn(current_ms)
                     self._log.debug(f"Cost: {cost}, lambda: {self._lambda}, loss_cand_no: {loss_cand_no}")
-                    if cost < prev_cost:
+                    if not self._lambda > 0.0:
+                        self._log.info("lambda=0, skipping cost check")
+                        has_improved = True
+                    elif cost < prev_cost:
                         self._lambda /= self._nu
                         has_improved = True
                     else:
@@ -99,11 +103,11 @@ class SigmaPointLmIpls(IteratedSmoother):
                     loss_cand_no += 1
                 if loss_cand_no == self._cost_improv_iter_lim + 1:
                     self._log.info(f"No cost improvement for {self._cost_improv_iter_lim} iterations, returning")
-                    return current_mf, current_Pf, self._current_means, self._current_covs, np.array(cost_iter)
+                    return mf, Pf, self._current_means, self._current_covs, np.array(cost_iter)
                 # Only update the means, this is to faithfully optimise the current cost fn.
                 # Curiously, skipping this update based on the outer while cond. actually makes the code slower
                 prev_cost = cost
-        return current_mf, current_Pf, current_ms, current_Ps, np.array(cost_iter)
+        return mf, Pf, current_ms, current_Ps, np.array(cost_iter)
 
     def _filter_seq(self, measurements, m_1_0, P_1_0):
         lm_iplf = _LmIplf(self._motion_model, self._meas_model, self._sigma_point_method, self._lambda)
@@ -163,10 +167,11 @@ class _LmIplf(SigmaPointIplf):
         store_ind = time_step - 1
         m_k_k, P_k_k = super()._update(y_k, m_k_kminus1, P_k_kminus1, R, linearization, time_step)
         D_x = m_k_kminus1.shape[0]
-        S = P_k_k + 1 / self._lambda * np.eye(D_x)
-        K = P_k_k @ np.linalg.inv(S)
-        m_k_K = self._current_means[store_ind, :]
-        m_k_k = m_k_k + (K @ (m_k_K - m_k_k)).reshape(m_k_k.shape)
-        P_k_k = P_k_k - K @ S @ K.T
+        if self._lambda > 0:
+            S = P_k_k + 1 / self._lambda * np.eye(D_x)
+            K = P_k_k @ np.linalg.inv(S)
+            m_k_K = self._current_means[store_ind, :]
+            m_k_k = m_k_k + (K @ (m_k_K - m_k_k)).reshape(m_k_k.shape)
+            P_k_k = P_k_k - K @ S @ K.T
 
         return m_k_k, P_k_k
