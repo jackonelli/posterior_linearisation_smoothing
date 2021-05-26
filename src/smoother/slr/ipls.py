@@ -25,7 +25,10 @@ class SigmaPointIpls(IteratedSmoother):
 
     def _first_iter(self, measurements, m_1_0, P_1_0, cost_fn_prototype):
         smoother = SigmaPointPrLs(self._motion_model, self._meas_model, self._sigma_point_method)
-        return smoother.filter_and_smooth(measurements, m_1_0, P_1_0, None)
+        mf, Pf, ms, Ps, _ = smoother.filter_and_smooth(measurements, m_1_0, P_1_0, None)
+        self._update_estimates(ms, Ps)
+        cost_fn = self._specialise_cost_fn(cost_fn_prototype, self._cost_fn_params())
+        return mf, Pf, ms, Ps, cost_fn(ms)
 
     def _filter_seq(self, measurements, m_1_0, P_1_0):
         iplf = SigmaPointIplf(self._motion_model, self._meas_model, self._sigma_point_method)
@@ -59,3 +62,6 @@ class SigmaPointIpls(IteratedSmoother):
         """
         super()._update_estimates(means, covs)
         self._cache.update(self._current_means, self._current_covs)
+
+    def _is_initialised(self):
+        return self._cache.is_initialized() and self._current_means is not None and self._current_covs is not None

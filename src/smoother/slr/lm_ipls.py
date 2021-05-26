@@ -42,7 +42,6 @@ class SigmaPointLmIpls(IteratedSmoother):
         self._update_estimates(smooth_means, smooth_covs)
         cost_fn = self._specialise_cost_fn(cost_fn_prototype, (self._cache.bars(), self._cache.error_covs()))
         cost = cost_fn(smooth_means)
-        self._log.debug(f"Initial cost: {cost}")
         return filter_means, filter_covs, smooth_means, smooth_covs, cost
 
     def filter_and_smooth_with_init_traj(self, measurements, m_1_0, P_1_0, init_traj, start_iter, cost_fn_prototype):
@@ -107,6 +106,8 @@ class SigmaPointLmIpls(IteratedSmoother):
                 # Only update the means, this is to faithfully optimise the current cost fn.
                 # Curiously, skipping this update based on the outer while cond. actually makes the code slower
                 prev_cost = cost
+        cost_iter.append(prev_cost)
+        print("Last:", cost_fn(current_ms))
         return mf, Pf, current_ms, current_Ps, np.array(cost_iter)
 
     def _filter_seq(self, measurements, m_1_0, P_1_0):

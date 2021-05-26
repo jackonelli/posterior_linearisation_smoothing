@@ -51,7 +51,8 @@ class SigmaPointLsIpls(IteratedSmoother):
     def filter_and_smooth_with_init_traj(self, measurements, m_1_0, P_1_0, init_traj, start_iter, cost_fn_prototype):
         """Filter and smoothing given an initial trajectory"""
         current_ms, current_Ps = init_traj
-        current_mf, current_Pf = init_traj
+        # If self.num_iter is too low to enter the iter loop
+        mf, Pf = init_traj
         cost_iter = []
         for iter_ in range(start_iter, self.num_iter + 1):
             self._log.debug(f"Iter: {iter_}")
@@ -78,7 +79,7 @@ class SigmaPointLsIpls(IteratedSmoother):
                 else:
                     self._update_means_only(grid_ms, None)
                     prev_cost = grid_cost
-        return current_mf, current_Pf, current_ms, current_Ps, np.array(cost_iter)
+        return mf, Pf, current_ms, current_Ps, np.array(cost_iter)
 
     def _filter_seq(self, measurements, m_1_0, P_1_0):
         iplf = SigmaPointIplf(self._motion_model, self._meas_model, self._sigma_point_method)

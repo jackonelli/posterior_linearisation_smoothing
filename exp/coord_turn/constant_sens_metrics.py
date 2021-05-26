@@ -27,7 +27,7 @@ from src.sigma_points import SphericalCubature
 from src.cost import analytical_smoothing_cost, slr_smoothing_cost_pre_comp, slr_noop_cost
 from src.analytics import rmse, nees
 from src.visualization import to_tikz, write_to_tikz_file
-from data.lm_ieks_paper.coord_turn_example import simulate_data
+from data.lm_ieks_paper.coord_turn_example import simulate_data, save_states_and_meas
 from exp.coord_turn.common import MeasType, run_smoothing, mc_stats, calc_iter_metrics, plot_results
 
 
@@ -35,7 +35,7 @@ def main():
     log = logging.getLogger(__name__)
     args = parse_args()
     experiment_name = "ct_constant_sens"
-    setup_logger(f"logs/{experiment_name}.log", logging.INFO)
+    setup_logger(f"logs/{experiment_name}.log", logging.DEBUG)
     log.info(f"Running experiment: {experiment_name}")
     if not args.random:
         np.random.seed(0)
@@ -63,7 +63,7 @@ def main():
     prior_mean = np.array([0, 0, 1, 0, 0])
     prior_cov = np.diag([0.1, 0.1, 1, 1, 1])
 
-    lambda_ = 0e-2
+    lambda_ = 1e-2
     nu = 10
 
     num_iter = args.num_iter
@@ -94,6 +94,8 @@ def main():
         measurements = measurements[:, :2]
         if mc_iter != 5:
             continue
+
+        save_states_and_meas(states, measurements, Path.cwd() / "data/lm_ieks_paper/tricky", "lm_div")
         cost_fn_eks = partial(
             analytical_smoothing_cost,
             measurements=measurements,

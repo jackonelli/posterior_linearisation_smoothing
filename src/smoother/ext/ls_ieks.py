@@ -28,6 +28,8 @@ class LsIeks(IteratedSmoother):
     def filter_and_smooth_with_init_traj(self, measurements, m_1_0, P_1_0, init_traj, start_iter, cost_fn):
         """Filter and smoothing given an initial trajectory"""
         current_ms, current_Ps = init_traj
+        # If self.num_iter is too low to enter the iter loop
+        mf, Pf = init_traj
         self._update_estimates(current_ms, current_Ps)
         prev_cost = cost_fn(current_ms)
         cost_iter = [prev_cost]
@@ -36,7 +38,7 @@ class LsIeks(IteratedSmoother):
             self._log.debug(f"Iter: {iter_}")
             # Note: here we want to run the base `Smoother` class method.
             # I.e. we're getting the grandparent's method.
-            mf, Pf, current_ms, current_Ps, cost = super(IteratedSmoother, self).filter_and_smooth(
+            current_mf, current_Pf, current_ms, current_Ps, cost = super(IteratedSmoother, self).filter_and_smooth(
                 measurements, m_1_0, P_1_0, cost_fn
             )
             grid_ms, alpha, grid_cost = self._ls_method.search_next(self._current_means, current_ms)
@@ -44,9 +46,12 @@ class LsIeks(IteratedSmoother):
                 self._log.warning(f"Grid search did not decrease, defaulting to plain IEKS.")
                 self._update_estimates(current_ms, current_Ps)
                 prev_cost = cost
+                mf = current_mf
+                Pf = current_Pf
             else:
                 self._update_estimates(grid_ms, current_Ps)
                 prev_cost = grid_cost
+                mf = mf + alpha * (current_mf - self._current_means)
             cost_iter.append(prev_cost)
             # _cost = cost(current_ms, measurements, m_1_0, P_1_0, self._motion_model, self._meas_model)
         return mf, Pf, current_ms, current_Ps, np.array(cost_iter)
@@ -62,3 +67,6 @@ class LsIeks(IteratedSmoother):
         """
         super()._update_estimates(means, covs)
         self._cache.update(means, None)
+
+    def _is_initialised(self):
+        return self._cache.is_initialized() and self._current_means is not None

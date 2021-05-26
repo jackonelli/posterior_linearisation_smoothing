@@ -51,4 +51,4 @@ class ExtCache:
 
     def is_initialized(self):
         # TODO: Full
-        return self.proc_lin is not None
+        return self.motion_lin is not None and self.meas_lin is not None

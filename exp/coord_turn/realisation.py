@@ -146,7 +146,7 @@ def main():
         slr_method=SigmaPointSlr(sigma_point_method),
     )
 
-    ms_ipls, Ps_ipls, cost_ipls, rmses_ipls, neeses_ipls = run_smoothing(
+    ms_ls_ipls, Ps_ls_ipls, cost_ls_ipls, rmses_ls_ipls, neeses_ls_ipls = run_smoothing(
         SigmaPointLsIpls(motion_model, meas_model, sigma_point_method, num_iter, GridSearch, 10),
         states,
         measurements,
@@ -156,7 +156,7 @@ def main():
         None,
     )
     results.append(
-        (ms_ipls, Ps_ipls, cost_ipls, "LS-IPLS"),
+        (ms_ls_ipls, Ps_ls_ipls, cost_ls_ipls, "LS-IPLS"),
     )
 
     # ms_ipls, Ps_ipls, cost_ipls, rmses_ipls, neeses_ipls = run_smoothing(

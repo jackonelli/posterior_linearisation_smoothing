@@ -157,14 +157,15 @@ class IteratedSmoother(Smoother):
         """Overrides (extends) the base class default implementation"""
 
         self._log.debug("Iter: 1")
-        mf, Pf, current_ms, current_Ps, first_cost = self._first_iter(measurements, m_1_0, P_1_0, cost_fn)
+        mf, Pf, current_ms, current_Ps, initial_cost = self._first_iter(measurements, m_1_0, P_1_0, cost_fn)
+        self._log.debug(f"Initial cost: {initial_cost}")
         if self.num_iter > 1:
             mf, Pf, ms, Ps, tmp_cost = self.filter_and_smooth_with_init_traj(
                 measurements, m_1_0, P_1_0, (current_ms, current_Ps), 2, cost_fn
             )
             return mf, Pf, ms, Ps, tmp_cost
         else:
-            iter_cost = np.array([first_cost])
+            iter_cost = np.array([initial_cost])
             if not self._is_initialised():
                 self._update_estimates(current_ms, current_Ps)
             return mf, Pf, current_ms, current_Ps, iter_cost
@@ -178,16 +179,23 @@ class IteratedSmoother(Smoother):
         current_ms, current_Ps = init_traj
         # If self.num_iter is too low to enter the iter loop
         mf, Pf = init_traj
-        self._update_estimates(current_ms, current_Ps)
+        if not self._is_initialised():
+            self._update_estimates(current_ms, current_Ps)
         cost_fn = self._specialise_cost_fn(cost_fn_prototype, self._cost_fn_params())
         cost_iter = [cost_fn(current_ms)] if cost_fn is not None else [None]
         for iter_ in range(start_iter, self.num_iter + 1):
             self._log.debug(f"Iter: {iter_}")
             mf, Pf, current_ms, current_Ps, cost = super().filter_and_smooth(measurements, m_1_0, P_1_0, cost_fn)
             self._update_estimates(current_ms, current_Ps)
+            self._log.debug(f"Cost: {cost}")
             cost_iter.append(cost)
             cost_fn = self._specialise_cost_fn(cost_fn_prototype, self._cost_fn_params())
         return mf, Pf, current_ms, current_Ps, np.array(cost_iter)
+
+    @abstractmethod
+    def _first_iter(measurements, m_1_0, P_1_0, cost_fn):
+        """First, special, iter to initialise the 'previous estimates'"""
+        pass
 
     def _specialise_cost_fn(self, cost_fn_prototype, params):
         """Required for methods which update the cost fn, e.g. Reg-IPLS."""
@@ -211,10 +219,6 @@ class IteratedSmoother(Smoother):
         for means, covs in zip(self._store_means, self._store_covs):
             yield means, covs
 
-    def _is_initialised(self):
-        return self._current_means is not None or self._current_covs is not None
-
     @abstractmethod
-    def _first_iter(measurements, m_1_0, P_1_0, cost_fn):
-        """First, special, iter to initialise the 'previous estimates'"""
+    def _is_initialised(self):
         pass

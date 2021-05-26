@@ -33,3 +33,6 @@ class Ieks(IteratedSmoother):
         """
         super()._update_estimates(means, covs)
         self._cache.update(means, None)
+
+    def _is_initialised(self):
+        return self._cache.is_initialized() and self._current_means is not None

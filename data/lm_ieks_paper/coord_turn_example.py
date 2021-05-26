@@ -92,14 +92,14 @@ def get_specific_states_from_file(
     else:
         raise FileNotFoundError(f"No meas data file at '{meas_file}'")
 
-    xf_file = data_root / type_.value / xf_name(num_iter)
+    xf_file = data_root / type_.value / _xf_name(num_iter)
     if xf_file.exists():
         xf = np.genfromtxt(xf_file, dtype=float, delimiter=";", comments="#")
     else:
         LOGGER.warn(f"No xf data file at '{xf_file}'")
         xf = None
 
-    xs_file = data_root / type_.value / xs_name(num_iter)
+    xs_file = data_root / type_.value / _xs_name(num_iter)
     if xs_file.exists():
         xs = np.genfromtxt(xs_file, dtype=float, delimiter=";", comments="#")
     else:
@@ -109,14 +109,21 @@ def get_specific_states_from_file(
     return states, measurements, xf, xs
 
 
-def xf_name(num_iter: Optional[int]) -> str:
+def save_states_and_meas(states, meas, dir_, label):
+    states_file = dir_ / f"{label}_states.csv"
+    meas_file = dir_ / f"{label}_meas.csv"
+    np.savetxt(states_file, states)
+    np.savetxt(meas_file, meas)
+
+
+def _xf_name(num_iter: Optional[int]) -> str:
     if num_iter is not None:
         return f"xf_{num_iter}.csv"
     else:
         return f"xf.csv"
 
 
-def xs_name(num_iter: Optional[int]) -> str:
+def _xs_name(num_iter: Optional[int]) -> str:
     if num_iter is not None:
         return f"xs_{num_iter}.csv"
     else:
