@@ -31,7 +31,7 @@ from exp.coord_turn.common import MeasType, run_smoothing, calc_iter_metrics, mc
 def main():
     args = parse_args()
     log = logging.getLogger(__name__)
-    experiment_name = "lm_ieks"
+    experiment_name = "analyse_tricky_ct"
     setup_logger(f"logs/{experiment_name}.log", logging.DEBUG)
     log.info(f"Running experiment: {experiment_name}")
 
@@ -162,27 +162,27 @@ def main():
         m_1_0=prior_mean,
         P_1_0=prior_cov,
     )
-    ms_ipls, Ps_ipls, cost_ipls, rmses_ipls, neeses_ipls = run_smoothing(
-        SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter),
-        states,
-        measurements,
-        prior_mean,
-        prior_cov,
-        pre_comp_cost,
-        None,
-    )
-    estimates.append(
-        (ms_ipls, Ps_ipls, cost_ipls, "IPLS"),
-    )
-    costs.append(
-        (cost_ipls, "IPLS"),
-    )
-    rmses.append(
-        (rmses_ipls, "IPLS"),
-    )
-    neeses.append(
-        (neeses_ipls, "IPLS"),
-    )
+    # ms_ipls, Ps_ipls, cost_ipls, rmses_ipls, neeses_ipls = run_smoothing(
+    #     SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter),
+    #     states,
+    #     measurements,
+    #     prior_mean,
+    #     prior_cov,
+    #     pre_comp_cost,
+    #     None,
+    # )
+    # estimates.append(
+    #     (ms_ipls, Ps_ipls, cost_ipls, "IPLS"),
+    # )
+    # costs.append(
+    #     (cost_ipls, "IPLS"),
+    # )
+    # rmses.append(
+    #     (rmses_ipls, "IPLS"),
+    # )
+    # neeses.append(
+    #     (neeses_ipls, "IPLS"),
+    # )
 
     ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, rmses_lm_ipls, neeses_lm_ipls = run_smoothing(
         SigmaPointLmIpls(
@@ -209,7 +209,10 @@ def main():
     )
 
     check_cost(
-        [(ms_ipls, Ps_ipls, "GN"), (ms_lm_ipls, Ps_lm_ipls, "LM")],
+        [
+            # (ms_ipls, Ps_ipls, "GN"),
+            (ms_lm_ipls, Ps_lm_ipls, "LM")
+        ],
         pre_comp_cost,
         motion_model,
         meas_model,
@@ -237,15 +240,15 @@ def main():
     #     (neeses_ls_ipls, "LS-IPLS"),
     # )
 
-    print(costs)
-    plot_cost(costs)
-    plot_neeses(neeses)
-    plot_rmses(rmses)
-    plot_results(
-        states,
-        estimates,
-        None,
-    )
+    # print(costs)
+    # plot_cost(costs)
+    # plot_neeses(neeses)
+    # plot_rmses(rmses)
+    # plot_results(
+    #     states,
+    #     estimates,
+    #     None,
+    # )
 
 
 from src.slr.base import SlrCache

@@ -50,64 +50,65 @@ class SigmaPointLmIpls(IteratedSmoother):
         # If self.num_iter is too low to enter the iter loop
         mf, Pf = init_traj
         cost_iter = []
+        # Optimisation to only update the estimates when the estimates have changed.
+        # This method can be called either as part of the filter_and_smooth method,
+        # then the estimates are already updated in the _first_iter method,
+        # Or it can be called directly with an init_traj, then the update is needed
+        if not self._is_initialised():
+            self._update_estimates(current_ms, current_Ps)
+        cost_fn = self._specialise_cost_fn(cost_fn_prototype, (self._cache.bars(), self._cache.error_covs()))
+        prev_cost = cost_fn(current_ms)
         for iter_ in range(start_iter, self.num_iter + 1):
-            # Optimisation to only update the estimates when the estimates have changed.
-            # This method can be called either as part of the filter_and_smooth method,
-            # then the estimates are already updated in the _first_iter method,
-            # Or it can be called directly with an init_traj, then the update is needed
-            if not self._is_initialised() or iter_ is not start_iter:
-                self._update_estimates(current_ms, current_Ps)
-            cost_fn = self._specialise_cost_fn(cost_fn_prototype, (self._cache.bars(), self._cache.error_covs()))
-            prev_cost = cost_fn(current_ms)
-            cost_iter.append(prev_cost)
             self._log.debug(f"Iter: {iter_}")
 
             loss_cand_no = 1
             has_improved = False
 
-            while not self._terminate_inner_loop(loss_cand_no):
-                while has_improved is False and loss_cand_no <= self._cost_improv_iter_lim:
-                    # Note: here we want to run the base `Smoother` class method.
-                    # I.e. we're getting the grandparent's method.
-                    mf, Pf, current_ms, current_Ps, cost = super(IteratedSmoother, self).filter_and_smooth(
-                        measurements, m_1_0, P_1_0, None
-                    )
+            # TODO: Impl inner loop for multiple opt of same cost fn.
+            while has_improved is False and loss_cand_no <= self._cost_improv_iter_lim:
+                # Note: here we want to run the base `Smoother` class method.
+                # I.e. we're getting the grandparent's method.
+                mf, Pf, current_ms, current_Ps, cost = super(IteratedSmoother, self).filter_and_smooth(
+                    measurements, m_1_0, P_1_0, None
+                )
 
-                    # Create a temporary cache. Linearisation is still done with self._cache until the present iterate
-                    # is accepted. The cost is calculated with a hybrid: proc_bar, meas_bar from the tmp_cache but
-                    # linearisation err. covariance from self._cache.
-                    tmp_cache = SlrCache(self._motion_model.map_set, self._meas_model.map_set, self._slr)
-                    # TODO: Since we only care about the bars here, we could potentially optimise and only calc. the
-                    # bars and skip the linearisation.
-                    # This would only be faster if the iterate is rejected since we still do the remaining calc.
-                    # (the linearisation) when the iterate is accepted.
-                    tmp_cache.update(
-                        current_ms,
-                        self._current_covs,
-                    )
-                    # Note: here we take the new bars but the old error_covs.
-                    tmp_cost_fn = self._specialise_cost_fn(
-                        cost_fn_prototype, (tmp_cache.bars(), self._cache.error_covs())
-                    )
-                    cost = tmp_cost_fn(current_ms)
-                    self._log.debug(f"Cost: {cost}, lambda: {self._lambda}, loss_cand_no: {loss_cand_no}")
-                    if not self._lambda > 0.0:
-                        self._log.info("lambda=0, skipping cost check")
-                        has_improved = True
-                    elif cost < prev_cost:
-                        self._lambda /= self._nu
-                        has_improved = True
-                    else:
-                        self._lambda *= self._nu
-                    loss_cand_no += 1
-                if loss_cand_no == self._cost_improv_iter_lim + 1:
-                    self._log.info(f"No cost improvement for {self._cost_improv_iter_lim} iterations, returning")
-                    return mf, Pf, self._current_means, self._current_covs, np.array(cost_iter)
-                # Only update the means, this is to faithfully optimise the current cost fn.
-                # Curiously, skipping this update based on the outer while cond. actually makes the code slower
-                prev_cost = cost
-        cost_iter.append(prev_cost)
-        print("Last:", cost_fn(current_ms))
+                # Create a temporary cache. Linearisation is still done with self._cache until the present iterate
+                # is accepted. The cost is calculated with a hybrid: proc_bar, meas_bar from the tmp_cache but
+                # linearisation err. covariance from self._cache.
+                tmp_cache = SlrCache(self._motion_model.map_set, self._meas_model.map_set, self._slr)
+                # TODO: Since we only care about the bars here, we could potentially optimise and only calc. the
+                # bars and skip the linearisation.
+                # This would only be faster if the iterate is rejected since we still do the remaining calc.
+                # (the linearisation) when the iterate is accepted.
+                tmp_cache.update(
+                    current_ms,
+                    self._current_covs,
+                )
+                # Note: here we take the new bars but the old error_covs.
+                tmp_cost_fn = self._specialise_cost_fn(cost_fn_prototype, (tmp_cache.bars(), self._cache.error_covs()))
+                cost = tmp_cost_fn(current_ms)
+                self._log.debug(f"Cost: {cost}, lambda: {self._lambda}, loss_cand_no: {loss_cand_no}")
+                if not self._lambda > 0.0:
+                    self._log.info("lambda=0, skipping cost check")
+                    has_improved = True
+                elif cost < prev_cost:
+                    self._lambda /= self._nu
+                    has_improved = True
+                else:
+                    self._lambda *= self._nu
+                loss_cand_no += 1
+            if loss_cand_no == self._cost_improv_iter_lim + 1:
+                self._log.info(f"No cost improvement for {self._cost_improv_iter_lim} iterations, returning")
+                return mf, Pf, self._current_means, self._current_covs, np.array(cost_iter)
+
+            # Full update, updating means and covs estimates.
+            # Which also requires an update of the cost fn.
+            self._update_estimates(current_ms, current_Ps)
+            cost_fn = self._specialise_cost_fn(cost_fn_prototype, (self._cache.bars(), self._cache.error_covs()))
+            prev_cost = cost_fn(current_ms)
+            cost_iter.append(prev_cost)
+        print("last", prev_cost)
+        print("IN", self._cache.check_sum())
         return mf, Pf, current_ms, current_Ps, np.array(cost_iter)
 
     def _filter_seq(self, measurements, m_1_0, P_1_0):

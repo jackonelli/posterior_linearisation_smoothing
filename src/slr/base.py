@@ -88,6 +88,13 @@ class SlrCache:
         ]
         self.meas_bar = [z_bar for z_bar, _, _ in meas_slr]
 
+    def check_sum(self):
+        proc_bar_sum = sum([bar.sum() for bar in self.proc_bar])
+        meas_bar_sum = sum([bar.sum() for bar in self.meas_bar])
+        proc_cov_sum = sum([lin[2].sum() for lin in self.proc_lin])
+        meas_cov_sum = sum([lin[2].sum() for lin in self.meas_lin])
+        return proc_bar_sum + meas_bar_sum + proc_cov_sum + meas_cov_sum
+
     def bars(self):
         return (self.proc_bar, self.meas_bar)
 
