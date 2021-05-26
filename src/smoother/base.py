@@ -163,7 +163,7 @@ class IteratedSmoother(Smoother):
             mf, Pf, ms, Ps, tmp_cost = self.filter_and_smooth_with_init_traj(
                 measurements, m_1_0, P_1_0, (current_ms, current_Ps), 2, cost_fn
             )
-            return mf, Pf, ms, Ps, tmp_cost
+            return mf, Pf, ms, Ps, np.insert(tmp_cost, 0, initial_cost)
         else:
             iter_cost = np.array([initial_cost])
             if not self._is_initialised():
@@ -181,15 +181,16 @@ class IteratedSmoother(Smoother):
         mf, Pf = init_traj
         if not self._is_initialised():
             self._update_estimates(current_ms, current_Ps)
+        cost_iter = []
         cost_fn = self._specialise_cost_fn(cost_fn_prototype, self._cost_fn_params())
-        cost_iter = [cost_fn(current_ms)] if cost_fn is not None else [None]
         for iter_ in range(start_iter, self.num_iter + 1):
             self._log.debug(f"Iter: {iter_}")
-            mf, Pf, current_ms, current_Ps, cost = super().filter_and_smooth(measurements, m_1_0, P_1_0, cost_fn)
+            mf, Pf, current_ms, current_Ps, _ = super().filter_and_smooth(measurements, m_1_0, P_1_0, cost_fn)
             self._update_estimates(current_ms, current_Ps)
+            cost_fn = self._specialise_cost_fn(cost_fn_prototype, self._cost_fn_params())
+            cost = cost_fn(current_ms)
             self._log.debug(f"Cost: {cost}")
             cost_iter.append(cost)
-            cost_fn = self._specialise_cost_fn(cost_fn_prototype, self._cost_fn_params())
         return mf, Pf, current_ms, current_Ps, np.array(cost_iter)
 
     @abstractmethod

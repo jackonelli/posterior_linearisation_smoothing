@@ -107,8 +107,6 @@ class SigmaPointLmIpls(IteratedSmoother):
             cost_fn = self._specialise_cost_fn(cost_fn_prototype, (self._cache.bars(), self._cache.error_covs()))
             prev_cost = cost_fn(current_ms)
             cost_iter.append(prev_cost)
-        print("last", prev_cost)
-        print("IN", self._cache.check_sum())
         return mf, Pf, current_ms, current_Ps, np.array(cost_iter)
 
     def _filter_seq(self, measurements, m_1_0, P_1_0):

@@ -27,8 +27,12 @@ class SigmaPointIpls(IteratedSmoother):
         smoother = SigmaPointPrLs(self._motion_model, self._meas_model, self._sigma_point_method)
         mf, Pf, ms, Ps, _ = smoother.filter_and_smooth(measurements, m_1_0, P_1_0, None)
         self._update_estimates(ms, Ps)
-        cost_fn = self._specialise_cost_fn(cost_fn_prototype, self._cost_fn_params())
-        return mf, Pf, ms, Ps, cost_fn(ms)
+        if cost_fn_prototype is not None:
+            cost_fn = self._specialise_cost_fn(cost_fn_prototype, self._cost_fn_params())
+            cost = cost_fn(ms)
+        else:
+            cost = None
+        return mf, Pf, ms, Ps, cost
 
     def _filter_seq(self, measurements, m_1_0, P_1_0):
         iplf = SigmaPointIplf(self._motion_model, self._meas_model, self._sigma_point_method)
@@ -36,22 +40,25 @@ class SigmaPointIpls(IteratedSmoother):
         return iplf.filter_seq(measurements, m_1_0, P_1_0)
 
     def _specialise_cost_fn(self, cost_fn_prototype, params):
-        (
-            (proc_bar, meas_bar),
+        if cost_fn_prototype is not None:
             (
-                proc_lin_cov,
-                meas_lin_cov,
-            ),
-        ) = params
-        return partial(
-            cost_fn_prototype,
-            motion_bar=proc_bar,
-            meas_bar=meas_bar,
-            motion_cov=np.array(
-                [err_cov_k + self._motion_model.proc_noise(k) for k, err_cov_k in enumerate(proc_lin_cov)]
-            ),
-            meas_cov=[err_cov_k + self._meas_model.meas_noise(k) for k, err_cov_k in enumerate(meas_lin_cov)],
-        )
+                (proc_bar, meas_bar),
+                (
+                    proc_lin_cov,
+                    meas_lin_cov,
+                ),
+            ) = params
+            return partial(
+                cost_fn_prototype,
+                motion_bar=proc_bar,
+                meas_bar=meas_bar,
+                motion_cov=np.array(
+                    [err_cov_k + self._motion_model.proc_noise(k) for k, err_cov_k in enumerate(proc_lin_cov)]
+                ),
+                meas_cov=[err_cov_k + self._meas_model.meas_noise(k) for k, err_cov_k in enumerate(meas_lin_cov)],
+            )
+        else:
+            return None
 
     def _cost_fn_params(self):
         return self._cache.bars(), self._cache.error_covs()

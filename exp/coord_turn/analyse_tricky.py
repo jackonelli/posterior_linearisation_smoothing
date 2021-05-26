@@ -162,27 +162,27 @@ def main():
         m_1_0=prior_mean,
         P_1_0=prior_cov,
     )
-    # ms_ipls, Ps_ipls, cost_ipls, rmses_ipls, neeses_ipls = run_smoothing(
-    #     SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter),
-    #     states,
-    #     measurements,
-    #     prior_mean,
-    #     prior_cov,
-    #     pre_comp_cost,
-    #     None,
-    # )
-    # estimates.append(
-    #     (ms_ipls, Ps_ipls, cost_ipls, "IPLS"),
-    # )
-    # costs.append(
-    #     (cost_ipls, "IPLS"),
-    # )
-    # rmses.append(
-    #     (rmses_ipls, "IPLS"),
-    # )
-    # neeses.append(
-    #     (neeses_ipls, "IPLS"),
-    # )
+    ms_ipls, Ps_ipls, cost_ipls, rmses_ipls, neeses_ipls = run_smoothing(
+        SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter),
+        states,
+        measurements,
+        prior_mean,
+        prior_cov,
+        pre_comp_cost,
+        None,
+    )
+    estimates.append(
+        (ms_ipls, Ps_ipls, cost_ipls, "IPLS"),
+    )
+    costs.append(
+        (cost_ipls, "IPLS"),
+    )
+    rmses.append(
+        (rmses_ipls, "IPLS"),
+    )
+    neeses.append(
+        (neeses_ipls, "IPLS"),
+    )
 
     ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, rmses_lm_ipls, neeses_lm_ipls = run_smoothing(
         SigmaPointLmIpls(
