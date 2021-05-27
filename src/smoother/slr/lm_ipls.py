@@ -22,7 +22,7 @@ class SigmaPointLmIpls(IteratedSmoother):
         self._cost_improv_iter_lim = cost_improv_iter_lim
         self._lambda = lambda_
         self._nu = nu
-        self._cache = SlrCache(self._motion_model.map_set, self._meas_model.map_set, self._slr)
+        self._cache = SlrCache(self._motion_model, self._meas_model, self._slr)
 
     def _motion_lin(self, _mean, _cov, time_step):
         return self._cache.proc_lin[time_step - 1]
@@ -74,7 +74,7 @@ class SigmaPointLmIpls(IteratedSmoother):
                 # Create a temporary cache. Linearisation is still done with self._cache until the present iterate
                 # is accepted. The cost is calculated with a hybrid: proc_bar, meas_bar from the tmp_cache but
                 # linearisation err. covariance from self._cache.
-                tmp_cache = SlrCache(self._motion_model.map_set, self._meas_model.map_set, self._slr)
+                tmp_cache = SlrCache(self._motion_model, self._meas_model, self._slr)
                 # TODO: Since we only care about the bars here, we could potentially optimise and only calc. the
                 # bars and skip the linearisation.
                 # This would only be faster if the iterate is rejected since we still do the remaining calc.
@@ -115,18 +115,18 @@ class SigmaPointLmIpls(IteratedSmoother):
 
     def _specialise_cost_fn(self, cost_fn_prototype, params):
         (
-            (proc_bar, meas_bar),
+            (motion_bar, meas_bar),
             (
-                proc_lin_cov,
-                meas_lin_cov,
+                motion_cov_inv,
+                meas_cov_inv,
             ),
         ) = params
         return partial(
             cost_fn_prototype,
-            motion_bar=proc_bar,
+            motion_bar=motion_bar,
             meas_bar=meas_bar,
-            motion_cov=[err_cov_k + self._motion_model.proc_noise(k) for k, err_cov_k in enumerate(proc_lin_cov, 1)],
-            meas_cov=[err_cov_k + self._meas_model.meas_noise(k) for k, err_cov_k in enumerate(meas_lin_cov, 1)],
+            motion_cov_inv=motion_cov_inv,
+            meas_cov_inv=meas_cov_inv,
         )
 
     def _is_initialised(self):

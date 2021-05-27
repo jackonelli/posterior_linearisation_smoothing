@@ -1,9 +1,9 @@
-"""Test (GN-)IPLS
-Check that the (GN-)IPLS implementation matches the one in the paper:
+"""Test IPLS
+Check that the IPLS implementation matches the one in the paper:
 
 "Iterated posterior linearisation smoother"
 
-Runs (GN-)IPLS and compares with stored matlab output.
+Runs IPLS and compares with stored matlab output.
 """
 import unittest
 from functools import partial
@@ -28,7 +28,7 @@ import matplotlib.pyplot as plt
 
 
 class TestIpls(unittest.TestCase):
-    def test_cmp_with_ss_impl(self):
+    def test_cmp_with_ipls_impl(self):
         K = 50
         trajs, noise, ms_cmp, Ps_cmp = get_specific_states_from_file(Path.cwd() / "data/ipls_paper")
         ms_cmp = ms_cmp.reshape((K, 1))

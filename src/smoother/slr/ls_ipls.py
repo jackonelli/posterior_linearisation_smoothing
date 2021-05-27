@@ -25,7 +25,7 @@ class SigmaPointLsIpls(IteratedSmoother):
         self.num_iter = num_iter
         self._ls_method = line_search_method
         self._num_points = num_points
-        self._cache = SlrCache(self._motion_model.map_set, self._meas_model.map_set, self._slr)
+        self._cache = SlrCache(self._motion_model, self._meas_model, self._slr)
 
     def _motion_lin(self, _mean, _cov, time_step):
         return self._cache.proc_lin[time_step - 1]

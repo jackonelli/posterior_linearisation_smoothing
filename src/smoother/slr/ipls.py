@@ -18,7 +18,7 @@ class SigmaPointIpls(IteratedSmoother):
         self._slr = SigmaPointSlr(sigma_point_method)
         self._sigma_point_method = sigma_point_method
         self.num_iter = num_iter
-        self._cache = SlrCache(self._motion_model.map_set, self._meas_model.map_set, self._slr)
+        self._cache = SlrCache(self._motion_model, self._meas_model, self._slr)
 
     def _motion_lin(self, _mean, _cov, time_step):
         return self._cache.proc_lin[time_step - 1]
@@ -42,20 +42,18 @@ class SigmaPointIpls(IteratedSmoother):
     def _specialise_cost_fn(self, cost_fn_prototype, params):
         if cost_fn_prototype is not None:
             (
-                (proc_bar, meas_bar),
+                (motion_bar, meas_bar),
                 (
-                    proc_lin_cov,
-                    meas_lin_cov,
+                    motion_cov_inv,
+                    meas_cov_inv,
                 ),
             ) = params
             return partial(
                 cost_fn_prototype,
-                motion_bar=proc_bar,
+                motion_bar=motion_bar,
                 meas_bar=meas_bar,
-                motion_cov=np.array(
-                    [err_cov_k + self._motion_model.proc_noise(k) for k, err_cov_k in enumerate(proc_lin_cov)]
-                ),
-                meas_cov=[err_cov_k + self._meas_model.meas_noise(k) for k, err_cov_k in enumerate(meas_lin_cov)],
+                motion_cov_inv=motion_cov_inv,
+                meas_cov_inv=meas_cov_inv,
             )
         else:
             return None

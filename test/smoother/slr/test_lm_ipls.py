@@ -19,7 +19,7 @@ from data.lm_ieks_paper.coord_turn_example import simulate_data, get_specific_st
 from src.cost import slr_smoothing_cost_pre_comp
 
 
-class TestIpls(unittest.TestCase):
+class TestLmIpls(unittest.TestCase):
     def test_lambda_zero_results_in_plain_ipls(self):
         dt = 0.01
         qc = 0.01
@@ -53,7 +53,7 @@ class TestIpls(unittest.TestCase):
             slr_smoothing_cost_pre_comp,
             measurements=measurements,
             m_1_0=prior_mean,
-            P_1_0=prior_cov,
+            P_1_0_inv=np.linalg.inv(prior_cov),
         )
 
         ipls = SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter)
@@ -64,6 +64,5 @@ class TestIpls(unittest.TestCase):
         # lm_mf, lm_Pf, lm_ms, lm_Ps, _iter_cost = lm_ieks.filter_and_smooth_with_init_traj(
         #     measurements, prior_mean, prior_cov, init_traj, 1, cost_fn
         # )
-        print(mf.sum(), lm_mf.sum())
         self.assertTrue(np.allclose(mf, lm_mf))
         self.assertTrue(np.allclose(ms, lm_ms))
