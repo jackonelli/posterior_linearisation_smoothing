@@ -21,7 +21,7 @@ from src.sigma_points import SphericalCubature
 from src.cost import analytical_smoothing_cost, slr_smoothing_cost_pre_comp, slr_noop_cost, slr_smoothing_cost_means
 from src.utils import setup_logger
 from src.analytics import rmse
-from src.visualization import to_tikz, write_to_tikz_file
+from src.visualization import to_tikz, write_to_tikz_file, plot_scalar_metric
 from src.models.range_bearing import MultiSensorRange, MultiSensorBearings
 from src.models.coord_turn import CoordTurn
 from data.lm_ieks_paper.coord_turn_example import Type, get_specific_states_from_file, simulate_data
@@ -31,9 +31,6 @@ from exp.coord_turn.common import (
     calc_iter_metrics,
     mc_stats,
     plot_results,
-    plot_cost,
-    plot_neeses,
-    plot_rmses,
 )
 
 
@@ -233,9 +230,9 @@ def main():
         (neeses_ls_ipls, "LS-IPLS"),
     )
 
-    plot_cost(costs)
-    plot_neeses(neeses)
-    plot_rmses(rmses)
+    plot_scalar_metric(costs, "Cost")
+    plot_scalar_metric(neeses, "NEES")
+    plot_scalar_metric(rmses, "RMSE")
     plot_results(
         states,
         estimates,

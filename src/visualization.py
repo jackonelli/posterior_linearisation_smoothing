@@ -2,7 +2,7 @@
 import numpy as np
 from scipy.linalg import sqrtm
 import matplotlib.pyplot as plt
-from src.analytics import nees
+from src.analytics import nees, mc_stats
 import tikzplotlib
 
 
@@ -54,6 +54,17 @@ def plot_1d_mean_and_cov(ax, means, covs, sigma_level, label, color, skip_cov):
     handle = ax.errorbar(x=time_steps, y=means, yerr=sigma_level * stds)
     handle.set_label(r"{}, ${} \sigma$".format(label, sigma_level))
     return handle
+
+
+def plot_scalar_metric(stats, title):
+    num_iter = stats[0][0].shape[1]
+    stats = [(mc_stats(stat_), label) for stat_, label in stats]
+    fig, ax = plt.subplots()
+    for (mean, err), label in stats:
+        ax.errorbar(x=np.arange(1, num_iter + 1), y=mean, yerr=err, label=label)
+    ax.set_title(title)
+    ax.legend()
+    plt.show()
 
 
 def plot_2d_est(true_x, meas, means_and_covs, sigma_level=3, skip_cov=1, ax=None):

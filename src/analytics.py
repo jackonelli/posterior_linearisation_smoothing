@@ -40,6 +40,11 @@ def nees(true, est, cov):
     return nees_
 
 
+def mc_stats(data):
+    num_mc_samples = data.shape[0]
+    return np.mean(data, 0), np.std(data, 0) / np.sqrt(num_mc_samples)
+
+
 def _single_nees(err, cov):
     """Calculate NEES for single entry"""
     return err.T @ np.linalg.inv(cov) @ err
