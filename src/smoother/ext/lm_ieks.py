@@ -32,8 +32,7 @@ class LmIeks(IteratedSmoother):
         current_ms, current_Ps = init_traj
         self._update_estimates(current_ms, current_Ps)
         prev_cost = cost_fn(current_ms)
-        cost_iter = [prev_cost]
-        self._log.debug(f"Initial cost: {prev_cost}")
+        cost_iter = []
         for iter_ in range(start_iter, self.num_iter + 1):
             self._log.debug(f"Iter: {iter_}")
             inner_iter = 0
@@ -41,14 +40,14 @@ class LmIeks(IteratedSmoother):
             while has_improved is False and inner_iter < self._cost_improv_iter_lim:
                 # Note: here we want to run the base `Smoother` class method.
                 # I.e. we're getting the grandparent's method.
-                mf, Pf, current_ms, current_Ps, _cost = super(IteratedSmoother, self).filter_and_smooth(
+                mf, Pf, current_ms, current_Ps, cost = super(IteratedSmoother, self).filter_and_smooth(
                     measurements, m_1_0, P_1_0, cost_fn
                 )
-                self._log.debug(f"Cost: {_cost}, lambda: {self._lambda}")
+                self._log.debug(f"Cost: {cost}, lambda: {self._lambda}")
                 if not self._lambda > 0.0:
                     self._log.info("lambda=0, skipping cost check")
                     has_improved = True
-                elif _cost < prev_cost:
+                elif cost < prev_cost:
                     self._lambda /= self._nu
                     has_improved = True
                 else:
@@ -57,8 +56,8 @@ class LmIeks(IteratedSmoother):
             if inner_iter == self._cost_improv_iter_lim - 1:
                 self._log.warning(f"No cost improvement for {self._cost_improv_iter_lim} iterations")
             self._update_estimates(current_ms, current_Ps)
-            prev_cost = _cost
-            cost_iter.append(_cost)
+            prev_cost = cost
+            cost_iter.append(cost)
             # _cost = cost(current_ms, measurements, m_1_0, P_1_0, self._motion_model, self._meas_model)
         return mf, Pf, current_ms, current_Ps, np.array(cost_iter)
 

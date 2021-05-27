@@ -45,7 +45,6 @@ class SigmaPointLsIpls(IteratedSmoother):
         self._update_estimates(smooth_means, smooth_covs)
         cost_fn = self._specialise_cost_fn(cost_fn_prototype, (smooth_covs, self._cache.error_covs()))
         cost = cost_fn(smooth_means)
-        self._log.debug(f"Initial cost: {cost}")
         return filter_means, filter_covs, smooth_means, smooth_covs, cost
 
     def filter_and_smooth_with_init_traj(self, measurements, m_1_0, P_1_0, init_traj, start_iter, cost_fn_prototype):
@@ -54,12 +53,12 @@ class SigmaPointLsIpls(IteratedSmoother):
         # If self.num_iter is too low to enter the iter loop
         mf, Pf = init_traj
         cost_iter = []
+        if not self._is_initialised():
+            self._update_estimates(current_ms, current_Ps)
+        cost_fn = self._specialise_cost_fn(cost_fn_prototype, (self._current_covs, self._cache.error_covs()))
+        prev_cost = cost_fn(current_ms)
         for iter_ in range(start_iter, self.num_iter + 1):
             self._log.debug(f"Iter: {iter_}")
-            if not self._is_initialised() or iter_ is not start_iter:
-                self._update_estimates(current_ms, current_Ps)
-            cost_fn = self._specialise_cost_fn(cost_fn_prototype, (self._current_covs, self._cache.error_covs()))
-            prev_cost = cost_fn(current_ms)
             cost_iter.append(prev_cost)
             num_iter_with_same_cost = 1
             while self._terminate_inner_loop(num_iter_with_same_cost):
@@ -79,6 +78,8 @@ class SigmaPointLsIpls(IteratedSmoother):
                 else:
                     self._update_means_only(grid_ms, None)
                     prev_cost = grid_cost
+            self._log.debug(f"Cost: {cost}, alpha: {alpha}")
+            cost_fn = self._specialise_cost_fn(cost_fn_prototype, (self._current_covs, self._cache.error_covs()))
         return mf, Pf, current_ms, current_Ps, np.array(cost_iter)
 
     def _filter_seq(self, measurements, m_1_0, P_1_0):
