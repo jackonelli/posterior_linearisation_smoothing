@@ -5,8 +5,6 @@ from src.smoother.base import IteratedSmoother
 from src.filter.ekf import ExtCache
 from src.filter.iekf import Iekf
 from functools import partial
-from src.smoother.base import Smoother
-from src.cost import slr_smoothing_cost_pre_comp
 from src.slr.base import SlrCache
 from src.smoother.base import IteratedSmoother
 from src.filter.prlf import SigmaPointPrLf

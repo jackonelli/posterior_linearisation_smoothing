@@ -49,12 +49,12 @@ class TestCost(unittest.TestCase):
         K = measurements.shape[0]
         np.random.seed(0)
         covs = np.array([prior_cov] * K) * (0.90 + np.random.rand() / 5)
-        slr_cache = SlrCache(motion_model.map_set, meas_model.map_set, SigmaPointSlr(SphericalCubature()))
+        slr_cache = SlrCache(motion_model, meas_model, SigmaPointSlr(SphericalCubature()))
         new_proto = partial(
             slr_smoothing_cost_pre_comp,
             measurements=measurements,
             m_1_0=prior_mean,
-            P_1_0=prior_cov,
+            P_1_0_inv=np.linalg.inv(prior_cov),
         )
 
         on_the_fly = partial(
@@ -74,7 +74,7 @@ class TestCost(unittest.TestCase):
             slr_smoothing_cost_means,
             measurements=measurements,
             m_1_0=prior_mean,
-            P_1_0=prior_cov,
+            P_1_0_inv=np.linalg.inv(prior_cov),
             estimated_covs=covs,
             motion_fn=motion_model.map_set,
             meas_fn=meas_model.map_set,
@@ -82,24 +82,16 @@ class TestCost(unittest.TestCase):
         )
         varying_means = partial(
             varying_means_proto,
-            motion_cov=np.array(
-                [err_cov_k + motion_model.proc_noise(k) for k, (_, _, err_cov_k) in enumerate(slr_cache.proc_lin)]
-            ),
-            meas_cov=np.array(
-                [err_cov_k + meas_model.meas_noise(k) for k, (_, _, err_cov_k) in enumerate(slr_cache.meas_lin)]
-            ),
+            motion_cov_inv=slr_cache.proc_lin_inv,
+            meas_cov_inv=slr_cache.meas_lin_inv,
         )
 
         pre_comp = partial(
             new_proto,
             motion_bar=slr_cache.proc_bar,
             meas_bar=slr_cache.meas_bar,
-            motion_cov=np.array(
-                [err_cov_k + motion_model.proc_noise(k) for k, (_, _, err_cov_k) in enumerate(slr_cache.proc_lin)]
-            ),
-            meas_cov=np.array(
-                [err_cov_k + meas_model.meas_noise(k) for k, (_, _, err_cov_k) in enumerate(slr_cache.meas_lin)]
-            ),
+            motion_cov_inv=slr_cache.proc_lin_inv,
+            meas_cov_inv=slr_cache.meas_lin_inv,
         )
 
         self.assertAlmostEqual(pre_comp(ss_ms), on_the_fly(ss_ms))
@@ -111,21 +103,13 @@ class TestCost(unittest.TestCase):
             new_proto,
             motion_bar=slr_cache.proc_bar,
             meas_bar=slr_cache.meas_bar,
-            motion_cov=np.array(
-                [err_cov_k + motion_model.proc_noise(k) for k, (_, _, err_cov_k) in enumerate(slr_cache.proc_lin)]
-            ),
-            meas_cov=np.array(
-                [err_cov_k + meas_model.meas_noise(k) for k, (_, _, err_cov_k) in enumerate(slr_cache.meas_lin)]
-            ),
+            motion_cov_inv=slr_cache.proc_lin_inv,
+            meas_cov_inv=slr_cache.meas_lin_inv,
         )
         varying_means = partial(
             varying_means_proto,
-            motion_cov=np.array(
-                [err_cov_k + motion_model.proc_noise(k) for k, (_, _, err_cov_k) in enumerate(slr_cache.proc_lin)]
-            ),
-            meas_cov=np.array(
-                [err_cov_k + meas_model.meas_noise(k) for k, (_, _, err_cov_k) in enumerate(slr_cache.meas_lin)]
-            ),
+            motion_cov_inv=slr_cache.proc_lin_inv,
+            meas_cov_inv=slr_cache.meas_lin_inv,
         )
 
         self.assertAlmostEqual(pre_comp(ss_ms), on_the_fly(ss_ms))

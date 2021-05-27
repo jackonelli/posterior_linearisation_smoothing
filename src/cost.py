@@ -129,7 +129,9 @@ def _lm_ext(x, prev_x, lambda_):
     return lambda_ * ((x - prev_x) ** 2).sum()
 
 
-def slr_smoothing_cost_pre_comp(traj, measurements, m_1_0, P_1_0, motion_bar, meas_bar, motion_cov, meas_cov):
+def slr_smoothing_cost_pre_comp(
+    traj, measurements, m_1_0, P_1_0_inv, motion_bar, meas_bar, motion_cov_inv, meas_cov_inv
+):
     """Cost function for an optimisation problem used in the family of slr smoothers
 
     GN optimisation of this cost function will result in a linearised function
@@ -145,39 +147,26 @@ def slr_smoothing_cost_pre_comp(traj, measurements, m_1_0, P_1_0, motion_bar, me
             represented as a np.array(K, D_y)
     """
     prior_diff = traj[0, :] - m_1_0
-    _cost = prior_diff.T @ np.linalg.inv(P_1_0) @ prior_diff
+    _cost = prior_diff.T @ P_1_0_inv @ prior_diff
 
     K = len(measurements)
-    # for k in range(1, K + 1):
-    #     k_ind = k - 1
-    #     if k < K:
-    #         proc_diff_k = traj[k_ind + 1, :] - proc_bar[k, :]
-    #         _cost += proc_diff_k.T @ np.linalg.inv(proc_cov[k_ind, :, :]) @ proc_diff_k
-    #     meas_k = measurements[k_ind]
-    #     if any(np.isnan(meas_k)):
-    #         continue
-    #     meas_diff_k = meas_k - meas_bar[k_ind]
-    #     _cost += meas_diff_k.T @ np.linalg.inv(meas_cov[k_ind, :, :]) @ meas_diff_k
-
-    # print(f"Fast: {proc_diff[0, :].T @ np.linalg.inv(proc_cov[0, :, :]) @ proc_diff[0, :]}")
 
     for k in range(1, K + 1):
         k_ind = k - 1
         if k < K:
             motion_diff_k = traj[k_ind + 1, :] - motion_bar[k_ind]
-            _cost += motion_diff_k.T @ np.linalg.inv(motion_cov[k_ind]) @ motion_diff_k
+            _cost += motion_diff_k.T @ motion_cov_inv[k_ind] @ motion_diff_k
         meas_k = measurements[k_ind]
         if any(np.isnan(meas_k)):
             continue
-        # measurements are zero indexed, i.e. k-1 --> y_k
         meas_diff_k = meas_k - meas_bar[k_ind]
-        _cost += meas_diff_k.T @ np.linalg.inv(meas_cov[k_ind]) @ meas_diff_k
+        _cost += meas_diff_k.T @ meas_cov_inv[k_ind] @ meas_diff_k
 
     return _cost
 
 
 def slr_smoothing_cost_means(
-    traj, measurements, m_1_0, P_1_0, estimated_covs, motion_fn, meas_fn, motion_cov, meas_cov, slr_method
+    traj, measurements, m_1_0, P_1_0_inv, estimated_covs, motion_fn, meas_fn, motion_cov_inv, meas_cov_inv, slr_method
 ):
     """Cost function for an optimisation problem used in the family of slr smoothers
 
@@ -205,7 +194,9 @@ def slr_smoothing_cost_means(
         slr_method.calc_z_bar(partial(meas_fn, time_step=k), mean_k, cov_k)
         for (k, (mean_k, cov_k)) in enumerate(zip(traj, estimated_covs), 1)
     ]
-    return slr_smoothing_cost_pre_comp(traj, measurements, m_1_0, P_1_0, motion_bar, meas_bar, motion_cov, meas_cov)
+    return slr_smoothing_cost_pre_comp(
+        traj, measurements, m_1_0, P_1_0_inv, motion_bar, meas_bar, motion_cov_inv, meas_cov_inv
+    )
 
 
 def slr_smoothing_cost(
@@ -266,7 +257,7 @@ def slr_noop_cost(traj, motion_bar, meas_bar, motion_cov, meas_cov):
     return None
 
 
-def ss_cost(means, measurements, m_1_0, P_1_0, Q, R, f_fun, h_fun):
+def _ss_cost(means, measurements, m_1_0, P_1_0, Q, R, f_fun, h_fun):
     """Direct port of Simo Särkkä's matlab cost fn
 
     Only kept here for debugging purposes

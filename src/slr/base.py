@@ -59,9 +59,9 @@ class Slr(ABC):
 
 
 class SlrCache:
-    def __init__(self, motion_fn, meas_fn, slr_method):
-        self._motion_fn = motion_fn
-        self._meas_fn = meas_fn
+    def __init__(self, motion_model, meas_model, slr_method):
+        self._motion_model = motion_model
+        self._meas_model = meas_model
         self._slr = slr_method
         self.proc_lin = None
         self.meas_lin = None
@@ -71,20 +71,26 @@ class SlrCache:
     def update(self, means, covs):
         # TODO: single calc of sigma points.
         proc_slr = [
-            self._slr.slr(partial(self._motion_fn, time_step=k), mean_k, cov_k)
+            self._slr.slr(partial(self._motion_model.map_set, time_step=k), mean_k, cov_k)
             for (k, (mean_k, cov_k)) in enumerate(zip(means, covs), 1)
         ]
         self.proc_lin = [
             self._slr.linear_params_from_slr(mean_k, cov_k, *slr_) for mean_k, cov_k, slr_ in zip(means, covs, proc_slr)
         ]
+        self.proc_lin_inv = [
+            np.linalg.inv(self._motion_model.proc_noise(k) + lin_cov) for k, (_, _, lin_cov) in enumerate(self.proc_lin)
+        ]
         self.proc_bar = np.array([z_bar for z_bar, _, _ in proc_slr])
 
         meas_slr = [
-            self._slr.slr(partial(self._meas_fn, time_step=k), mean_k, cov_k)
+            self._slr.slr(partial(self._meas_model.map_set, time_step=k), mean_k, cov_k)
             for (k, (mean_k, cov_k)) in enumerate(zip(means, covs), 1)
         ]
         self.meas_lin = [
             self._slr.linear_params_from_slr(mean_k, cov_k, *slr_) for mean_k, cov_k, slr_ in zip(means, covs, meas_slr)
+        ]
+        self.meas_lin_inv = [
+            np.linalg.inv(self._meas_model.meas_noise(k) + lin_cov) for k, (_, _, lin_cov) in enumerate(self.meas_lin)
         ]
         self.meas_bar = [z_bar for z_bar, _, _ in meas_slr]
 

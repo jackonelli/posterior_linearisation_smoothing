@@ -17,16 +17,20 @@ from src.cost import analytical_smoothing_cost, slr_smoothing_cost
 from src.analytics import rmse, nees
 from src.visualization import to_tikz, write_to_tikz_file
 from data.lm_ieks_paper.coord_turn_example import simulate_data
-from exp.lm_ieks_paper import plot_results, plot_cost
+from exp.coord_turn.common import plot_results, plot_cost
 
 
 def main():
-
-    rmse_stats = [(np.loadtxt(Path.cwd() / "results/rmse/gn-ieks.csv"), "GN-IEKS")]
-    nees_stats = [(np.loadtxt(Path.cwd() / "results/nees/lm-ipls.csv"), "LM-IEKS")]
-    nees = nees_stats[0][0]
-    print(np.max(nees, 0))
-    plot_stats(nees_stats, "RMSE")
+    smoothers = [
+        # "ieks",
+        # "lm-ieks",
+        "ipls",
+        "lm-ipls",
+    ]
+    rmse_stats = [(np.loadtxt(Path.cwd() / f"results/rmse/{label}.csv"), label.upper()) for label in smoothers]
+    nees_stats = [(np.loadtxt(Path.cwd() / f"results/nees/{label}.csv"), label.upper()) for label in smoothers]
+    plot_metric(rmse_stats, "RMSE")
+    plot_metric(nees_stats, "NEES")
     # tikz_stats(Path.cwd() / "tmp_results/corrected", "LM-IEKS", rmse_stats)
 
 
@@ -44,7 +48,7 @@ def save_stats(res_dir, name, stats):
         np.savetxt(res_dir / name.lower() / f"{label}.csv", stat)
 
 
-def plot_stats(stats, title):
+def plot_metric(stats, title):
     num_iter = stats[0][0].shape[1]
     stats = [(mc_stats(stat_), label) for stat_, label in stats]
     fig, ax = plt.subplots()

@@ -109,7 +109,7 @@ class Smoother(ABC):
             m_kminus1_K: m_{k-1 | K}
             P_kminus1_K: P_{k-1 | K}
         """
-        A, _, Q = linear_params
+        A, _, _ = linear_params
 
         G_k = P_kminus1_kminus1 @ A.T @ np.linalg.inv(P_k_kminus1)
         m_kminus1_K = m_kminus1_kminus1 + G_k @ (m_k_K - m_k_kminus1)

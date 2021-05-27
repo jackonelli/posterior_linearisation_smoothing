@@ -1,7 +1,6 @@
 """Levenberg-Marquardt regularised Iterated Posterior Linearisation Smoother (LM-IPLS)"""
 from functools import partial
 import numpy as np
-from src.cost import slr_smoothing_cost_pre_comp
 from src.slr.base import SlrCache
 from src.smoother.base import IteratedSmoother
 from src.filter.prlf import SigmaPointPrLf
