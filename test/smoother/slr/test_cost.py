@@ -50,7 +50,7 @@ class TestCost(unittest.TestCase):
         np.random.seed(0)
         covs = np.array([prior_cov] * K) * (0.90 + np.random.rand() / 5)
         slr_cache = SlrCache(motion_model, meas_model, SigmaPointSlr(SphericalCubature()))
-        new_proto = partial(
+        pre_comp_proto = partial(
             slr_smoothing_cost_pre_comp,
             measurements=measurements,
             m_1_0=prior_mean,
@@ -82,16 +82,17 @@ class TestCost(unittest.TestCase):
         )
         varying_means = partial(
             varying_means_proto,
-            motion_cov_inv=slr_cache.proc_lin_inv,
-            meas_cov_inv=slr_cache.meas_lin_inv,
+            motion_cov_inv=slr_cache.proc_cov_inv,
+            meas_cov_inv=slr_cache.meas_cov_inv,
         )
 
+        proc_cov_inv, meas_cov_inv = slr_cache.inv_cov()
         pre_comp = partial(
-            new_proto,
+            pre_comp_proto,
             motion_bar=slr_cache.proc_bar,
             meas_bar=slr_cache.meas_bar,
-            motion_cov_inv=slr_cache.proc_lin_inv,
-            meas_cov_inv=slr_cache.meas_lin_inv,
+            motion_cov_inv=proc_cov_inv,
+            meas_cov_inv=meas_cov_inv,
         )
 
         self.assertAlmostEqual(pre_comp(ss_ms), on_the_fly(ss_ms))
@@ -100,16 +101,16 @@ class TestCost(unittest.TestCase):
         _, measurements, _, ss_ms = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.GN, 1)
         slr_cache.update(ss_ms, covs)
         pre_comp = partial(
-            new_proto,
+            pre_comp_proto,
             motion_bar=slr_cache.proc_bar,
             meas_bar=slr_cache.meas_bar,
-            motion_cov_inv=slr_cache.proc_lin_inv,
-            meas_cov_inv=slr_cache.meas_lin_inv,
+            motion_cov_inv=slr_cache.proc_cov_inv,
+            meas_cov_inv=slr_cache.meas_cov_inv,
         )
         varying_means = partial(
             varying_means_proto,
-            motion_cov_inv=slr_cache.proc_lin_inv,
-            meas_cov_inv=slr_cache.meas_lin_inv,
+            motion_cov_inv=slr_cache.proc_cov_inv,
+            meas_cov_inv=slr_cache.meas_cov_inv,
         )
 
         self.assertAlmostEqual(pre_comp(ss_ms), on_the_fly(ss_ms))

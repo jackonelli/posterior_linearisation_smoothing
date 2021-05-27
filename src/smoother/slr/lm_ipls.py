@@ -39,7 +39,7 @@ class SigmaPointLmIpls(IteratedSmoother):
             measurements, m_1_0, P_1_0, None
         )
         self._update_estimates(smooth_means, smooth_covs)
-        cost_fn = self._specialise_cost_fn(cost_fn_prototype, (self._cache.bars(), self._cache.error_covs()))
+        cost_fn = self._specialise_cost_fn(cost_fn_prototype, (self._cache.bars(), self._cache.inv_cov()))
         cost = cost_fn(smooth_means)
         return filter_means, filter_covs, smooth_means, smooth_covs, cost
 
@@ -55,7 +55,7 @@ class SigmaPointLmIpls(IteratedSmoother):
         # Or it can be called directly with an init_traj, then the update is needed
         if not self._is_initialised():
             self._update_estimates(current_ms, current_Ps)
-        cost_fn = self._specialise_cost_fn(cost_fn_prototype, (self._cache.bars(), self._cache.error_covs()))
+        cost_fn = self._specialise_cost_fn(cost_fn_prototype, (self._cache.bars(), self._cache.inv_cov()))
         prev_cost = cost_fn(current_ms)
         for iter_ in range(start_iter, self.num_iter + 1):
             self._log.debug(f"Iter: {iter_}")
@@ -84,7 +84,7 @@ class SigmaPointLmIpls(IteratedSmoother):
                     self._current_covs,
                 )
                 # Note: here we take the new bars but the old error_covs.
-                tmp_cost_fn = self._specialise_cost_fn(cost_fn_prototype, (tmp_cache.bars(), self._cache.error_covs()))
+                tmp_cost_fn = self._specialise_cost_fn(cost_fn_prototype, (tmp_cache.bars(), self._cache.inv_cov()))
                 cost = tmp_cost_fn(current_ms)
                 self._log.debug(f"Cost: {cost}, lambda: {self._lambda}, loss_cand_no: {loss_cand_no}")
                 if not self._lambda > 0.0:
@@ -103,7 +103,7 @@ class SigmaPointLmIpls(IteratedSmoother):
             # Full update, updating means and covs estimates.
             # Which also requires an update of the cost fn.
             self._update_estimates(current_ms, current_Ps)
-            cost_fn = self._specialise_cost_fn(cost_fn_prototype, (self._cache.bars(), self._cache.error_covs()))
+            cost_fn = self._specialise_cost_fn(cost_fn_prototype, (self._cache.bars(), self._cache.inv_cov()))
             prev_cost = cost_fn(current_ms)
             cost_iter.append(prev_cost)
         return mf, Pf, current_ms, current_Ps, np.array(cost_iter)
