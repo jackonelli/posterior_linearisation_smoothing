@@ -41,7 +41,7 @@ class SigmaPointLsIpls(IteratedSmoother):
             measurements, m_1_0, P_1_0, None
         )
         self._update_estimates(smooth_means, smooth_covs)
-        cost_fn = self._specialise_cost_fn(cost_fn_prototype, (smooth_covs, self._cache.error_covs()))
+        cost_fn = self._specialise_cost_fn(cost_fn_prototype, (smooth_covs, self._cache.inv_cov()))
         cost = cost_fn(smooth_means)
         return filter_means, filter_covs, smooth_means, smooth_covs, cost
 
@@ -53,7 +53,7 @@ class SigmaPointLsIpls(IteratedSmoother):
         cost_iter = []
         if not self._is_initialised():
             self._update_estimates(current_ms, current_Ps)
-        cost_fn = self._specialise_cost_fn(cost_fn_prototype, (self._current_covs, self._cache.error_covs()))
+        cost_fn = self._specialise_cost_fn(cost_fn_prototype, (self._current_covs, self._cache.inv_cov()))
         prev_cost = cost_fn(current_ms)
         for iter_ in range(start_iter, self.num_iter + 1):
             self._log.debug(f"Iter: {iter_}")
@@ -77,7 +77,7 @@ class SigmaPointLsIpls(IteratedSmoother):
                     self._update_means_only(grid_ms, None)
                     prev_cost = grid_cost
             self._log.debug(f"Cost: {cost}, alpha: {alpha}")
-            cost_fn = self._specialise_cost_fn(cost_fn_prototype, (self._current_covs, self._cache.error_covs()))
+            cost_fn = self._specialise_cost_fn(cost_fn_prototype, (self._current_covs, self._cache.inv_cov()))
         return mf, Pf, current_ms, current_Ps, np.array(cost_iter)
 
     def _filter_seq(self, measurements, m_1_0, P_1_0):
@@ -90,15 +90,15 @@ class SigmaPointLsIpls(IteratedSmoother):
         (
             estimated_covs,
             (
-                proc_lin_cov,
-                meas_lin_cov,
+                motion_cov_inv,
+                meas_cov_inv,
             ),
         ) = params
         return partial(
             cost_fn_prototype,
             estimated_covs=estimated_covs,
-            motion_cov=[err_cov_k + self._motion_model.proc_noise(k) for k, err_cov_k in enumerate(proc_lin_cov, 1)],
-            meas_cov=[err_cov_k + self._meas_model.meas_noise(k) for k, err_cov_k in enumerate(meas_lin_cov, 1)],
+            motion_cov_inv=motion_cov_inv,
+            meas_cov_inv=meas_cov_inv,
         )
 
     def _is_initialised(self):

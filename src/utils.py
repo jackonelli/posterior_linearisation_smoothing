@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Union, Optional
 from pathlib import Path
 import numpy as np
+from src.analytics import mc_stats
 
 LOG_FORMAT = "%(asctime)-15s %(levelname)-5s %(name)-15s - %(message)s"
 
@@ -74,3 +75,18 @@ def tikz_1d_tab_format(ys):
     data = [f"{x} {y}" for x, y in zip(xs, ys)]
     data = "\n".join(data)
     return f"{header}\n{data}"
+
+
+def tikz_stats(dir_, name, stats):
+    num_iter = stats[0][0].shape[1]
+    iter_range = np.arange(1, num_iter + 1)
+    stats = [(mc_stats(stat_), label) for stat_, label in stats]
+    for (mean, err), label in stats:
+        data = np.column_stack((iter_range, mean, err))
+        np.savetxt(dir_ / name.lower() / f"{label}.csv", data)
+
+
+def save_stats(res_dir: Path, name: str, stats):
+    (res_dir / name.lower()).mkdir(parents=True, exist_ok=True)
+    for stat, label in stats:
+        np.savetxt(res_dir / name.lower() / f"{label.lower()}.csv", stat)

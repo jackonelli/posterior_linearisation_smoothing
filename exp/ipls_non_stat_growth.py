@@ -45,6 +45,10 @@ def main():
         Cubic(coeff=1 / 20, meas_noise=1) if args.meas_type == MeasType.Cubic else Quadratic(coeff=1 / 20, meas_noise=1)
     )
 
+    # LM hyper params
+    lambda_ = 1e-2
+    nu = 10
+
     prior_mean = np.atleast_1d(5)
     prior_cov = np.atleast_2d([4])
 
@@ -84,16 +88,16 @@ def main():
     )
 
     ieks = Ieks(motion_model, meas_model, args.num_iter)
-    ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks, rmses_gn_ieks, neeses_gn_ieks = ieks.filter_and_smooth(
+    ms_ieks, Ps_ieks, cost_ieks, rmses_ieks, neeses_ieks = ieks.filter_and_smooth(
         meas,
         prior_mean,
         prior_cov,
         cost_fn_eks,
     )
     results.append(
-        (ms_gn_ieks, Ps_gn_ieks, "GN-IEKS"),
+        (ms_ieks, Ps_ieks, "IEKS"),
     )
-    lm_ieks = LmIeks(motion_model, meas_model, args.num_iter, 10, 1e-2, 10)
+    lm_ieks = LmIeks(motion_model, meas_model, args.num_iter, 10, lambda_=lambda_, nu=nu)
     ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks, rmses_lm_ieks, neeses_lm_ieks = lm_ieks.filter_and_smooth(
         meas,
         prior_mean,
@@ -107,15 +111,15 @@ def main():
         slr_smoothing_cost_pre_comp,
         measurements=meas,
         m_1_0=prior_mean,
-        P_1_0=prior_cov,
+        P_1_0_inv=np.linalg.inv(prior_cov),
     )
 
-    gn_ipls = SigmaPointIpls(motion_model, meas_model, sigma_point_method, args.num_iter)
-    _, _, gn_ipls_ms, gn_ipls_Ps, _ = gn_ipls.filter_and_smooth(meas, prior_mean, prior_cov, cost_fn=cost_fn_ipls)
+    ipls = SigmaPointIpls(motion_model, meas_model, sigma_point_method, args.num_iter)
+    _, _, ipls_ms, ipls_Ps, _ = ipls.filter_and_smooth(meas, prior_mean, prior_cov, cost_fn=cost_fn_ipls)
 
-    results.append((gn_ipls_ms, gn_ipls_Ps, "GN-IPLS"))
+    results.append((ipls_ms, ipls_Ps, "IPLS"))
     lm_ipls = SigmaPointLmIpls(
-        motion_model, meas_model, sigma_point_method, args.num_iter, cost_improv_iter_lim=10, lambda_=1e-4, nu=10
+        motion_model, meas_model, sigma_point_method, args.num_iter, cost_improv_iter_lim=10, lambda_=lambda_, nu=nu
     )
 
     _, _, lm_ipls_ms, lm_ipls_Ps, _ = lm_ipls.filter_and_smooth(meas, prior_mean, prior_cov, cost_fn=cost_fn_ipls)

@@ -7,6 +7,7 @@ where a car passes through a tunnel, thereby going through the stages of
 - Increased uncertainty while in the tunnel
 (- Ending past the tunnel, again with certain measurements)
 """
+import argparse
 import logging
 from functools import partial
 import numpy as np
@@ -25,23 +26,23 @@ from src.smoother.slr.lm_ipls import SigmaPointLmIpls
 from src.slr.sigma_points import SigmaPointSlr
 from src.sigma_points import SphericalCubature
 from src.cost import slr_noop_cost, analytical_smoothing_cost, slr_smoothing_cost_pre_comp
-from exp.lm_ieks_paper import plot_results, plot_cost
+from exp.coord_turn.common import plot_results, calc_iter_metrics
 from src.analytics import rmse, nees
-from src.models.range_bearing import to_cartesian_coords
 from data.tunnel_traj import get_states_and_meas
-from exp.coord_turn_bearings_only import calc_iter_metrics, tikz_stats, plot_stats
-from src.visualization import to_tikz, write_to_tikz_file
+from src.utils import tikz_stats
+from src.visualization import plot_stats
 from pathlib import Path
 
 
 def main():
     log = logging.getLogger(__name__)
+    args = parse_args()
     experiment_name = "tunnel_simulation"
     setup_logger(f"logs/{experiment_name}.log", logging.DEBUG)
     log.info(f"Running experiment: {experiment_name}")
 
     np.random.seed(2)
-    num_iter = 10
+    num_iter = args.num_iter
 
     # Motion model
     sampling_period = 0.1
@@ -72,7 +73,7 @@ def main():
     prior_cov = np.diag([0.1, 0.1, 1, 1, 1])
     lm_reg = 1e-2
 
-    num_mc_samples = 10
+    num_mc_samples = args.num_mc_samples
     rmses_gn_ieks = np.zeros((num_mc_samples, num_iter))
     rmses_lm_ieks = np.zeros((num_mc_samples, num_iter))
     rmses_gn_ipls = np.zeros((num_mc_samples, num_iter))
@@ -85,9 +86,6 @@ def main():
     for mc_iter in range(num_mc_samples):
         log.info(f"MC iter: {mc_iter+1}/{num_mc_samples}")
         states, measurements = get_states_and_meas(meas_model, R, range_, tunnel_segment)
-        cartes_meas = np.apply_along_axis(partial(to_cartesian_coords, pos=pos), 1, measurements)
-
-        results = []
         cost_fn_eks = partial(
             analytical_smoothing_cost,
             measurements=measurements,
@@ -102,7 +100,7 @@ def main():
             slr_smoothing_cost_pre_comp,
             measurements=measurements,
             m_1_0=prior_mean,
-            P_1_0=prior_cov,
+            P_1_0_inv=np.linalg.inv(prior_cov),
         )
         ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks, tmp_rmse, tmp_nees = run_smoothing(
             Ieks(motion_model, meas_model, num_iter), states, measurements, prior_mean, prior_cov, cost_fn_eks
@@ -211,6 +209,14 @@ def plot_metrics(costs, rmses, neeses):
     rmse_ax.set_title("NEES")
     rmse_ax.legend()
     plt.show()
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="LM-IEKS paper experiment.")
+    parser.add_argument("--num_iter", type=int, default=10)
+    parser.add_argument("--num_mc_samples", type=int, default=100)
+
+    return parser.parse_args()
 
 
 if __name__ == "__main__":

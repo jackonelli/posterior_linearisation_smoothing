@@ -18,15 +18,15 @@ from src.smoother.ext.eks import Eks
 from src.smoother.ext.ieks import Ieks
 from src.smoother.ext.lm_ieks import LmIeks
 from src.smoother.slr.ipls import SigmaPointIpls
-from src.utils import setup_logger, tikz_err_bar_tab_format
+from src.utils import setup_logger, tikz_err_bar_tab_format, tikz_stats, save_stats
 from src.models.range_bearing import MultiSensorBearings, MultiSensorRange
 from src.models.coord_turn import CoordTurn
 from src.smoother.slr.lm_ipls import SigmaPointLmIpls
 from src.slr.sigma_points import SigmaPointSlr
 from src.sigma_points import SphericalCubature
-from src.cost import analytical_smoothing_cost, slr_smoothing_cost_pre_comp, slr_noop_cost
+from src.cost import analytical_smoothing_cost, slr_smoothing_cost_pre_comp
 from src.analytics import rmse, nees
-from src.visualization import to_tikz, write_to_tikz_file
+from src.visualization import to_tikz, write_to_tikz_file, plot_scalar_metric_err_bar
 from data.lm_ieks_paper.coord_turn_example import simulate_data, save_states_and_meas
 from exp.coord_turn.common import MeasType, run_smoothing, mc_stats, calc_iter_metrics, plot_results
 
@@ -104,10 +104,7 @@ def main():
 
         sigma_point_method = SphericalCubature()
         cost_fn_ipls = partial(
-            slr_smoothing_cost_pre_comp,
-            measurements=measurements,
-            m_1_0=prior_mean,
-            P_1_0=prior_cov,
+            slr_smoothing_cost_pre_comp, measurements=measurements, m_1_0=prior_mean, P_1_0_inv=np.linalg.inv(prior_cov)
         )
 
         ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks, tmp_rmse, tmp_nees = run_smoothing(
@@ -133,7 +130,7 @@ def main():
             measurements,
             prior_mean,
             prior_cov,
-            slr_noop_cost,
+            None,
         )
         rmses_gn_ipls[mc_iter, :] = tmp_rmse
         neeses_gn_ipls[mc_iter, :] = tmp_nees
@@ -172,53 +169,8 @@ def main():
     # tikz_stats(Path.cwd().parent / "paper/fig/ct_bearings_only_metrics/", "NEES", nees_stats)
     tikz_stats(Path.cwd() / "tmp_results", "RMSE", rmse_stats)
     tikz_stats(Path.cwd() / "tmp_results", "NEES", nees_stats)
-    plot_stats(rmse_stats, "RMSE")
-    plot_stats(nees_stats, "NEES")
-
-
-def tikz_stats(dir_, name, stats):
-    (dir_ / name.lower()).mkdir(parents=True, exist_ok=True)
-    num_iter = stats[0][0].shape[1]
-    iter_range = np.arange(1, num_iter + 1)
-    stats = [(mc_stats(stat_), label) for stat_, label in stats]
-    for (mean, err), label in stats:
-        write_to_tikz_file(tikz_err_bar_tab_format(iter_range, mean, err), dir_ / name.lower(), f"{label.lower()}.data")
-
-
-def save_stats(res_dir: Path, name: str, stats):
-    (res_dir / name.lower()).mkdir(parents=True, exist_ok=True)
-    for stat, label in stats:
-        np.savetxt(res_dir / name.lower() / f"{label.lower()}.csv", stat)
-
-
-def plot_stats(stats, title):
-    num_iter = stats[0][0].shape[1]
-    stats = [(mc_stats(stat_), label) for stat_, label in stats]
-    fig, ax = plt.subplots()
-    for (mean, err), label in stats:
-        ax.errorbar(x=np.arange(1, num_iter + 1), y=mean, yerr=err, label=label)
-    ax.set_title(title)
-    ax.legend()
-    plt.show()
-
-
-def plot_metrics(costs, rmses, neeses, exp_name, tikz_dir):
-    iter_ticks = np.arange(1, len(costs[0][1]) + 1)
-    fig, (cost_ax, rmse_ax, nees_ax) = plt.subplots(3)
-    for label, cost in costs:
-        print(label, cost)
-        cost_ax.plot(iter_ticks, cost, label=label)
-    cost_ax.set_title("Cost")
-    cost_ax.legend()
-    for label, rmse_ in rmses:
-        rmse_ax.plot(iter_ticks, rmse_, label=label)
-    rmse_ax.set_title("RMSE")
-    rmse_ax.legend()
-    for label, nees_ in neeses:
-        nees_ax.plot(iter_ticks, nees_, label=label)
-    nees_ax.set_title("NEES")
-    rmse_ax.legend()
-    plt.show()
+    plot_scalar_metric_err_bar(rmse_stats, "RMSE")
+    plot_scalar_metric_err_bar(nees_stats, "NEES")
 
 
 def parse_args():

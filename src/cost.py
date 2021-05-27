@@ -252,7 +252,7 @@ def slr_smoothing_cost(
     return _cost
 
 
-def slr_noop_cost(traj, motion_bar, meas_bar, motion_cov, meas_cov):
+def depr_slr_noop_cost(traj, motion_bar, meas_bar, motion_cov, meas_cov):
     LOGGER.debug("Using the dummy loss")
     return None
 

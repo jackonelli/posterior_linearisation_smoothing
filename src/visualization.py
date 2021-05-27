@@ -57,6 +57,17 @@ def plot_1d_mean_and_cov(ax, means, covs, sigma_level, label, color, skip_cov):
 
 
 def plot_scalar_metric(stats, title):
+    num_iter = stats[0][0].shape[0]
+    stats = [(mc_stats(stat_), label) for stat_, label in stats]
+    fig, ax = plt.subplots()
+    for metric, label in stats:
+        ax.plot(np.arange(1, num_iter + 1), metric, label=label)
+    ax.set_title(title)
+    ax.legend()
+    plt.show()
+
+
+def plot_scalar_metric_err_bar(stats, title):
     num_iter = stats[0][0].shape[1]
     stats = [(mc_stats(stat_), label) for stat_, label in stats]
     fig, ax = plt.subplots()

@@ -188,7 +188,7 @@ class IteratedSmoother(Smoother):
             mf, Pf, current_ms, current_Ps, _ = super().filter_and_smooth(measurements, m_1_0, P_1_0, cost_fn)
             self._update_estimates(current_ms, current_Ps)
             cost_fn = self._specialise_cost_fn(cost_fn_prototype, self._cost_fn_params())
-            cost = cost_fn(current_ms)
+            cost = cost_fn(current_ms) if cost_fn is not None else None
             self._log.debug(f"Cost: {cost}")
             cost_iter.append(cost)
         return mf, Pf, current_ms, current_Ps, np.array(cost_iter)
