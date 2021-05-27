@@ -77,8 +77,9 @@ class SlrCache:
         self.proc_lin = [
             self._slr.linear_params_from_slr(mean_k, cov_k, *slr_) for mean_k, cov_k, slr_ in zip(means, covs, proc_slr)
         ]
-        self.proc_lin_inv = [
-            np.linalg.inv(self._motion_model.proc_noise(k) + lin_cov) for k, (_, _, lin_cov) in enumerate(self.proc_lin)
+        self.proc_cov_inv = [
+            np.linalg.inv(self._motion_model.proc_noise(k) + lin_cov)
+            for k, (_, _, lin_cov) in enumerate(self.proc_lin, 1)
         ]
         self.proc_bar = np.array([z_bar for z_bar, _, _ in proc_slr])
 
@@ -89,8 +90,9 @@ class SlrCache:
         self.meas_lin = [
             self._slr.linear_params_from_slr(mean_k, cov_k, *slr_) for mean_k, cov_k, slr_ in zip(means, covs, meas_slr)
         ]
-        self.meas_lin_inv = [
-            np.linalg.inv(self._meas_model.meas_noise(k) + lin_cov) for k, (_, _, lin_cov) in enumerate(self.meas_lin)
+        self.meas_cov_inv = [
+            np.linalg.inv(self._meas_model.meas_noise(k) + lin_cov)
+            for k, (_, _, lin_cov) in enumerate(self.meas_lin, 1)
         ]
         self.meas_bar = [z_bar for z_bar, _, _ in meas_slr]
 
@@ -106,6 +108,9 @@ class SlrCache:
 
     def error_covs(self):
         return ([cov_k for (_, _, cov_k) in self.proc_lin], [cov_k for (_, _, cov_k) in self.meas_lin])
+
+    def inv_cov(self):
+        return (self.proc_cov_inv, self.meas_cov_inv)
 
     def is_initialized(self):
         # TODO: Full
