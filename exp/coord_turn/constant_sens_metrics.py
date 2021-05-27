@@ -35,7 +35,7 @@ def main():
     log = logging.getLogger(__name__)
     args = parse_args()
     experiment_name = "ct_constant_sens"
-    setup_logger(f"logs/{experiment_name}.log", logging.DEBUG)
+    setup_logger(f"logs/{experiment_name}.log", logging.INFO)
     log.info(f"Running experiment: {experiment_name}")
     if not args.random:
         np.random.seed(0)
@@ -92,10 +92,7 @@ def main():
         log.info(f"MC iter: {mc_iter+1}/{num_mc_samples}")
         states, measurements = simulate_data(motion_model, meas_model, prior_mean[:-1], time_steps=500)
         measurements = measurements[:, :2]
-        if mc_iter != 5:
-            continue
 
-        save_states_and_meas(states, measurements, Path.cwd() / "data/lm_ieks_paper/tricky", "lm_div")
         cost_fn_eks = partial(
             analytical_smoothing_cost,
             measurements=measurements,
@@ -113,22 +110,22 @@ def main():
             P_1_0=prior_cov,
         )
 
-        # ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks, tmp_rmse, tmp_nees = run_smoothing(
-        #     Ieks(motion_model, meas_model, num_iter), states, measurements, prior_mean, prior_cov, cost_fn_eks
-        # )
-        # rmses_gn_ieks[mc_iter, :] = tmp_rmse
-        # neeses_gn_ieks[mc_iter, :] = tmp_nees
+        ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks, tmp_rmse, tmp_nees = run_smoothing(
+            Ieks(motion_model, meas_model, num_iter), states, measurements, prior_mean, prior_cov, cost_fn_eks
+        )
+        rmses_gn_ieks[mc_iter, :] = tmp_rmse
+        neeses_gn_ieks[mc_iter, :] = tmp_nees
 
-        # ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks, tmp_rmse, tmp_nees = run_smoothing(
-        #     LmIeks(motion_model, meas_model, num_iter, cost_improv_iter_lim=10, lambda_=lambda_, nu=nu),
-        #     states,
-        #     measurements,
-        #     prior_mean,
-        #     prior_cov,
-        #     cost_fn_eks,
-        # )
-        # rmses_lm_ieks[mc_iter, :] = tmp_rmse
-        # neeses_lm_ieks[mc_iter, :] = tmp_nees
+        ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks, tmp_rmse, tmp_nees = run_smoothing(
+            LmIeks(motion_model, meas_model, num_iter, cost_improv_iter_lim=10, lambda_=lambda_, nu=nu),
+            states,
+            measurements,
+            prior_mean,
+            prior_cov,
+            cost_fn_eks,
+        )
+        rmses_lm_ieks[mc_iter, :] = tmp_rmse
+        neeses_lm_ieks[mc_iter, :] = tmp_nees
 
         ms_ipls, Ps_ipls, cost_ipls, tmp_rmse, tmp_nees = run_smoothing(
             SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter),
@@ -151,19 +148,10 @@ def main():
             prior_cov,
             cost_fn_ipls,
         )
-        print(tmp_nees)
-        plot_results(
-            states,
-            [
-                # (ms_ipls, Ps_ipls, cost_ipls, "IPLS"),
-                (ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, "LM-IPLS")
-            ],
-            None,
-        )
         rmses_lm_ipls[mc_iter, :] = tmp_rmse
         neeses_lm_ipls[mc_iter, :] = tmp_nees
 
-    label_gn_ieks, label_lm_ieks, label_gn_ipls, label_lm_ipls = "GN-IEKS", "LM-IEKS", "GN-IPLS", "LM-IPLS"
+    label_gn_ieks, label_lm_ieks, label_gn_ipls, label_lm_ipls = "IEKS", "LM-IEKS", "IPLS", "LM-IPLS"
     rmse_stats = [
         (rmses_gn_ieks, label_gn_ieks),
         (rmses_lm_ieks, label_lm_ieks),

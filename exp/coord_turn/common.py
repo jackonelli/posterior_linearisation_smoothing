@@ -1,6 +1,8 @@
 from enum import Enum
+from functools import partial
 import numpy as np
 import matplotlib.pyplot as plt
+from src.slr.base import SlrCache
 from src.analytics import rmse, nees
 import src.visualization as vis
 
@@ -15,15 +17,15 @@ def mc_stats(data):
     return np.mean(data, 0), np.std(data, 0) / np.sqrt(num_mc_samples)
 
 
-def run_smoothing(smoother, states, measurements, prior_mean, prior_cov, cost_fn, init_traj=None):
+def run_smoothing(smoother, states, measurements, prior_mean, prior_cov, cost_fn, initial_estimates=None):
     """Common function that runs a smoother and collects metrics
 
     Some iterative smoothers may return early if they exceed the limit on the number of loss-improving trials.
     In those cases, the metrics are extended with the last element to a list of length `smoother.num_iter`
     """
-    if init_traj is not None:
+    if initial_estimates is not None:
         _, _, ms, Ps, iter_cost = smoother.filter_and_smooth_with_init_traj(
-            measurements, prior_mean, prior_cov, init_traj, 1, cost_fn
+            measurements, prior_mean, prior_cov, initial_estimates, 1, cost_fn
         )
         stored_est = smoother.stored_estimates()
         next(stored_est)
@@ -75,3 +77,18 @@ def plot_results(states, trajs_and_costs, meas, skip_cov=50):
         ax=ax_1,
     )
     plt.show()
+
+
+def check_cost(estimates, cost_fn_prototype, motion_model, meas_model, slr_method):
+    costs = []
+    for ms, Ps, label in estimates:
+        cache = SlrCache(motion_model.map_set, meas_model.map_set, slr_method)
+        cache.update(ms, Ps)
+        cost_fn = partial(
+            cost_fn_prototype,
+            motion_bar=cache.proc_bar,
+            meas_bar=cache.meas_bar,
+            motion_cov=[lin[2] + motion_model.proc_noise(k) for k, lin in enumerate(cache.proc_lin, 1)],
+            meas_cov=[lin[2] + meas_model.meas_noise(k) for k, lin in enumerate(cache.meas_lin, 1)],
+        )
+        costs.append[(cost_fn(ms), label)]

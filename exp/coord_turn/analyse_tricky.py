@@ -25,7 +25,16 @@ from src.visualization import to_tikz, write_to_tikz_file
 from src.models.range_bearing import MultiSensorRange, MultiSensorBearings
 from src.models.coord_turn import CoordTurn
 from data.lm_ieks_paper.coord_turn_example import Type, get_specific_states_from_file, simulate_data
-from exp.coord_turn.common import MeasType, run_smoothing, calc_iter_metrics, mc_stats, plot_results
+from exp.coord_turn.common import (
+    MeasType,
+    run_smoothing,
+    calc_iter_metrics,
+    mc_stats,
+    plot_results,
+    plot_cost,
+    plot_neeses,
+    plot_rmses,
+)
 
 
 def main():
@@ -79,74 +88,71 @@ def main():
         meas_model=meas_model,
     )
 
-    # ms_ieks, Ps_ieks, cost_ieks, rmses_ieks, neeses_ieks = run_smoothing(
-    #     Ieks(motion_model, meas_model, num_iter),
-    #     states,
-    #     measurements,
-    #     prior_mean,
-    #     prior_cov,
-    #     cost_fn_eks,
-    #     (np.zeros((measurements.shape[0], prior_mean.shape[0])), None),
-    # )
-    # estimates.append(
-    #     (ms_ieks, Ps_ieks, cost_ieks[1:], "IEKS"),
-    # )
-    # costs.append(
-    #     (cost_ieks, "IEKS"),
-    # )
-    # rmses.append(
-    #     (rmses_ieks, "IEKS"),
-    # )
-    # neeses.append(
-    #     (neeses_ieks, "IEKS"),
-    # )
+    ms_ieks, Ps_ieks, cost_ieks, rmses_ieks, neeses_ieks = run_smoothing(
+        Ieks(motion_model, meas_model, num_iter),
+        states,
+        measurements,
+        prior_mean,
+        prior_cov,
+        cost_fn_eks,
+    )
+    estimates.append(
+        (ms_ieks, Ps_ieks, cost_ieks[1:], "IEKS"),
+    )
+    costs.append(
+        (cost_ieks, "IEKS"),
+    )
+    rmses.append(
+        (rmses_ieks, "IEKS"),
+    )
+    neeses.append(
+        (neeses_ieks, "IEKS"),
+    )
 
-    # ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks, rmses_lm_ieks, neeses_lm_ieks = run_smoothing(
-    #     LmIeks(motion_model, meas_model, num_iter, 10, lambda_, 10),
-    #     states,
-    #     measurements,
-    #     prior_mean,
-    #     prior_cov,
-    #     cost_fn_eks,
-    #     (np.zeros((measurements.shape[0], prior_mean.shape[0])), None),
-    # )
-    # estimates.append(
-    #     (ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks[1:], "LM-IEKS"),
-    # )
-    # costs.append(
-    #     (cost_lm_ieks, "LM-IEKS"),
-    # )
-    # rmses.append(
-    #     (rmses_lm_ieks, "LM-IEKS"),
-    # )
-    # neeses.append(
-    #     (neeses_lm_ieks, "LM-IEKS"),
-    # )
+    ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks, rmses_lm_ieks, neeses_lm_ieks = run_smoothing(
+        LmIeks(motion_model, meas_model, num_iter, 10, lambda_, 10),
+        states,
+        measurements,
+        prior_mean,
+        prior_cov,
+        cost_fn_eks,
+    )
+    estimates.append(
+        (ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks[1:], "LM-IEKS"),
+    )
+    costs.append(
+        (cost_lm_ieks, "LM-IEKS"),
+    )
+    rmses.append(
+        (rmses_lm_ieks, "LM-IEKS"),
+    )
+    neeses.append(
+        (neeses_lm_ieks, "LM-IEKS"),
+    )
 
-    # ms_ls_ieks, Ps_ls_ieks, cost_ls_ieks, rmses_ls_ieks, neeses_ls_ieks = run_smoothing(
-    #     LsIeks(motion_model, meas_model, num_iter, GridSearch(cost_fn_eks, 20)),
-    #     states,
-    #     measurements,
-    #     prior_mean,
-    #     prior_cov,
-    #     cost_fn_eks,
-    #     (np.zeros((measurements.shape[0], prior_mean.shape[0])), None),
-    # )
-    # estimates.append(
-    #     (ms_ls_ieks, Ps_ls_ieks, cost_ls_ieks[1:], "LS-IEKS"),
-    # )
-    # costs.append(
-    #     (cost_ls_ieks, "LS-IEKS"),
-    # )
-    # rmses.append(
-    #     (rmses_ls_ieks, "LS-IEKS"),
-    # )
-    # neeses.append(
-    #     (neeses_ls_ieks, "LS-IEKS"),
-    # )
+    ms_ls_ieks, Ps_ls_ieks, cost_ls_ieks, rmses_ls_ieks, neeses_ls_ieks = run_smoothing(
+        LsIeks(motion_model, meas_model, num_iter, GridSearch(cost_fn_eks, 20)),
+        states,
+        measurements,
+        prior_mean,
+        prior_cov,
+        cost_fn_eks,
+    )
+    estimates.append(
+        (ms_ls_ieks, Ps_ls_ieks, cost_ls_ieks[1:], "LS-IEKS"),
+    )
+    costs.append(
+        (cost_ls_ieks, "LS-IEKS"),
+    )
+    rmses.append(
+        (rmses_ls_ieks, "LS-IEKS"),
+    )
+    neeses.append(
+        (neeses_ls_ieks, "LS-IEKS"),
+    )
 
     sigma_point_method = SphericalCubature()
-    cost_fn_ipls = partial(
+    ls_cost_fn = partial(
         slr_smoothing_cost_means,
         measurements=measurements,
         m_1_0=prior_mean,
@@ -169,7 +175,6 @@ def main():
         prior_mean,
         prior_cov,
         pre_comp_cost,
-        None,
     )
     estimates.append(
         (ms_ipls, Ps_ipls, cost_ipls, "IPLS"),
@@ -193,7 +198,6 @@ def main():
         prior_mean,
         prior_cov,
         pre_comp_cost,
-        None,
     )
     estimates.append(
         (ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, "LM-IPLS"),
@@ -208,97 +212,35 @@ def main():
         (neeses_lm_ipls, "LM-IPLS"),
     )
 
-    check_cost(
-        [
-            # (ms_ipls, Ps_ipls, "GN"),
-            (ms_lm_ipls, Ps_lm_ipls, "LM")
-        ],
-        pre_comp_cost,
-        motion_model,
-        meas_model,
-        SigmaPointSlr(sigma_point_method),
+    ms_ls_ipls, Ps_ls_ipls, cost_ls_ipls, rmses_ls_ipls, neeses_ls_ipls = run_smoothing(
+        SigmaPointLsIpls(motion_model, meas_model, sigma_point_method, num_iter, GridSearch, 10),
+        states,
+        measurements,
+        prior_mean,
+        prior_cov,
+        ls_cost_fn,
     )
-    # ms_ls_ipls, Ps_ls_ipls, cost_ls_ipls, rmses_ls_ipls, neeses_ls_ipls = run_smoothing(
-    #     SigmaPointLsIpls(motion_model, meas_model, sigma_point_method, num_iter, GridSearch, 10),
-    #     states,
-    #     measurements,
-    #     prior_mean,
-    #     prior_cov,
-    #     cost_fn_ipls,
-    #     None,
-    # )
-    # estimates.append(
-    #     (ms_ls_ipls, Ps_ls_ipls, cost_ls_ipls, "LS-IPLS"),
-    # )
-    # costs.append(
-    #     (cost_ls_ipls, "LS-IPLS"),
-    # )
-    # rmses.append(
-    #     (rmses_ls_ipls, "LS-IPLS"),
-    # )
-    # neeses.append(
-    #     (neeses_ls_ipls, "LS-IPLS"),
-    # )
+    estimates.append(
+        (ms_ls_ipls, Ps_ls_ipls, cost_ls_ipls, "LS-IPLS"),
+    )
+    costs.append(
+        (cost_ls_ipls, "LS-IPLS"),
+    )
+    rmses.append(
+        (rmses_ls_ipls, "LS-IPLS"),
+    )
+    neeses.append(
+        (neeses_ls_ipls, "LS-IPLS"),
+    )
 
-    # print(costs)
-    # plot_cost(costs)
-    # plot_neeses(neeses)
-    # plot_rmses(rmses)
-    # plot_results(
-    #     states,
-    #     estimates,
-    #     None,
-    # )
-
-
-from src.slr.base import SlrCache
-
-
-def check_cost(estimates, cost_fn_prototype, motion_model, meas_model, slr_method):
-    for ms, Ps, label in estimates:
-        cache = SlrCache(motion_model.map_set, meas_model.map_set, slr_method)
-        cache.update(ms, Ps)
-        cost_fn = partial(
-            cost_fn_prototype,
-            motion_bar=cache.proc_bar,
-            meas_bar=cache.meas_bar,
-            motion_cov=[lin[2] + motion_model.proc_noise(k) for k, lin in enumerate(cache.proc_lin, 1)],
-            meas_cov=[lin[2] + meas_model.meas_noise(k) for k, lin in enumerate(cache.meas_lin, 1)],
-        )
-        print(label, cost_fn(ms))
-
-
-def plot_neeses(neeses, ax=None):
-    if not ax:
-        _, ax = plt.subplots()
-    for (iter_cost, label) in neeses:
-        ax.semilogy(iter_cost, label=label)
-    ax.set_xlabel("Iteration number i")
-    ax.set_ylabel("$NEES$")
-    ax.set_title("NEES")
-    ax.legend()
-
-
-def plot_rmses(rmses, ax=None):
-    if not ax:
-        _, ax = plt.subplots()
-    for (iter_cost, label) in rmses:
-        ax.semilogy(iter_cost, label=label)
-    ax.set_xlabel("Iteration number i")
-    ax.set_ylabel("$RMSE$")
-    ax.set_title("RMSE")
-    ax.legend()
-
-
-def plot_cost(costs, ax=None):
-    if not ax:
-        _, ax = plt.subplots()
-    for (iter_cost, label) in costs:
-        ax.semilogy(iter_cost, label=label)
-    ax.set_xlabel("Iteration number i")
-    ax.set_ylabel("$L$")
-    ax.set_title("Cost function")
-    ax.legend()
+    plot_cost(costs)
+    plot_neeses(neeses)
+    plot_rmses(rmses)
+    plot_results(
+        states,
+        estimates,
+        None,
+    )
 
 
 def parse_args():
