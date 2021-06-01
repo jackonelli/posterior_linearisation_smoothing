@@ -61,6 +61,18 @@ def calc_iter_metrics(metric_fn, estimates, states, num_iter):
     return metrics
 
 
+def modify_meas(measurements, states, meas_model, resample):
+    if resample:
+        measurements = meas_model._default_model.sample(states)
+    # np array to list of np array
+    measurements = [meas for meas in measurements]
+    change_tss = meas_model.alt_tss()
+    new_meas = meas_model._alt_model.sample(states[change_tss - 1, :])
+    for counter, ts in enumerate(change_tss):
+        measurements[ts - 1] = new_meas[counter]
+    return measurements
+
+
 def plot_results(states, trajs_and_costs, meas, skip_cov=50):
     means_and_covs = [(ms, Ps, f"{label}-{len(cost)}") for (ms, Ps, cost, label) in trajs_and_costs]
     # costs = [

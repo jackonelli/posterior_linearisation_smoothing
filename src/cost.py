@@ -24,7 +24,7 @@ def analytical_smoothing_cost(traj, measurements, m_1_0, P_1_0, motion_model: Mo
             represented as a np.array(K, D_x).
             (The actual variable in the cost function)
         measurements: measurements for a time sequence 1, ..., K
-            represented as a np.array(K, D_y)
+            represented as a list of length K of np.array(D_y,)
     """
     K = len(measurements)
     prior_diff = traj[0, :] - m_1_0
@@ -57,16 +57,12 @@ def analytical_smoothing_cost_time_dep(
             represented as a np.array(K, D_x).
             (The actual variable in the cost function)
         measurements: measurements for a time sequence 1, ..., K
-            represented as a np.array(K, D_y)
+            represented as a list of length K of np.array(D_y,)
     """
     prior_diff = traj[0, :] - m_1_0
     _cost = prior_diff.T @ np.linalg.inv(P_1_0) @ prior_diff
 
     K, D_x = traj.shape
-    # _, D_y = measurements.shape
-    # motion_diff = np.empty((K - 1, D_x))
-    # meas_diff = np.empty((K, D_y))
-    # TODO: collapse into singel loop.
     for k in range(1, K + 1):
         k_ind = k - 1
         if k < K:
@@ -77,15 +73,6 @@ def analytical_smoothing_cost_time_dep(
             continue
         meas_diff_k = meas_k - meas_model.mapping(traj[k_ind, :], k)
         _cost += meas_diff_k.T @ np.linalg.inv(meas_model.meas_noise(k)) @ meas_diff_k
-    # for k in range(0, K - 1):
-    #     motion_diff_k = traj[k + 1, :] - motion_model.mapping(traj[k, :], k)
-    #     meas_diff = traj[k, :] - motion_model.mapping(traj[k, :], k)
-    #     _cost += motion_diff[k, :].T @ np.linalg.inv(motion_model.proc_noise(k)) @ motion_diff[k, :]
-    #     # measurements are zero indexed, i.e. k-1 --> y_k
-    #     if any(np.isnan(meas_diff[k, :])):
-    #         continue
-    #     _cost += meas_diff[k, :].T @ np.linalg.inv(meas_model.meas_noise(k)) @ meas_diff[k, :]
-    # _cost += meas_diff[-1, :].T @ np.linalg.inv(meas_model.meas_noise(measurements.shape[0])) @ meas_diff[-1, :]
 
     return _cost
 
@@ -104,7 +91,7 @@ def analytical_smoothing_cost_lm_ext(
             represented as a np.array(K, D_x).
             (The actual variable in the cost function)
         measurements: measurements for a time sequence 1, ..., K
-            represented as a np.array(K, D_y)
+            represented as a list of length K of np.array(D_y,)
     """
     prior_diff = traj[0, :] - m_1_0
     _cost = prior_diff.T @ np.linalg.inv(P_1_0) @ prior_diff
@@ -141,10 +128,18 @@ def slr_smoothing_cost_pre_comp(
         traj: states for a time sequence 1, ..., K
             represented as a np.array(K, D_x).
             (The actual variable in the cost function)
-        covs: estimated covariances (means) for a time sequence 1, ..., K
-            represented as a np.array(K, D_x, D_x)
-        meas: measurements for a time sequence 1, ..., K
-            represented as a np.array(K, D_y)
+        measurements: measurements for a time sequence 1, ..., K
+            represented as a list of length K of np.array(D_y,)
+        m_1_0 (D_x,): Prior mean for time 1
+        P_1_0_inv (D_x, D_x): Inverse prior covariance for time 1
+        motion_bar: estimated SLR expectation for the motion model for a time sequence 1, ..., K
+            represented as a list of length K of np.array(D_x,)
+        meas_bar: estimated SLR expectation for the meas model for a time sequence 1, ..., K
+            represented as a list of length K of np.array(D_y,)
+        motion_cov_inv: estimated inverse covariances (Omega_k + Q_k) for a time sequence 1, ..., K
+            represented as a list of length K of np.array(D_x, D_x)
+        meas_cov_inv: estimated inverse covariances (Lambda_k + R_k) for a time sequence 1, ..., K
+            represented as a list of length K of np.array(D_x, D_x)
     """
     prior_diff = traj[0, :] - m_1_0
     _cost = prior_diff.T @ P_1_0_inv @ prior_diff
@@ -180,10 +175,19 @@ def slr_smoothing_cost_means(
         traj: states for a time sequence 1, ..., K
             represented as a np.array(K, D_x).
             (The actual variable in the cost function)
-        covs: estimated covariances (means) for a time sequence 1, ..., K
-            represented as a np.array(K, D_x, D_x)
-        meas: measurements for a time sequence 1, ..., K
-            represented as a np.array(K, D_y)
+        measurements: measurements for a time sequence 1, ..., K
+            represented as a list of length K of np.array(D_y,)
+        m_1_0 (D_x,): Prior mean for time 1
+        P_1_0_inv (D_x, D_x): Inverse prior covariance for time 1
+        estimated_covs: covs for a time sequence 1, ..., K
+            represented as a np.array(K, D_x, D_x).
+        motion_fn: MotionModel.map_set,
+        meas_fn: MeasModel.map_set,
+        motion_cov_inv: estimated inverse covariances (Omega_k + Q_k) for a time sequence 1, ..., K
+            represented as a list of length K of np.array(D_x, D_x)
+        meas_cov_inv: estimated inverse covariances (Lambda_k + R_k) for a time sequence 1, ..., K
+            represented as a list of length K of np.array(D_x, D_x)
+        slr_method: Slr
     """
     motion_bar = [
         slr_method.calc_z_bar(partial(motion_fn, time_step=k), mean_k, cov_k)
@@ -214,14 +218,20 @@ def slr_smoothing_cost(
     GN optimisation of this cost function will result in a linearised function
     corresponding to the SLR Smoother (PrLS, PLS) et al.
 
+    This version is used for testing but not in the actual smoother implementations
+    since it is too inefficient to recompute the SLR estimates from scratch.
+
     Args:
         traj: states for a time sequence 1, ..., K
             represented as a np.array(K, D_x).
             (The actual variable in the cost function)
-        covs: estimated covariances (means) for a time sequence 1, ..., K
-            represented as a np.array(K, D_x, D_x)
-        meas: measurements for a time sequence 1, ..., K
-            represented as a np.array(K, D_y)
+        measurements: measurements for a time sequence 1, ..., K
+            represented as a list of length K of np.array(D_y,)
+        m_1_0 (D_x,): Prior mean for time 1
+        P_1_0 (D_x, D_x): Prior covariance for time 1
+        motion_model: MotionModel,
+        meas_model: MeasModel,
+        slr_method: Slr
     """
     prior_diff = traj[0, :] - m_1_0
     _cost = prior_diff.T @ np.linalg.inv(P_1_0) @ prior_diff
@@ -250,11 +260,6 @@ def slr_smoothing_cost(
         _cost += meas_diff_k.T @ np.linalg.inv(meas_model.meas_noise(k) + Lambda_k) @ meas_diff_k
 
     return _cost
-
-
-def depr_slr_noop_cost(traj, motion_bar, meas_bar, motion_cov, meas_cov):
-    LOGGER.debug("Using the dummy loss")
-    return None
 
 
 def _ss_cost(means, measurements, m_1_0, P_1_0, Q, R, f_fun, h_fun):

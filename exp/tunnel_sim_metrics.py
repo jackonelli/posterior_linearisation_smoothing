@@ -17,20 +17,22 @@ from src.filter.ekf import Ekf
 from src.smoother.ext.eks import Eks
 from src.smoother.ext.ieks import Ieks
 from src.smoother.ext.lm_ieks import LmIeks
+from src.smoother.ext.ls_ieks import LsIeks
 from src.smoother.slr.ipls import SigmaPointIpls
-from src.utils import setup_logger
+from src.smoother.slr.lm_ipls import SigmaPointLmIpls
+from src.smoother.slr.ls_ipls import SigmaPointLsIpls
+from src.line_search import GridSearch
+from src.utils import setup_logger, save_stats
 from src.models.range_bearing import RangeBearing
 from src.models.coord_turn import CoordTurn
 from data.lm_ieks_paper.coord_turn_example import simulate_data
-from src.smoother.slr.lm_ipls import SigmaPointLmIpls
 from src.slr.sigma_points import SigmaPointSlr
 from src.sigma_points import SphericalCubature
-from src.cost import slr_noop_cost, analytical_smoothing_cost, slr_smoothing_cost_pre_comp
+from src.cost import analytical_smoothing_cost, slr_smoothing_cost_pre_comp, slr_smoothing_cost_means
 from exp.coord_turn.common import plot_results, calc_iter_metrics
 from src.analytics import rmse, nees
 from data.tunnel_traj import get_states_and_meas
-from src.utils import tikz_stats
-from src.visualization import plot_stats
+from src.visualization import plot_scalar_metric_err_bar
 from pathlib import Path
 
 
@@ -38,7 +40,7 @@ def main():
     log = logging.getLogger(__name__)
     args = parse_args()
     experiment_name = "tunnel_simulation"
-    setup_logger(f"logs/{experiment_name}.log", logging.DEBUG)
+    setup_logger(f"logs/{experiment_name}.log", logging.INFO)
     log.info(f"Running experiment: {experiment_name}")
 
     np.random.seed(2)
@@ -71,18 +73,24 @@ def main():
     # tunnel_segment = [None, None]
     prior_mean = np.array([0, 0, 1, 0, 0])
     prior_cov = np.diag([0.1, 0.1, 1, 1, 1])
-    lm_reg = 1e-2
+    lambda_ = 1e-2
+    nu = 10
+    grid_search_points = 10
 
     num_mc_samples = args.num_mc_samples
-    rmses_gn_ieks = np.zeros((num_mc_samples, num_iter))
+    rmses_ieks = np.zeros((num_mc_samples, num_iter))
     rmses_lm_ieks = np.zeros((num_mc_samples, num_iter))
-    rmses_gn_ipls = np.zeros((num_mc_samples, num_iter))
+    rmses_ls_ieks = np.zeros((num_mc_samples, num_iter))
+    rmses_ipls = np.zeros((num_mc_samples, num_iter))
     rmses_lm_ipls = np.zeros((num_mc_samples, num_iter))
+    rmses_ls_ipls = np.zeros((num_mc_samples, num_iter))
 
     neeses_gn_ieks = np.zeros((num_mc_samples, num_iter))
     neeses_lm_ieks = np.zeros((num_mc_samples, num_iter))
+    neeses_ls_ieks = np.zeros((num_mc_samples, num_iter))
     neeses_gn_ipls = np.zeros((num_mc_samples, num_iter))
     neeses_lm_ipls = np.zeros((num_mc_samples, num_iter))
+    neeses_ls_ipls = np.zeros((num_mc_samples, num_iter))
     for mc_iter in range(num_mc_samples):
         log.info(f"MC iter: {mc_iter+1}/{num_mc_samples}")
         states, measurements = get_states_and_meas(meas_model, R, range_, tunnel_segment)
@@ -105,11 +113,11 @@ def main():
         ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks, tmp_rmse, tmp_nees = run_smoothing(
             Ieks(motion_model, meas_model, num_iter), states, measurements, prior_mean, prior_cov, cost_fn_eks
         )
-        rmses_gn_ieks[mc_iter, :] = tmp_rmse
+        rmses_ieks[mc_iter, :] = tmp_rmse
         neeses_gn_ieks[mc_iter, :] = tmp_nees
 
         ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks, tmp_rmse, tmp_nees = run_smoothing(
-            LmIeks(motion_model, meas_model, num_iter, cost_improv_iter_lim=10, lambda_=lm_reg, nu=10),
+            LmIeks(motion_model, meas_model, num_iter, cost_improv_iter_lim=10, lambda_=lambda_, nu=nu),
             states,
             measurements,
             prior_mean,
@@ -119,20 +127,31 @@ def main():
         rmses_lm_ieks[mc_iter, :] = tmp_rmse
         neeses_lm_ieks[mc_iter, :] = tmp_nees
 
+        ms_ls_ieks, Ps_ls_ieks, cost_ls_ieks, tmp_rmse, tmp_nees = run_smoothing(
+            LsIeks(motion_model, meas_model, num_iter, GridSearch(cost_fn_eks, grid_search_points)),
+            states,
+            measurements,
+            prior_mean,
+            prior_cov,
+            cost_fn_eks,
+        )
+        rmses_ls_ieks[mc_iter, :] = tmp_rmse
+        neeses_ls_ieks[mc_iter, :] = tmp_nees
+
         ms_gn_ipls, Ps_gn_ipls, cost_gn_ipls, tmp_rmse, tmp_nees = run_smoothing(
             SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter),
             states,
             measurements,
             prior_mean,
             prior_cov,
-            cost_fn_ipls,
+            None,
         )
-        rmses_gn_ipls[mc_iter, :] = tmp_rmse
+        rmses_ipls[mc_iter, :] = tmp_rmse
         neeses_gn_ipls[mc_iter, :] = tmp_nees
 
         ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, tmp_rmse, tmp_nees = run_smoothing(
             SigmaPointLmIpls(
-                motion_model, meas_model, sigma_point_method, num_iter, cost_improv_iter_lim=10, lambda_=lm_reg, nu=10
+                motion_model, meas_model, sigma_point_method, num_iter, cost_improv_iter_lim=10, lambda_=lambda_, nu=nu
             ),
             states,
             measurements,
@@ -143,25 +162,56 @@ def main():
         rmses_lm_ipls[mc_iter, :] = tmp_rmse
         neeses_lm_ipls[mc_iter, :] = tmp_nees
 
-    label_gn_ieks, label_lm_ieks, label_gn_ipls, label_lm_ipls = "GN-IEKS", "LM-IEKS", "GN-IPLS", "LM-IPLS"
+        ls_cost_fn = partial(
+            slr_smoothing_cost_means,
+            measurements=measurements,
+            m_1_0=prior_mean,
+            P_1_0_inv=np.linalg.inv(prior_cov),
+            motion_fn=motion_model.map_set,
+            meas_fn=meas_model.map_set,
+            slr_method=SigmaPointSlr(sigma_point_method),
+        )
+        ms_ls_ipls, Ps_ls_ipls, cost_ls_ipls, tmp_rmse, tmp_nees = run_smoothing(
+            SigmaPointLsIpls(motion_model, meas_model, sigma_point_method, num_iter, GridSearch, grid_search_points),
+            states,
+            measurements,
+            prior_mean,
+            prior_cov,
+            ls_cost_fn,
+        )
+        rmses_ls_ipls[mc_iter, :] = tmp_rmse
+        neeses_ls_ipls[mc_iter, :] = tmp_nees
+
+    label_ieks, label_lm_ieks, label_ls_ieks, label_ipls, label_lm_ipls, label_ls_ipls = (
+        "IEKS",
+        "LM-IEKS",
+        "LS-IEKS",
+        "IPLS",
+        "LM-IPLS",
+        "LS-IPLS",
+    )
     rmse_stats = [
-        (rmses_gn_ieks, label_gn_ieks),
+        (rmses_ieks, label_ieks),
         (rmses_lm_ieks, label_lm_ieks),
-        (rmses_gn_ipls, label_gn_ipls),
+        (rmses_ls_ieks, label_ls_ieks),
+        (rmses_ipls, label_ipls),
         (rmses_lm_ipls, label_lm_ipls),
+        (rmses_ls_ipls, label_ls_ipls),
     ]
 
     nees_stats = [
-        (neeses_gn_ieks, label_gn_ieks),
+        (neeses_gn_ieks, label_ieks),
         (neeses_lm_ieks, label_lm_ieks),
-        (neeses_gn_ipls, label_gn_ipls),
+        (neeses_ls_ieks, label_ls_ieks),
+        (neeses_gn_ipls, label_ipls),
         (neeses_lm_ipls, label_lm_ipls),
+        (neeses_ls_ipls, label_ls_ipls),
     ]
 
-    tikz_stats(Path.cwd() / "tmp_results", "RMSE", rmse_stats)
-    tikz_stats(Path.cwd() / "tmp_results", "NEES", nees_stats)
-    plot_stats(rmse_stats, "RMSE")
-    plot_stats(nees_stats, "NEES")
+    save_stats(Path.cwd() / "results" / experiment_name, "RMSE", rmse_stats)
+    save_stats(Path.cwd() / "results" / experiment_name, "NEES", nees_stats)
+    plot_scalar_metric_err_bar(rmse_stats, "RMSE")
+    plot_scalar_metric_err_bar(nees_stats, "NEES")
 
 
 def run_smoothing(smoother, states, measurements, prior_mean, prior_cov, cost_fn, init_traj=None):

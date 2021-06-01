@@ -98,6 +98,8 @@ class SigmaPointLmIpls(IteratedSmoother):
                 loss_cand_no += 1
             if loss_cand_no == self._cost_improv_iter_lim + 1:
                 self._log.info(f"No cost improvement for {self._cost_improv_iter_lim} iterations, returning")
+                # Update to get the most recent estimates into the stored_estimates
+                self._update_estimates(self._current_means, self._current_covs)
                 return mf, Pf, self._current_means, self._current_covs, np.array(cost_iter)
 
             # Full update, updating means and covs estimates.

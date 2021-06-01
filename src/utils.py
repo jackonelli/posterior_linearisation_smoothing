@@ -69,6 +69,12 @@ def tikz_2d_tab_format(xs, ys):
     return f"{header}\n{data}"
 
 
+def tikz_2d_traj(dir_, traj, label):
+    tikz_dir = dir_ / "traj"
+    tikz_dir.mkdir(parents=True, exist_ok=True)
+    np.savetxt(tikz_dir / f"{label.lower()}.data", traj, header="x y", comments="")
+
+
 def tikz_1d_tab_format(ys):
     xs = np.arange(1, len(ys) + 1)
     header = "x y"
@@ -78,12 +84,14 @@ def tikz_1d_tab_format(ys):
 
 
 def tikz_stats(dir_, name, stats):
+    metric_dir = dir_ / name
+    metric_dir.mkdir(parents=True, exist_ok=True)
     num_iter = stats[0][0].shape[1]
     iter_range = np.arange(1, num_iter + 1)
     stats = [(mc_stats(stat_), label) for stat_, label in stats]
     for (mean, err), label in stats:
         data = np.column_stack((iter_range, mean, err))
-        np.savetxt(dir_ / name.lower() / f"{label}.csv", data)
+        np.savetxt(metric_dir / f"{label.lower()}.data", data, header="x y err", comments="")
 
 
 def save_stats(res_dir: Path, name: str, stats):

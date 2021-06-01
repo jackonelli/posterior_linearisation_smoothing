@@ -31,22 +31,24 @@ from src.smoother.slr.lm_ipls import SigmaPointLmIpls
 from src.line_search import GridSearch
 from src.slr.sigma_points import SigmaPointSlr
 from src.sigma_points import SphericalCubature
-from src.cost import analytical_smoothing_cost, slr_smoothing_cost_pre_comp, slr_smoothing_cost_means
-from src.utils import setup_logger
+from src.cost import analytical_smoothing_cost_time_dep, slr_smoothing_cost_pre_comp, slr_smoothing_cost_means
+from src.utils import setup_logger, tikz_2d_traj
 from src.analytics import rmse
 from src.visualization import to_tikz, write_to_tikz_file
-from src.models.range_bearing import MultiSensorRange, MultiSensorBearings
+from src.models.range_bearing import MultiSensorRange, MultiSensorBearings, BearingsVaryingSensors
 from src.models.coord_turn import CoordTurn
 from data.lm_ieks_paper.coord_turn_example import Type, get_specific_states_from_file, simulate_data
-from exp.coord_turn.common import MeasType, run_smoothing, calc_iter_metrics, mc_stats, plot_results
+from exp.coord_turn.common import MeasType, run_smoothing, calc_iter_metrics, mc_stats, plot_results, modify_meas
 
 
 def main():
     args = parse_args()
     log = logging.getLogger(__name__)
-    experiment_name = "lm_ieks"
+    experiment_name = "ct_experiment_realisation"
     setup_logger(f"logs/{experiment_name}.log", logging.DEBUG)
     log.info(f"Running experiment: {experiment_name}")
+    if not args.random:
+        np.random.seed(2)
 
     dt = 0.01
     qc = 0.01
@@ -71,7 +73,7 @@ def main():
     prior_mean = np.array([0, 0, 1, 0, 0])
     prior_cov = np.diag([0.1, 0.1, 1, 1, 1])
 
-    lambda_ = 1e-4
+    lambda_ = 1e-0
 
     num_iter = args.num_iter
     if args.meas_type == MeasType.Range:
@@ -87,9 +89,21 @@ def main():
         states, all_meas, _, xs_ss = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.LM, num_iter)
         measurements = all_meas[:, meas_cols]
 
+    if args.var_sensors:
+        single_sensor = sens_pos_2.reshape((1, 2))
+        std = 0.001
+        R_certain = std ** 2 * np.eye(1)
+        single_meas_model = MultiSensorBearings(single_sensor, R_certain)
+        # Create a set of time steps where the original two sensor measurements are replaced with single ones.
+        # single_meas_time_steps = set(list(range(0, 100, 5))[1:])
+        single_meas_time_steps = set(list(range(0, 500, 50))[1:])
+        meas_model = BearingsVaryingSensors(meas_model, single_meas_model, single_meas_time_steps)
+        # Change measurments so that some come from the alternative model.
+        measurements = modify_meas(measurements, states, meas_model, True)
+
     results = []
     cost_fn_eks = partial(
-        analytical_smoothing_cost,
+        analytical_smoothing_cost_time_dep,
         measurements=measurements,
         m_1_0=prior_mean,
         P_1_0=prior_cov,
@@ -97,27 +111,11 @@ def main():
         meas_model=meas_model,
     )
 
-    ms_ls_ieks, Ps_ls_ieks, cost_ls_ieks, rmses_ls_ieks, neeses_ls_ieks = run_smoothing(
-        LsIeks(motion_model, meas_model, num_iter, GridSearch(cost_fn_eks, 20)),
-        states,
-        measurements,
-        prior_mean,
-        prior_cov,
-        cost_fn_eks,
-        (np.zeros((measurements.shape[0], prior_mean.shape[0])), None),
-    )
-    results.append(
-        (ms_ls_ieks, Ps_ls_ieks, cost_ls_ieks[1:], "LS-IEKS"),
-    )
-
+    D_x = prior_mean.shape[0]
+    K = len(measurements)
+    init_traj = (np.zeros((K, D_x)), np.array(K * [prior_cov]))
     ms_ieks, Ps_ieks, cost_ieks, rmses_ieks, neeses_ieks = run_smoothing(
-        Ieks(motion_model, meas_model, num_iter),
-        states,
-        measurements,
-        prior_mean,
-        prior_cov,
-        cost_fn_eks,
-        (np.zeros((measurements.shape[0], prior_mean.shape[0])), None),
+        Ieks(motion_model, meas_model, num_iter), states, measurements, prior_mean, prior_cov, cost_fn_eks, init_traj
     )
     results.append(
         (ms_ieks, Ps_ieks, cost_ieks[1:], "IEKS"),
@@ -129,16 +127,55 @@ def main():
         prior_mean,
         prior_cov,
         cost_fn_eks,
-        (np.zeros((measurements.shape[0], prior_mean.shape[0])), None),
+        init_traj,
     )
     results.append(
         (ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks[1:], "LM-IEKS"),
     )
 
+    ms_ls_ieks, Ps_ls_ieks, cost_ls_ieks, rmses_ls_ieks, neeses_ls_ieks = run_smoothing(
+        LsIeks(motion_model, meas_model, num_iter, GridSearch(cost_fn_eks, 20)),
+        states,
+        measurements,
+        prior_mean,
+        prior_cov,
+        cost_fn_eks,
+        init_traj,
+    )
+    results.append(
+        (ms_ls_ieks, Ps_ls_ieks, cost_ls_ieks[1:], "LS-IEKS"),
+    )
     sigma_point_method = SphericalCubature()
 
     cost_fn_ipls = partial(
         slr_smoothing_cost_pre_comp, measurements=measurements, m_1_0=prior_mean, P_1_0_inv=np.linalg.inv(prior_cov)
+    )
+
+    ms_ipls, Ps_ipls, cost_ipls, rmses_ipls, neeses_ipls = run_smoothing(
+        SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter),
+        states,
+        measurements,
+        prior_mean,
+        prior_cov,
+        None,
+        init_traj,
+    )
+    results.append(
+        (ms_ipls, Ps_ipls, cost_ipls, "IPLS"),
+    )
+    ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, rmses_lm_ipls, neeses_lm_ipls = run_smoothing(
+        SigmaPointLmIpls(
+            motion_model, meas_model, sigma_point_method, num_iter, cost_improv_iter_lim=10, lambda_=lambda_, nu=10
+        ),
+        states,
+        measurements,
+        prior_mean,
+        prior_cov,
+        cost_fn_ipls,
+        init_traj,
+    )
+    results.append(
+        (ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, "LM-IPLS"),
     )
 
     cost_fn_ls_ipls = partial(
@@ -158,38 +195,14 @@ def main():
         prior_mean,
         prior_cov,
         cost_fn_ls_ipls,
-        None,
+        init_traj,
     )
     results.append(
         (ms_ls_ipls, Ps_ls_ipls, cost_ls_ipls, "LS-IPLS"),
     )
 
-    ms_ipls, Ps_ipls, cost_ipls, rmses_ipls, neeses_ipls = run_smoothing(
-        SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter),
-        states,
-        measurements,
-        prior_mean,
-        prior_cov,
-        None,
-        None,
-    )
-    results.append(
-        (ms_ipls, Ps_ipls, cost_ipls, "IPLS"),
-    )
-    ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, rmses_lm_ipls, neeses_lm_ipls = run_smoothing(
-        SigmaPointLmIpls(
-            motion_model, meas_model, sigma_point_method, num_iter, cost_improv_iter_lim=10, lambda_=lambda_, nu=10
-        ),
-        states,
-        measurements,
-        prior_mean,
-        prior_cov,
-        cost_fn_ipls,
-        None,
-    )
-    results.append(
-        (ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, "LM-IPLS"),
-    )
+    for ms, _, _, label in results:
+        tikz_2d_traj(Path.cwd() / "tikz", ms[:, :2], label)
     plot_results(
         states,
         results,
@@ -208,6 +221,7 @@ def plot_cost(ax, costs):
 def parse_args():
     parser = argparse.ArgumentParser(description="LM-IEKS paper experiment.")
     parser.add_argument("--random", action="store_true")
+    parser.add_argument("--var_sensors", action="store_true")
     parser.add_argument("--meas_type", type=MeasType, required=True)
     parser.add_argument("--num_iter", type=int, default=10)
 

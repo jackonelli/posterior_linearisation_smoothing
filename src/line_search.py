@@ -11,6 +11,10 @@ class LineSearch(ABC):
         """
         pass
 
+    @staticmethod
+    def next_estimate(x_0, x_1, alpha):
+        return alpha * (x_1 - x_0) + x_0
+
 
 class GridSearch(LineSearch):
     def __init__(self, cost_fn, num_points):
@@ -19,7 +23,7 @@ class GridSearch(LineSearch):
 
     def search_next(self, x_0, x_1):
         alphas = np.linspace(0, 1, self._num_points)
-        cands = np.array([alpha * (x_1 - x_0) + x_0 for alpha in alphas])
+        cands = np.array([self.next_estimate(x_0, x_1, alpha) for alpha in alphas])
         costs = np.array([self._cost_fn(cand) for cand in cands])
         min_ind = np.argmin(costs)
         return cands[min_ind], alphas[min_ind], costs[min_ind]

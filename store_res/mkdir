@@ -1,2 +1,0 @@
-python exp/coord_turn/constant_sens_metrics.py --meas_type bearings --num_mc_samples 100 --num_iter 10 --random
-36e194211a66cd202d1962878eeed2f9f0d8e586

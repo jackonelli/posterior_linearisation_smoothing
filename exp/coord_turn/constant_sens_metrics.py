@@ -17,14 +17,17 @@ from src.filter.ekf import Ekf
 from src.smoother.ext.eks import Eks
 from src.smoother.ext.ieks import Ieks
 from src.smoother.ext.lm_ieks import LmIeks
+from src.smoother.ext.ls_ieks import LsIeks
 from src.smoother.slr.ipls import SigmaPointIpls
+from src.smoother.slr.lm_ipls import SigmaPointLmIpls
+from src.smoother.slr.ls_ipls import SigmaPointLsIpls
+from src.line_search import GridSearch
 from src.utils import setup_logger, tikz_err_bar_tab_format, tikz_stats, save_stats
 from src.models.range_bearing import MultiSensorBearings, MultiSensorRange
 from src.models.coord_turn import CoordTurn
-from src.smoother.slr.lm_ipls import SigmaPointLmIpls
 from src.slr.sigma_points import SigmaPointSlr
 from src.sigma_points import SphericalCubature
-from src.cost import analytical_smoothing_cost, slr_smoothing_cost_pre_comp
+from src.cost import analytical_smoothing_cost, slr_smoothing_cost_pre_comp, slr_smoothing_cost_means
 from src.analytics import rmse, nees
 from src.visualization import to_tikz, write_to_tikz_file, plot_scalar_metric_err_bar
 from data.lm_ieks_paper.coord_turn_example import simulate_data, save_states_and_meas
@@ -78,15 +81,21 @@ def main():
 
     num_mc_samples = args.num_mc_samples
 
-    rmses_gn_ieks = np.zeros((num_mc_samples, num_iter))
+    rmses_ieks = np.zeros((num_mc_samples, num_iter))
     rmses_lm_ieks = np.zeros((num_mc_samples, num_iter))
-    rmses_gn_ipls = np.zeros((num_mc_samples, num_iter))
+    rmses_ls_ieks = np.zeros((num_mc_samples, num_iter))
+    rmses_ipls = np.zeros((num_mc_samples, num_iter))
     rmses_lm_ipls = np.zeros((num_mc_samples, num_iter))
+    rmses_ls_ipls = np.zeros((num_mc_samples, num_iter))
 
-    neeses_gn_ieks = np.zeros((num_mc_samples, num_iter))
+    neeses_ieks = np.zeros((num_mc_samples, num_iter))
     neeses_lm_ieks = np.zeros((num_mc_samples, num_iter))
-    neeses_gn_ipls = np.zeros((num_mc_samples, num_iter))
+    neeses_ls_ieks = np.zeros((num_mc_samples, num_iter))
+    neeses_ipls = np.zeros((num_mc_samples, num_iter))
     neeses_lm_ipls = np.zeros((num_mc_samples, num_iter))
+    neeses_ls_ipls = np.zeros((num_mc_samples, num_iter))
+
+    grid_search_points = 10
 
     for mc_iter in range(num_mc_samples):
         log.info(f"MC iter: {mc_iter+1}/{num_mc_samples}")
@@ -102,16 +111,11 @@ def main():
             meas_model=meas_model,
         )
 
-        sigma_point_method = SphericalCubature()
-        cost_fn_ipls = partial(
-            slr_smoothing_cost_pre_comp, measurements=measurements, m_1_0=prior_mean, P_1_0_inv=np.linalg.inv(prior_cov)
-        )
-
-        ms_gn_ieks, Ps_gn_ieks, cost_gn_ieks, tmp_rmse, tmp_nees = run_smoothing(
+        ms_ieks, Ps_ieks, cost_ieks, tmp_rmse, tmp_nees = run_smoothing(
             Ieks(motion_model, meas_model, num_iter), states, measurements, prior_mean, prior_cov, cost_fn_eks
         )
-        rmses_gn_ieks[mc_iter, :] = tmp_rmse
-        neeses_gn_ieks[mc_iter, :] = tmp_nees
+        rmses_ieks[mc_iter, :] = tmp_rmse
+        neeses_ieks[mc_iter, :] = tmp_nees
 
         ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks, tmp_rmse, tmp_nees = run_smoothing(
             LmIeks(motion_model, meas_model, num_iter, cost_improv_iter_lim=10, lambda_=lambda_, nu=nu),
@@ -124,6 +128,22 @@ def main():
         rmses_lm_ieks[mc_iter, :] = tmp_rmse
         neeses_lm_ieks[mc_iter, :] = tmp_nees
 
+        ms_ls_ieks, Ps_ls_ieks, cost_ls_ieks, tmp_rmse, tmp_nees = run_smoothing(
+            LsIeks(motion_model, meas_model, num_iter, GridSearch(cost_fn_eks, grid_search_points)),
+            states,
+            measurements,
+            prior_mean,
+            prior_cov,
+            cost_fn_eks,
+        )
+        rmses_ls_ieks[mc_iter, :] = tmp_rmse
+        neeses_ls_ieks[mc_iter, :] = tmp_nees
+
+        sigma_point_method = SphericalCubature()
+        cost_fn_ipls = partial(
+            slr_smoothing_cost_pre_comp, measurements=measurements, m_1_0=prior_mean, P_1_0_inv=np.linalg.inv(prior_cov)
+        )
+
         ms_ipls, Ps_ipls, cost_ipls, tmp_rmse, tmp_nees = run_smoothing(
             SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter),
             states,
@@ -132,8 +152,8 @@ def main():
             prior_cov,
             None,
         )
-        rmses_gn_ipls[mc_iter, :] = tmp_rmse
-        neeses_gn_ipls[mc_iter, :] = tmp_nees
+        rmses_ipls[mc_iter, :] = tmp_rmse
+        neeses_ipls[mc_iter, :] = tmp_nees
 
         ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, tmp_rmse, tmp_nees = run_smoothing(
             SigmaPointLmIpls(
@@ -148,27 +168,58 @@ def main():
         rmses_lm_ipls[mc_iter, :] = tmp_rmse
         neeses_lm_ipls[mc_iter, :] = tmp_nees
 
-    label_gn_ieks, label_lm_ieks, label_gn_ipls, label_lm_ipls = "IEKS", "LM-IEKS", "IPLS", "LM-IPLS"
+        ls_cost_fn = partial(
+            slr_smoothing_cost_means,
+            measurements=measurements,
+            m_1_0=prior_mean,
+            P_1_0_inv=np.linalg.inv(prior_cov),
+            motion_fn=motion_model.map_set,
+            meas_fn=meas_model.map_set,
+            slr_method=SigmaPointSlr(sigma_point_method),
+        )
+        ms_ls_ipls, Ps_ls_ipls, cost_ls_ipls, tmp_rmse, tmp_nees = run_smoothing(
+            SigmaPointLsIpls(motion_model, meas_model, sigma_point_method, num_iter, GridSearch, grid_search_points),
+            states,
+            measurements,
+            prior_mean,
+            prior_cov,
+            ls_cost_fn,
+        )
+        rmses_ls_ipls[mc_iter, :] = tmp_rmse
+        neeses_ls_ipls[mc_iter, :] = tmp_nees
+
+    label_ieks, label_lm_ieks, label_ls_ieks, label_ipls, label_lm_ipls, label_ls_ipls = (
+        "IEKS",
+        "LM-IEKS",
+        "LS-IEKS",
+        "IPLS",
+        "LM-IPLS",
+        "LS-IPLS",
+    )
     rmse_stats = [
-        (rmses_gn_ieks, label_gn_ieks),
+        (rmses_ieks, label_ieks),
         (rmses_lm_ieks, label_lm_ieks),
-        (rmses_gn_ipls, label_gn_ipls),
+        (rmses_ls_ieks, label_ls_ieks),
+        (rmses_ipls, label_ipls),
         (rmses_lm_ipls, label_lm_ipls),
+        (rmses_ls_ipls, label_ls_ipls),
     ]
 
     nees_stats = [
-        (neeses_gn_ieks, label_gn_ieks),
+        (neeses_ieks, label_ieks),
         (neeses_lm_ieks, label_lm_ieks),
-        (neeses_gn_ipls, label_gn_ipls),
+        (neeses_ls_ieks, label_ls_ieks),
+        (neeses_ipls, label_ipls),
         (neeses_lm_ipls, label_lm_ipls),
+        (neeses_ls_ipls, label_ls_ipls),
     ]
 
-    save_stats(Path.cwd() / "results", "RMSE", rmse_stats)
-    save_stats(Path.cwd() / "results", "NEES", nees_stats)
+    save_stats(Path.cwd() / "results" / experiment_name, "RMSE", rmse_stats)
+    save_stats(Path.cwd() / "results" / experiment_name, "NEES", nees_stats)
     # tikz_stats(Path.cwd().parent / "paper/fig/ct_bearings_only_metrics/", "RMSE", rmse_stats)
     # tikz_stats(Path.cwd().parent / "paper/fig/ct_bearings_only_metrics/", "NEES", nees_stats)
-    tikz_stats(Path.cwd() / "tmp_results", "RMSE", rmse_stats)
-    tikz_stats(Path.cwd() / "tmp_results", "NEES", nees_stats)
+    tikz_stats(Path.cwd() / "tmp_results" / experiment_name, "RMSE", rmse_stats)
+    tikz_stats(Path.cwd() / "tmp_results" / experiment_name, "NEES", nees_stats)
     plot_scalar_metric_err_bar(rmse_stats, "RMSE")
     plot_scalar_metric_err_bar(nees_stats, "NEES")
 

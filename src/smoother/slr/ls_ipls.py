@@ -72,10 +72,17 @@ class SigmaPointLsIpls(IteratedSmoother):
                 if grid_cost > cost:
                     self._log.warning(f"Grid search did not decrease, defaulting to plain IPLS.")
                     self._update_means_only(current_ms, None)
+                    # Stored for later update.
+                    Ps = self._current_covs
                     prev_cost = cost
                 else:
                     self._update_means_only(grid_ms, None)
+                    # Stored for later update.
+                    Ps = self._ls_method.next_estimate(self._current_covs, current_Ps, alpha)
                     prev_cost = grid_cost
+                # Update cost function with new covariances.
+                self._update_estimates(self._current_means, Ps)
+                cost_fn = self._specialise_cost_fn(cost_fn_prototype, (self._current_covs, self._cache.inv_cov()))
             self._log.debug(f"Cost: {cost}, alpha: {alpha}")
             cost_fn = self._specialise_cost_fn(cost_fn_prototype, (self._current_covs, self._cache.inv_cov()))
         return mf, Pf, current_ms, current_Ps, np.array(cost_iter)
