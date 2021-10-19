@@ -68,8 +68,6 @@ class Filter(ABC):
             )
 
             y_k = measurements[store_ind]
-            # if k < 7:
-            #     print(k, y_k, self._meas_lin(m_k_kminus1, P_k_kminus1, k)[0].shape)
             m_k_k, P_k_k = self._update(
                 y_k,
                 m_k_kminus1,
@@ -102,7 +100,6 @@ class Filter(ABC):
             P_k_kminus1: P_{k | k-1}
         """
         A, b, Omega = linearization
-        # print(f"Pred: {A}, {b}, {Omega}")
         m_k_kminus1 = A @ m_kminus1_kminus1 + b
         P_k_kminus1 = A @ P_kminus1_kminus1 @ A.T + Omega + Q
         P_k_kminus1 = (P_k_kminus1 + P_k_kminus1.T) / 2
@@ -127,10 +124,7 @@ class Filter(ABC):
         if not any(np.isnan(y_k)):
             H, c, Lambda = linearization
             y_mean = H @ m_k_kminus1 + c
-            # print(f"k={_time_step} - y: {y_mean.shape} c: {c.shape}, H: {H.shape}, R: {R.shape} L: {Lambda.shape}")
-            # print(f"{_time_step}: {y_mean.shape}")
             S = H @ P_k_kminus1 @ H.T + R + Lambda
-            # print(f"S: {S.shape}, H: {H.shape}, R: {R.shape}")
             K = P_k_kminus1 @ H.T @ np.linalg.inv(S)
 
             m_k_k = m_k_kminus1 + (K @ (y_k - y_mean)).reshape(m_k_kminus1.shape)
@@ -166,6 +160,3 @@ class Filter(ABC):
     @staticmethod
     def _mapping_with_time_step(mapping, time_step):
         return partial(mapping, time_step=time_step)
-
-
-# TODO IterativeFilter base class

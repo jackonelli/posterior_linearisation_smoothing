@@ -32,3 +32,14 @@ These are automated verification that the library implementation faithfully repr
 All filters and smoothers (more or less) use the same base methods in the end.
 A test veryfying that a smoother in this library produces the same results as those in a peer reviewed paper, is a strong indication that the underlying base methods are correct.
 Especially when every value is accurate over a long sequence, in multiple dimensions for many iterations.
+
+## Recreate experiments:
+
+- Figure 1. Simulated coordinated turn with bearings only measurements
+  ```bash
+  python exp/coord_turn/realisation.py --meas_type bearings --num_iter 10
+  ```
+- Figure 3. Visualisation of a single realisation of the CT experiment with varying bearings only measurements.
+  ```bash
+  python exp/coord_turn/realisation.py --meas_type bearings --var_sensors --num_iter 10
+  ```

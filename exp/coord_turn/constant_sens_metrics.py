@@ -1,9 +1,6 @@
 """Example:
 Reproducing the experiment in the paper:
 "Levenberg-Marquardt and line-search extended Kalman smoother".
-
-The exact realisation of the experiment in the paper is found in
-`exp/lm_ieks_paper.py`
 """
 
 import argparse
