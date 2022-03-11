@@ -1,4 +1,7 @@
-"""Stochastic coordinated turn motion model"""
+"""Stochastic coordinated turn motion model
+https://www.researchgate.net/publication/4221183_Comparison_and_choice_of_models_in_tracking_target_with_coordinated_turn_motion
+"""
+
 import numpy as np
 from src.models.base import MotionModel, Differentiable
 
@@ -6,12 +9,11 @@ from src.models.base import MotionModel, Differentiable
 class CoordTurn(MotionModel, Differentiable):
     """
     state is
-    TODO: Check definition.
         x_k = [
-            pos_x,
-            pos_y,
-            s: speed,
-            phi: angle (heading), // or is this s_y?
+            x,
+            y,
+            x': dx/dt,
+            y': dy/dt,
             omega: angular_vel (turn (yaw) rate),
         ]
     """
