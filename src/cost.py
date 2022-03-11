@@ -1,6 +1,5 @@
 """Cost functions
 
-TODO: The models are assumed to be indep of time step k.
 Should make the API more flexible, this will prevent some vectorisation but this is not a hot path anyway.
 """
 import logging
@@ -41,6 +40,36 @@ def analytical_smoothing_cost(traj, measurements, m_1_0, P_1_0, motion_model: Mo
     _cost += meas_diff[-1, :].T @ np.linalg.inv(meas_model.meas_noise(K)) @ meas_diff[-1, :]
 
     return _cost
+
+
+def grad_analytical_smoothing_cost(
+    x_0, p, measurements, m_1_0, P_1_0, motion_model: MotionModel, meas_model: MeasModel
+):
+    """Gradient of the univariate version of the cost function f in `analytical_smoothing_cost`
+
+    Args:
+        x_0: current iterate
+            represented as a np.array(K, D_x).
+        p: search direction, here: x_1 - x_0, i.e. new smoothing estimated means minus current iterate.
+            represented as a np.array(K, D_x).
+        measurements: measurements for a time sequence 1, ..., K
+            represented as a list of length K of np.array(D_y,)
+    """
+    K = len(measurements)
+    prior_diff = x_0[0, :] - m_1_0
+    _grad = prior_diff.T @ np.linalg.inv(P_1_0) @ prior_diff
+
+    motion_diff = x_0[1:, :] - motion_model.map_set(x_0[:-1, :], None)
+    meas_diff = measurements - meas_model.map_set(x_0, None)
+    for k in range(0, K - 1):
+        _grad += motion_diff[k, :].T @ np.linalg.inv(motion_model.proc_noise(k)) @ motion_diff[k, :]
+        # measurements are zero indexed, i.e. k-1 --> y_k
+        if any(np.isnan(meas_diff[k, :])):
+            continue
+        _grad += meas_diff[k, :].T @ np.linalg.inv(meas_model.meas_noise(k)) @ meas_diff[k, :]
+    _grad += meas_diff[-1, :].T @ np.linalg.inv(meas_model.meas_noise(K)) @ meas_diff[-1, :]
+
+    return _grad
 
 
 def analytical_smoothing_cost_time_dep(

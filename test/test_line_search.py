@@ -1,9 +1,9 @@
-"""Test (GN-)IEKS
-Check that the (GN-)IEKS implementation matches the one in the paper:
+"""Test Line search LS-IEKS
+Check that the LS-IEKS implementation matches the one in the paper:
 
 "Levenberg-marquardt and line-search extended kalman smoother"
 
-Runs (GN-)IEKS and compares with stored matlab output.
+Runs LS-IEKS and compares with stored matlab output.
 """
 import unittest
 from pathlib import Path
