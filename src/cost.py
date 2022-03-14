@@ -46,6 +46,7 @@ def grad_analytical_smoothing_cost(
     x_0, p, measurements, m_1_0, P_1_0, motion_model: MotionModel, meas_model: MeasModel
 ):
     """Gradient of the univariate version of the cost function f in `analytical_smoothing_cost`
+    Here, the full trajectory x_1:K is interpreted as one vector (x_1^T, ..., x_K)^T with K d_x elements.
 
     Args:
         x_0: current iterate
@@ -56,20 +57,39 @@ def grad_analytical_smoothing_cost(
             represented as a list of length K of np.array(D_y,)
     """
     K = len(measurements)
-    prior_diff = x_0[0, :] - m_1_0
-    _grad = prior_diff.T @ np.linalg.inv(P_1_0) @ prior_diff
+    d_x = m_1_0.shape[0]
+    grad_pred = np.zeros((K * d_x,))
+    grad_update = np.zeros(grad_pred.shape)
 
+    prior_diff = x_0[0, :] - m_1_0
     motion_diff = x_0[1:, :] - motion_model.map_set(x_0[:-1, :], None)
+
+    grad_pred[0:d_x] = np.linalg.inv(P_1_0) @ prior_diff
+    F_1 = motion_model.jacobian(x_0[:, 0], 0)
+    grad_update[0:d_x] = F_1.T @ np.linalg.inv(motion_model.proc_noise(0)) @ motion_diff[0, :]
+
+    for k_ind in range(1, K - 1):
+        k = k_ind + 1
+        grad_pred[k_ind * d_x : (k_ind + 1) * d_x] = (
+            np.linalg.inv(motion_model.proc_noise(k - 1)) @ motion_diff[k_ind - 1, :]
+        )
+        F_k = motion_model.jacobian(x_0[:, k_ind], k)
+        grad_update[k_ind * d_x : (k_ind + 1) * d_x] = (
+            F_k.T @ np.linalg.inv(motion_model.proc_noise(k)) @ motion_diff[k_ind, :]
+        )
+
+    grad_pred[0:d_x] = np.linalg.inv(P_1_0) @ prior_diff
+    F_1 = motion_model.jacobian(x_0[:, 0], 0)
+    grad_update[0:d_x] = F_1.T @ np.linalg.inv(motion_model.proc_noise(0)) @ motion_diff[0, :]
+
     meas_diff = measurements - meas_model.map_set(x_0, None)
-    for k in range(0, K - 1):
-        _grad += motion_diff[k, :].T @ np.linalg.inv(motion_model.proc_noise(k)) @ motion_diff[k, :]
-        # measurements are zero indexed, i.e. k-1 --> y_k
+    grad_meas = np.zeros(grad_pred.shape)
+    for k_ind in range(0, K):
         if any(np.isnan(meas_diff[k, :])):
             continue
-        _grad += meas_diff[k, :].T @ np.linalg.inv(meas_model.meas_noise(k)) @ meas_diff[k, :]
-    _grad += meas_diff[-1, :].T @ np.linalg.inv(meas_model.meas_noise(K)) @ meas_diff[-1, :]
+        grad_meas[k_ind * d_x : (k_ind + 1) * d_x] = np.linalg.inv(meas_model.meas_noise(k)) @ meas_diff[k, :]
 
-    return _grad
+    return grad_pred - grad_update + grad_meas
 
 
 def analytical_smoothing_cost_time_dep(

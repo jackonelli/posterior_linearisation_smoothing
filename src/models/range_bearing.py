@@ -5,7 +5,7 @@ from scipy.stats import multivariate_normal as mvn
 
 
 class RangeBearing(MeasModel, Differentiable):
-    """ pos np.array(2,)"""
+    """pos np.array(2,)"""
 
     def __init__(self, pos, meas_noise):
         self.pos = pos
