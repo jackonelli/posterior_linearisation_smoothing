@@ -1,5 +1,4 @@
 import unittest
-from functools import partial
 import numpy as np
 from src.models.range_bearing import RangeBearing
 

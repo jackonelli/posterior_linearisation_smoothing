@@ -6,7 +6,6 @@ Check that the IPLS implementation matches the one in the paper:
 Runs IPLS and compares with stored matlab output.
 """
 import unittest
-from functools import partial
 from pathlib import Path
 import numpy as np
 from src import visualization as vis
@@ -21,7 +20,7 @@ from src.smoother.slr.ipls import SigmaPointIpls
 from src.smoother.slr.lm_ipls import SigmaPointLmIpls
 from src.smoother.slr.ipls import SigmaPointIpls
 from data.ipls_paper.data import get_specific_states_from_file, gen_measurements
-from src.cost import slr_smoothing_cost_pre_comp
+from src.cost_fn.slr import slr_smoothing_cost_pre_comp
 from src import visualization as vis
 from src.analytics import rmse
 import matplotlib.pyplot as plt

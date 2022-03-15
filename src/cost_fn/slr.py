@@ -152,3 +152,7 @@ def slr_smoothing_cost(
         _cost += meas_diff_k.T @ np.linalg.inv(meas_model.meas_noise(k) + Lambda_k) @ meas_diff_k
 
     return _cost
+
+
+def slr_noop_cost(means, covs):
+    return None

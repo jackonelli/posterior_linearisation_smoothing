@@ -12,7 +12,7 @@ from src import visualization as vis
 from src.utils import setup_logger
 from data.coord_turn import get_tricky_data
 from src.models.range_bearing import to_cartesian_coords
-from src.cost import slr_smoothing_cost
+from src.cost_fn.slr import slr_smoothing_cost
 
 
 def main():

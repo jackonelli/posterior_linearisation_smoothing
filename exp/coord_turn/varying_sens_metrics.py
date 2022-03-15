@@ -32,7 +32,8 @@ from src.smoother.slr.ls_ipls import SigmaPointLsIpls
 from src.line_search import GridSearch
 from src.slr.sigma_points import SigmaPointSlr
 from src.sigma_points import SphericalCubature
-from src.cost import analytical_smoothing_cost_time_dep, slr_smoothing_cost_means, slr_smoothing_cost_pre_comp
+from src.cost_fn.ext import analytical_smoothing_cost_time_dep
+from src.cost_fn.slr import slr_smoothing_cost_pre_comp, slr_smoothing_cost_means
 from src.utils import setup_logger, tikz_err_bar_tab_format, tikz_stats, save_stats
 from src.analytics import rmse, mc_stats
 from src.visualization import to_tikz, write_to_tikz_file, plot_scalar_metric_err_bar

@@ -10,7 +10,7 @@ from pathlib import Path
 from functools import partial
 import numpy as np
 from src.smoother.ext.ieks import Ieks
-from src.cost import analytical_smoothing_cost
+from src.cost_fn.ext import analytical_smoothing_cost
 from src.models.range_bearing import MultiSensorRange
 from src.models.coord_turn import CoordTurn
 from data.lm_ieks_paper.coord_turn_example import get_specific_states_from_file, Type

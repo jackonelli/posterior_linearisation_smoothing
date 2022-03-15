@@ -24,7 +24,8 @@ from src.models.range_bearing import MultiSensorBearings, MultiSensorRange
 from src.models.coord_turn import CoordTurn
 from src.slr.sigma_points import SigmaPointSlr
 from src.sigma_points import SphericalCubature
-from src.cost import analytical_smoothing_cost, slr_smoothing_cost_pre_comp, slr_smoothing_cost_means
+from src.cost_fn.ext import analytical_smoothing_cost
+from src.cost_fn.slr import slr_smoothing_cost_pre_comp, slr_smoothing_cost_means
 from src.analytics import rmse, nees
 from src.visualization import to_tikz, write_to_tikz_file, plot_scalar_metric_err_bar
 from data.lm_ieks_paper.coord_turn_example import simulate_data, save_states_and_meas

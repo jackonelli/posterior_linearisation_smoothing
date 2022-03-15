@@ -24,7 +24,8 @@ from src.filter.prlf import SigmaPointPrLf
 from src.smoother.slr.ipls import SigmaPointIpls
 from src.smoother.slr.lm_ipls import SigmaPointLmIpls
 from data.ipls_paper.data import get_specific_states_from_file, gen_measurements, simulate_data
-from src.cost import slr_smoothing_cost_pre_comp, analytical_smoothing_cost_time_dep
+from src.cost_fn.slr import slr_smoothing_cost_pre_comp
+from src.cost_fn.ext import analytical_smoothing_cost_time_dep
 from src.analytics import rmse
 import matplotlib.pyplot as plt
 from src.utils import tikz_1d_tab_format, tikz_err_bar_tab_format

@@ -30,14 +30,15 @@ from src.smoother.slr.ipls import SigmaPointIpls
 from src.smoother.slr.lm_ipls import SigmaPointLmIpls
 from src.slr.sigma_points import SigmaPointSlr
 from src.sigma_points import SphericalCubature
-from src.cost import analytical_smoothing_cost, slr_smoothing_cost, slr_noop_cost, slr_smoothing_cost_pre_comp
+from src.cost_fn.slr import slr_smoothing_cost_pre_comp, slr_smoothing_cost, slr_noop_cost
+from src.cost_fn.ext import analytical_smoothing_cost
 from src.utils import setup_logger
 from src.analytics import rmse
 from src.visualization import to_tikz, write_to_tikz_file
 from src.models.range_bearing import MultiSensorRange, MultiSensorBearings
 from src.models.coord_turn import CoordTurn
 from data.lm_ieks_paper.coord_turn_example import Type, get_specific_states_from_file, simulate_data
-from exp.coord_turn_bearings_only import run_smoothing, calc_iter_metrics, mc_stats
+from exp.coord_turn.common import run_smoothing, calc_iter_metrics, mc_stats
 
 
 def main():

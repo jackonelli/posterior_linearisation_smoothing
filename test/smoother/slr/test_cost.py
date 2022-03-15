@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 from functools import partial
 import numpy as np
-from src.cost import slr_smoothing_cost, slr_smoothing_cost_pre_comp, slr_smoothing_cost_means
+from src.cost_fn.slr import slr_smoothing_cost, slr_smoothing_cost_pre_comp, slr_smoothing_cost_means
 from src.models.range_bearing import MultiSensorRange
 from src.models.coord_turn import CoordTurn
 from src.slr.base import SlrCache

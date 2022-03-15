@@ -7,10 +7,13 @@ Runs LS-IEKS and compares with stored matlab output.
 """
 import unittest
 from pathlib import Path
-from functools import partial
 import numpy as np
 from src.smoother.ext.ieks import Ieks
-from src.cost import analytical_smoothing_cost, grad_analytical_smoothing_cost, _ss_dir_der_analytical_smoothing_cost
+from src.cost_fn.ext import (
+    analytical_smoothing_cost,
+    grad_analytical_smoothing_cost,
+    _ss_dir_der_analytical_smoothing_cost,
+)
 from src.models.range_bearing import MultiSensorBearings
 from src.models.coord_turn import CoordTurn
 from src.line_search import GridSearch

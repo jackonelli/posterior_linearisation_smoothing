@@ -21,11 +21,11 @@ from src.utils import setup_logger
 from src.models.range_bearing import RangeBearing
 from src.models.coord_turn import CoordTurn
 from data.lm_ieks_paper.coord_turn_example import simulate_data
-from src.smoother.slr.lm_ipls import SigmaPointRegIpls
+from src.smoother.slr.lm_ipls import SigmaPointLmIpls
 from src.slr.sigma_points import SigmaPointSlr
 from src.sigma_points import SphericalCubature
-from src.cost import analytical_smoothing_cost
-from exp.lm_ieks_paper import plot_results, plot_cost
+from src.cost_fn.ext import analytical_smoothing_cost
+from exp.coord_turn.common import plot_results
 from src.analytics import rmse, nees
 from src.models.range_bearing import to_cartesian_coords
 from data.tunnel_traj import get_states_and_meas

@@ -11,6 +11,8 @@ from functools import partial
 import numpy as np
 from src.smoother.ext.ieks import Ieks
 from src.cost import analytical_smoothing_cost
+from src.cost_fn.ext import analytical_smoothing_cost
+from src.cost_fn.slr import slr_smoothing_cost_pre_comp, slr_smoothing_cost_means
 from src.models.range_bearing import MultiSensorRange
 from src.models.coord_turn import CoordTurn
 from src.line_search import GridSearch

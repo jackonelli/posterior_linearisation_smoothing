@@ -21,8 +21,6 @@ from src.models.coord_turn import CoordTurn
 from data.lm_ieks_paper.coord_turn_example import Type, get_specific_states_from_file
 from exp.matlab_comp import gn_ieks, basic_eks
 
-from src.smoother.ext.cost import cost
-
 
 def main():
     log = logging.getLogger(__name__)

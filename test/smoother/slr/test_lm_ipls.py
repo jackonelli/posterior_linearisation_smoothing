@@ -16,7 +16,7 @@ from data.ipls_paper.data import get_specific_states_from_file, gen_measurements
 from src.models.range_bearing import MultiSensorRange
 from src.models.coord_turn import CoordTurn
 from data.lm_ieks_paper.coord_turn_example import simulate_data, get_specific_states_from_file, Type
-from src.cost import slr_smoothing_cost_pre_comp
+from src.cost_fn.slr import slr_smoothing_cost_pre_comp
 
 
 class TestLmIpls(unittest.TestCase):

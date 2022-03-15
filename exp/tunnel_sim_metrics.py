@@ -28,7 +28,8 @@ from src.models.coord_turn import CoordTurn
 from data.lm_ieks_paper.coord_turn_example import simulate_data
 from src.slr.sigma_points import SigmaPointSlr
 from src.sigma_points import SphericalCubature
-from src.cost import analytical_smoothing_cost, slr_smoothing_cost_pre_comp, slr_smoothing_cost_means
+from src.cost_fn.ext import analytical_smoothing_cost
+from src.cost_fn.slr import slr_smoothing_cost_pre_comp, slr_smoothing_cost_means
 from exp.coord_turn.common import plot_results, calc_iter_metrics
 from src.analytics import rmse, nees
 from data.tunnel_traj import get_states_and_meas
