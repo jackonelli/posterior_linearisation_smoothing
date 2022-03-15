@@ -19,7 +19,7 @@ from data.lm_ieks_paper.coord_turn_example import get_specific_states_from_file,
 import matplotlib.pyplot as plt
 
 
-class TestIeks(unittest.TestCase):
+class TestExactLsIeks(unittest.TestCase):
     def test_cmp_with_ss_impl(self):
         dt = 0.01
         qc = 0.01

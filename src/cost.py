@@ -42,58 +42,54 @@ def analytical_smoothing_cost(traj, measurements, m_1_0, P_1_0, motion_model: Mo
     return _cost
 
 
-def grad_analytical_smoothing_cost(
-    x_0, p, measurements, m_1_0, P_1_0, motion_model: MotionModel, meas_model: MeasModel
-):
-    """Gradient of the univariate version of the cost function f in `analytical_smoothing_cost`
+def grad_analytical_smoothing_cost(x_0, measurements, m_1_0, P_1_0, motion_model: MotionModel, meas_model: MeasModel):
+    """Gradient of the cost function f in `analytical_smoothing_cost`
     Here, the full trajectory x_1:K is interpreted as one vector (x_1^T, ..., x_K)^T with K d_x elements.
 
     Args:
         x_0: current iterate
             represented as a np.array(K, D_x).
-        p: search direction, here: x_1 - x_0, i.e. new smoothing estimated means minus current iterate.
-            represented as a np.array(K, D_x).
         measurements: measurements for a time sequence 1, ..., K
             represented as a list of length K of np.array(D_y,)
     """
     K = len(measurements)
-    d_x = m_1_0.shape[0]
-    grad_pred = np.zeros((K * d_x,))
+    D_x = m_1_0.shape[0]
+    grad_pred = np.zeros((K * D_x,))
     grad_update = np.zeros(grad_pred.shape)
 
     prior_diff = x_0[0, :] - m_1_0
     motion_diff = x_0[1:, :] - motion_model.map_set(x_0[:-1, :], None)
 
-    grad_pred[0:d_x] = np.linalg.inv(P_1_0) @ prior_diff
-    F_1 = motion_model.jacobian(x_0[:, 0], 0)
-    grad_update[0:d_x] = F_1.T @ np.linalg.inv(motion_model.proc_noise(0)) @ motion_diff[0, :]
+    grad_pred[0:D_x] = np.linalg.inv(P_1_0) @ prior_diff
+    F_1 = motion_model.jacobian(x_0[0, :], 0)
+    grad_update[0:D_x] = F_1.T @ np.linalg.inv(motion_model.proc_noise(0)) @ motion_diff[0, :]
 
     for k_ind in range(1, K - 1):
         k = k_ind + 1
-        grad_pred[k_ind * d_x : (k_ind + 1) * d_x] = (
+        grad_pred[k_ind * D_x : (k_ind + 1) * D_x] = (
             np.linalg.inv(motion_model.proc_noise(k - 1)) @ motion_diff[k_ind - 1, :]
         )
-        F_k = motion_model.jacobian(x_0[:, k_ind], k)
-        grad_update[k_ind * d_x : (k_ind + 1) * d_x] = (
+        F_k = motion_model.jacobian(x_0[k_ind, :], k)
+        grad_update[k_ind * D_x : (k_ind + 1) * D_x] = (
             F_k.T @ np.linalg.inv(motion_model.proc_noise(k)) @ motion_diff[k_ind, :]
         )
 
-    grad_pred[0:d_x] = np.linalg.inv(P_1_0) @ prior_diff
-    F_1 = motion_model.jacobian(x_0[:, 0], 0)
-    grad_update[0:d_x] = F_1.T @ np.linalg.inv(motion_model.proc_noise(0)) @ motion_diff[0, :]
+    grad_update[0:D_x] = np.linalg.inv(motion_model.proc_noise(K - 1)) @ motion_diff[-1, :]
 
     meas_diff = measurements - meas_model.map_set(x_0, None)
     grad_meas = np.zeros(grad_pred.shape)
     for k_ind in range(0, K):
-        if any(np.isnan(meas_diff[k, :])):
+        if any(np.isnan(meas_diff[k_ind, :])):
             continue
-        grad_meas[k_ind * d_x : (k_ind + 1) * d_x] = np.linalg.inv(meas_model.meas_noise(k)) @ meas_diff[k, :]
+        H_k = meas_model.jacobian(x_0[k_ind, :], k)
+        R_k_inv = np.linalg.inv(meas_model.meas_noise(k))
+        grad_meas[k_ind * D_x : (k_ind + 1) * D_x] = H_k.T @ R_k_inv @ meas_diff[k_ind, :]
 
-    return grad_pred - grad_update + grad_meas
+    return grad_pred - grad_update - grad_meas
 
 
 def analytical_smoothing_cost_time_dep(
-    traj, measurements, m_1_0, P_1_0, motion_model: MotionModel, meas_model: MeasModel
+    traj, p, measurements, m_1_0, P_1_0, motion_model: MotionModel, meas_model: MeasModel
 ):
     """Cost function for an optimisation problem used in the family of extended smoothers
     General formulation which does not assume that the motion and meas models is the same for all time steps.
@@ -325,3 +321,43 @@ def _ss_cost(means, measurements, m_1_0, P_1_0, Q, R, f_fun, h_fun):
             J += (x_k - f_fun(x_k_min_1)).T @ np.linalg.inv(Q) @ (x_k - f_fun(x_k_min_1))
         J += (z_k - h_fun(x_k)).T @ np.linalg.inv(R) @ (z_k - h_fun(x_k))
     return J
+
+
+def _ss_dir_der_analytical_smoothing_cost(
+    x_0, p, measurements, m_1_0, P_1_0, motion_model: MotionModel, meas_model: MeasModel
+):
+    """Directional derivative of the cost function f in `analytical_smoothing_cost`
+
+    Only kept here for debugging purposes
+    Here, the full trajectory x_1:K is interpreted as one vector (x_1^T, ..., x_K)^T with K d_x elements.
+
+    Args:
+        x_0: current iterate
+            represented as a np.array(K, D_x).
+        p: search direction, here: x_1 - x_0, i.e. new smoothing estimated means minus current iterate.
+            represented as a np.array(K, D_x).
+        measurements: measurements for a time sequence 1, ..., K
+            represented as a list of length K of np.array(D_y,)
+    """
+    K = len(measurements)
+
+    prior_diff = x_0[0, :] - m_1_0
+    motion_diff = x_0[1:, :] - motion_model.map_set(x_0[:-1, :], None)
+    meas_diff = measurements - meas_model.map_set(x_0, None)
+
+    der = p[0, :] @ np.linalg.inv(P_1_0) @ prior_diff
+    print(2 * der)
+
+    for k_ind in range(0, K):
+        k = k_ind + 1
+        if k > 1:
+            F_k_min_1 = motion_model.jacobian(x_0[k_ind - 1, :], k - 1)
+            factor_1 = p[k_ind, :].T - F_k_min_1 @ p[k_ind - 1, :].T
+            der += factor_1 @ np.linalg.inv(motion_model.proc_noise(k - 1)) @ motion_diff[k_ind - 1, :]
+        if any(np.isnan(meas_diff[k_ind, :])):
+            continue
+        H_k = meas_model.jacobian(x_0[k_ind, :], k)
+        R_k_inv = np.linalg.inv(meas_model.meas_noise(k))
+        der -= p[k_ind, :] @ H_k.T @ R_k_inv @ meas_diff[k_ind, :]
+
+    return der
