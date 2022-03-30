@@ -39,7 +39,7 @@ def analytical_smoothing_cost(traj, measurements, m_1_0, P_1_0, motion_model: Mo
 
 
 def dir_der_analytical_smoothing_cost(
-    x_0, p, measurements, m_1_0, P_1_0, motion_model: MotionModel, meas_model: MeasModel, K=None
+    x_0, p, measurements, m_1_0, P_1_0, motion_model: MotionModel, meas_model: MeasModel
 ):
     """Directional derivative of the cost function f in `analytical_smoothing_cost`
 
@@ -53,8 +53,7 @@ def dir_der_analytical_smoothing_cost(
         measurements: measurements for a time sequence 1, ..., K
             represented as a list of length K of np.array(D_y,)
     """
-    if K is None:
-        K = len(measurements)
+    K = len(measurements)
 
     prior_diff = x_0[0, :] - m_1_0
     motion_diff = x_0[1:, :] - motion_model.map_set(x_0[:-1, :], None)

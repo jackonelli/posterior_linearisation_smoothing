@@ -33,10 +33,10 @@ def slr_smoothing_cost_pre_comp(
         meas_cov_inv: estimated inverse covariances (Lambda_k + R_k) for a time sequence 1, ..., K
             represented as a list of length K of np.array(D_x, D_x)
     """
+    K = len(measurements)
+
     prior_diff = traj[0, :] - m_1_0
     _cost = prior_diff.T @ P_1_0_inv @ prior_diff
-
-    K = len(measurements)
 
     for k in range(1, K + 1):
         k_ind = k - 1
@@ -52,6 +52,59 @@ def slr_smoothing_cost_pre_comp(
     return _cost
 
 
+def dir_der_slr_smoothing_cost(
+    x_0, p, measurements, m_1_0, P_1_0, estimated_covs, motion_fn, meas_fn, motion_cov_inv, meas_cov_inv, slr_method
+):
+    """Directional derivative of the cost function f in `slr_smoothing_cost_pre_comp`
+
+    Here, the full trajectory x_1:K is interpreted as one vector (x_1^T, ..., x_K)^T with K d_x elements.
+
+    Args:
+        x_0: current iterate
+            represented as a np.array(K, D_x).
+        p: search direction, here: x_1 - x_0, i.e. new smoothing estimated means minus current iterate.
+            represented as a np.array(K, D_x).
+        measurements: measurements for a time sequence 1, ..., K
+            represented as a list of length K of np.array(D_y,)
+    """
+    motion_slr = [
+        slr_method.slr(partial(motion_fn, time_step=k), mean_k, cov_k)
+        for (k, (mean_k, cov_k)) in enumerate(zip(x_0, estimated_covs), 1)
+    ]
+
+    meas_slr = [
+        slr_method.slr(partial(meas_fn, time_step=k), mean_k, cov_k)
+        for (k, (mean_k, cov_k)) in enumerate(zip(x_0, estimated_covs), 1)
+    ]
+    K = len(measurements)
+
+    prior_diff = x_0[0, :] - m_1_0
+    der = p[0, :] @ np.linalg.inv(P_1_0) @ prior_diff
+    meas_z_bar_1, meas_psi_1, _ = meas_slr[0]
+
+    H_1 = meas_psi_1.T @ np.linalg.inv(estimated_covs[0])
+    R_1_inv = meas_cov_inv[0]
+    meas_diff_1 = measurements[0] - meas_z_bar_1
+    der -= p[0, :] @ H_1.T @ R_1_inv @ meas_diff_1
+
+    for k_ind in range(1, K):
+        motion_z_bar_k, motion_psi_k, _ = motion_slr[k_ind - 1]
+        F_k_min_1 = motion_psi_k.T @ np.linalg.inv(estimated_covs[k_ind - 1])
+        factor_1 = p[k_ind, :].T - F_k_min_1 @ p[k_ind - 1, :].T
+        motion_diff_k_min_1 = x_0[k_ind] - motion_z_bar_k
+        der += factor_1 @ motion_cov_inv[k_ind - 1] @ motion_diff_k_min_1
+
+        meas_k = measurements[k_ind]
+        if any(np.isnan(meas_k)):
+            continue
+        meas_z_bar_k, meas_psi_k, _ = meas_slr[k_ind]
+        H_k = meas_psi_k.T @ np.linalg.inv(estimated_covs[k_ind])
+        meas_diff_k = meas_k - meas_z_bar_k
+        der -= p[k_ind, :] @ H_k.T @ meas_cov_inv[k_ind] @ meas_diff_k
+
+    return der
+
+
 def slr_smoothing_cost_means(
     traj, measurements, m_1_0, P_1_0_inv, estimated_covs, motion_fn, meas_fn, motion_cov_inv, meas_cov_inv, slr_method
 ):
@@ -60,7 +113,7 @@ def slr_smoothing_cost_means(
     GN optimisation of this cost function will result in a linearised function
     corresponding to the SLR Smoother (PrLS, PLS) et al.
 
-    The purpose of this cost function is to efficienctly emulate the fixation of the covariances
+    The purpose of this cost function is to efficiently emulate the fixation of the covariances
     while varying with the means.
 
     Args:

@@ -89,17 +89,8 @@ def main():
     )
 
     sigma_point_method = SphericalCubature()
-    cost_fn_ipls = partial(
-        slr_smoothing_cost,
-        measurements=measurements,
-        m_1_0=prior_mean,
-        P_1_0=prior_cov,
-        motion_model=motion_model,
-        meas_model=meas_model,
-        slr=SigmaPointSlr(sigma_point_method),
-    )
 
-    new_cost_fn_ipls = partial(
+    cost_fn_ipls = partial(
         slr_smoothing_cost_pre_comp,
         measurements=measurements,
         m_1_0=prior_mean,
@@ -142,7 +133,7 @@ def main():
         prior_cov,
         (xs_ss, covs),
         1,
-        new_cost_fn_ipls,
+        cost_fn_ipls,
     )
     num_samples = 10
     time_ieks = timeit(time_ieks, number=num_samples) / (num_iter * num_samples)

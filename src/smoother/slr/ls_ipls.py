@@ -11,6 +11,7 @@ from src.filter.prlf import SigmaPointPrLf
 from src.smoother.slr.prls import SigmaPointPrLs
 from src.filter.iplf import SigmaPointIplf
 from src.slr.sigma_points import SigmaPointSlr
+from src.cost_fn.slr import dir_der_slr_smoothing_cost
 
 
 class SigmaPointLsIpls(IteratedSmoother):
@@ -24,7 +25,6 @@ class SigmaPointLsIpls(IteratedSmoother):
         self._sigma_point_method = sigma_point_method
         self.num_iter = num_iter
         self._ls_method = line_search_method
-        self._num_points = num_points
         self._cache = SlrCache(self._motion_model, self._meas_model, self._slr)
 
     def _motion_lin(self, _mean, _cov, time_step):
@@ -54,6 +54,17 @@ class SigmaPointLsIpls(IteratedSmoother):
         if not self._is_initialised():
             self._update_estimates(current_ms, current_Ps)
         cost_fn = self._specialise_cost_fn(cost_fn_prototype, (self._current_covs, self._cache.inv_cov()))
+        # Temporary fix which assumes that we use inexact linesearch, i.e. it breaks GridSearch.
+        dir_der_prototype = partial(
+            dir_der_slr_smoothing_cost,
+            measurements=measurements,
+            m_1_0=m_1_0,
+            P_1_0=P_1_0,
+            motion_fn=self._motion_model.map_set,
+            meas_fn=self._meas_model.map_set,
+            slr_method=self._slr,
+        )
+        dir_der = self._specialise_dir_der(dir_der_prototype, (self._current_covs, self._cache.inv_cov()))
         prev_cost = cost_fn(current_ms)
         for iter_ in range(start_iter, self.num_iter + 1):
             self._log.debug(f"Iter: {iter_}")
@@ -66,23 +77,23 @@ class SigmaPointLsIpls(IteratedSmoother):
                 mf, Pf, current_ms, current_Ps, cost = super(IteratedSmoother, self).filter_and_smooth(
                     measurements, m_1_0, P_1_0, cost_fn
                 )
-                grid_ms, alpha, grid_cost = self._ls_method(cost_fn, self._num_points).search_next(
-                    self._current_means, current_ms
-                )
-                if grid_cost > cost:
-                    self._log.warning(f"Grid search did not decrease, defaulting to plain IPLS.")
+                line_search = self._ls_method(cost_fn, dir_der)
+                ls_ms, alpha, ls_cost = line_search.search_next(self._current_means, current_ms)
+                if ls_cost > cost:
+                    self._log.warning(f"Line search did not decrease, defaulting to plain IPLS.")
                     self._update_means_only(current_ms, None)
                     # Stored for later update.
                     Ps = self._current_covs
                     prev_cost = cost
                 else:
-                    self._update_means_only(grid_ms, None)
+                    self._update_means_only(ls_ms, None)
                     # Stored for later update.
-                    Ps = self._ls_method.next_estimate(self._current_covs, current_Ps, alpha)
-                    prev_cost = grid_cost
+                    Ps = line_search.next_estimate(self._current_covs, current_Ps, alpha)
+                    prev_cost = ls_cost
                 # Update cost function with new covariances.
                 self._update_estimates(self._current_means, Ps)
                 cost_fn = self._specialise_cost_fn(cost_fn_prototype, (self._current_covs, self._cache.inv_cov()))
+                dir_der = self._specialise_dir_der(dir_der_prototype, (self._current_covs, self._cache.inv_cov()))
             self._log.debug(f"Cost: {cost}, alpha: {alpha}")
             cost_fn = self._specialise_cost_fn(cost_fn_prototype, (self._current_covs, self._cache.inv_cov()))
         return mf, Pf, current_ms, current_Ps, np.array(cost_iter)
@@ -103,6 +114,21 @@ class SigmaPointLsIpls(IteratedSmoother):
         ) = params
         return partial(
             cost_fn_prototype,
+            estimated_covs=estimated_covs,
+            motion_cov_inv=motion_cov_inv,
+            meas_cov_inv=meas_cov_inv,
+        )
+
+    def _specialise_dir_der(self, dir_der_prototype, params):
+        (
+            estimated_covs,
+            (
+                motion_cov_inv,
+                meas_cov_inv,
+            ),
+        ) = params
+        return partial(
+            dir_der_prototype,
             estimated_covs=estimated_covs,
             motion_cov_inv=motion_cov_inv,
             meas_cov_inv=meas_cov_inv,
