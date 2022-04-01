@@ -1,8 +1,6 @@
 # Bayesian filtering and smoothing
 
-_NB: This is a work in progress_
-
-This is the code base for the paper "Robust posterior linearisation smoothing".
+This is the code base for the pre-print [Posterior linearisation smoothing with robust iterations](https://arxiv.org/abs/2112.03969).
 It also provides implementations for related papers
 
 ## Setup
@@ -19,10 +17,11 @@ pipenv shell
 
 ### Data
 
-Results first achieved for the paper "Paper link" can be reproduced by running the corresponding script in the `exp` sub-dir.
+Results published in the the paper can be reproduced by running the corresponding script in the `exp` sub-dir.
 Using a fixed seed will guarantee exactly replicated data and conditions.
 
-For previous results that this code reproduces a fixed seed is not possible (the previous papers' experiments are exclusively implemented in matlab). For them the actual data used in those trials are included in this repo (the `data` sub-dir).
+For previous results that this code reproduces a fixed seed is not possible (the previous papers' experiments are exclusively implemented in matlab).
+For them the actual data used in those trials are included in this repo (the `data` sub-dir).
 
 ## Test coverage
 
