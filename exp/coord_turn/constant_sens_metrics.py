@@ -18,14 +18,14 @@ from src.smoother.ext.ls_ieks import LsIeks
 from src.smoother.slr.ipls import SigmaPointIpls
 from src.smoother.slr.lm_ipls import SigmaPointLmIpls
 from src.smoother.slr.ls_ipls import SigmaPointLsIpls
-from src.line_search import GridSearch
 from src.utils import setup_logger, tikz_err_bar_tab_format, tikz_stats, save_stats
 from src.models.range_bearing import MultiSensorBearings, MultiSensorRange
 from src.models.coord_turn import CoordTurn
 from src.slr.sigma_points import SigmaPointSlr
 from src.sigma_points import SphericalCubature
-from src.cost_fn.ext import analytical_smoothing_cost
-from src.cost_fn.slr import slr_smoothing_cost_pre_comp, slr_smoothing_cost_means
+from src.line_search import ArmijoLineSearch
+from src.cost_fn.ext import analytical_smoothing_cost, dir_der_analytical_smoothing_cost
+from src.cost_fn.slr import slr_smoothing_cost_pre_comp, slr_smoothing_cost_means, dir_der_slr_smoothing_cost
 from src.analytics import rmse, nees
 from src.visualization import to_tikz, write_to_tikz_file, plot_scalar_metric_err_bar
 from data.lm_ieks_paper.coord_turn_example import simulate_data, save_states_and_meas
@@ -109,25 +109,33 @@ def main():
             meas_model=meas_model,
         )
 
-        ms_ieks, Ps_ieks, cost_ieks, tmp_rmse, tmp_nees = run_smoothing(
-            Ieks(motion_model, meas_model, num_iter), states, measurements, prior_mean, prior_cov, cost_fn_eks
-        )
-        rmses_ieks[mc_iter, :] = tmp_rmse
-        neeses_ieks[mc_iter, :] = tmp_nees
+        # ms_ieks, Ps_ieks, cost_ieks, tmp_rmse, tmp_nees = run_smoothing(
+        #     Ieks(motion_model, meas_model, num_iter), states, measurements, prior_mean, prior_cov, cost_fn_eks
+        # )
+        # rmses_ieks[mc_iter, :] = tmp_rmse
+        # neeses_ieks[mc_iter, :] = tmp_nees
 
-        ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks, tmp_rmse, tmp_nees = run_smoothing(
-            LmIeks(motion_model, meas_model, num_iter, cost_improv_iter_lim=10, lambda_=lambda_, nu=nu),
-            states,
-            measurements,
-            prior_mean,
-            prior_cov,
-            cost_fn_eks,
-        )
-        rmses_lm_ieks[mc_iter, :] = tmp_rmse
-        neeses_lm_ieks[mc_iter, :] = tmp_nees
+        # ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks, tmp_rmse, tmp_nees = run_smoothing(
+        #     LmIeks(motion_model, meas_model, num_iter, cost_improv_iter_lim=10, lambda_=lambda_, nu=nu),
+        #     states,
+        #     measurements,
+        #     prior_mean,
+        #     prior_cov,
+        #     cost_fn_eks,
+        # )
+        # rmses_lm_ieks[mc_iter, :] = tmp_rmse
+        # neeses_lm_ieks[mc_iter, :] = tmp_nees
 
+        dir_der_eks = partial(
+            dir_der_analytical_smoothing_cost,
+            measurements=measurements,
+            m_1_0=prior_mean,
+            P_1_0=prior_cov,
+            motion_model=motion_model,
+            meas_model=meas_model,
+        )
         ms_ls_ieks, Ps_ls_ieks, cost_ls_ieks, tmp_rmse, tmp_nees = run_smoothing(
-            LsIeks(motion_model, meas_model, num_iter, GridSearch(cost_fn_eks, grid_search_points)),
+            LsIeks(motion_model, meas_model, num_iter, ArmijoLineSearch(cost_fn_eks, dir_der_eks, c_1=0.1)),
             states,
             measurements,
             prior_mean,
@@ -138,33 +146,33 @@ def main():
         neeses_ls_ieks[mc_iter, :] = tmp_nees
 
         sigma_point_method = SphericalCubature()
-        cost_fn_ipls = partial(
-            slr_smoothing_cost_pre_comp, measurements=measurements, m_1_0=prior_mean, P_1_0_inv=np.linalg.inv(prior_cov)
-        )
+        # cost_fn_ipls = partial(
+        #     slr_smoothing_cost_pre_comp, measurements=measurements, m_1_0=prior_mean, P_1_0_inv=np.linalg.inv(prior_cov)
+        # )
+        #
+        # ms_ipls, Ps_ipls, cost_ipls, tmp_rmse, tmp_nees = run_smoothing(
+        #     SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter),
+        #     states,
+        #     measurements,
+        #     prior_mean,
+        #     prior_cov,
+        #     None,
+        # )
+        # rmses_ipls[mc_iter, :] = tmp_rmse
+        # neeses_ipls[mc_iter, :] = tmp_nees
 
-        ms_ipls, Ps_ipls, cost_ipls, tmp_rmse, tmp_nees = run_smoothing(
-            SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter),
-            states,
-            measurements,
-            prior_mean,
-            prior_cov,
-            None,
-        )
-        rmses_ipls[mc_iter, :] = tmp_rmse
-        neeses_ipls[mc_iter, :] = tmp_nees
-
-        ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, tmp_rmse, tmp_nees = run_smoothing(
-            SigmaPointLmIpls(
-                motion_model, meas_model, sigma_point_method, num_iter, cost_improv_iter_lim=10, lambda_=lambda_, nu=nu
-            ),
-            states,
-            measurements,
-            prior_mean,
-            prior_cov,
-            cost_fn_ipls,
-        )
-        rmses_lm_ipls[mc_iter, :] = tmp_rmse
-        neeses_lm_ipls[mc_iter, :] = tmp_nees
+        # ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, tmp_rmse, tmp_nees = run_smoothing(
+        #     SigmaPointLmIpls(
+        #         motion_model, meas_model, sigma_point_method, num_iter, cost_improv_iter_lim=10, lambda_=lambda_, nu=nu
+        #     ),
+        #     states,
+        #     measurements,
+        #     prior_mean,
+        #     prior_cov,
+        #     cost_fn_ipls,
+        # )
+        # rmses_lm_ipls[mc_iter, :] = tmp_rmse
+        # neeses_lm_ipls[mc_iter, :] = tmp_nees
 
         ls_cost_fn = partial(
             slr_smoothing_cost_means,
@@ -176,7 +184,14 @@ def main():
             slr_method=SigmaPointSlr(sigma_point_method),
         )
         ms_ls_ipls, Ps_ls_ipls, cost_ls_ipls, tmp_rmse, tmp_nees = run_smoothing(
-            SigmaPointLsIpls(motion_model, meas_model, sigma_point_method, num_iter, GridSearch, grid_search_points),
+            SigmaPointLsIpls(
+                motion_model,
+                meas_model,
+                sigma_point_method,
+                num_iter,
+                partial(ArmijoLineSearch, c_1=0.1),
+                grid_search_points,
+            ),
             states,
             measurements,
             prior_mean,

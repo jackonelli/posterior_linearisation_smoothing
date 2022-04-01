@@ -29,11 +29,11 @@ from src.smoother.ext.ls_ieks import LsIeks
 from src.smoother.slr.ipls import SigmaPointIpls
 from src.smoother.slr.lm_ipls import SigmaPointLmIpls
 from src.smoother.slr.ls_ipls import SigmaPointLsIpls
-from src.line_search import GridSearch
 from src.slr.sigma_points import SigmaPointSlr
 from src.sigma_points import SphericalCubature
-from src.cost_fn.ext import analytical_smoothing_cost_time_dep
-from src.cost_fn.slr import slr_smoothing_cost_pre_comp, slr_smoothing_cost_means
+from src.line_search import ArmijoLineSearch
+from src.cost_fn.ext import analytical_smoothing_cost_time_dep, dir_der_analytical_smoothing_cost
+from src.cost_fn.slr import slr_smoothing_cost_pre_comp, slr_smoothing_cost_means, dir_der_slr_smoothing_cost
 from src.utils import setup_logger, tikz_err_bar_tab_format, tikz_stats, save_stats
 from src.analytics import rmse, mc_stats
 from src.visualization import to_tikz, write_to_tikz_file, plot_scalar_metric_err_bar
@@ -46,7 +46,7 @@ from exp.coord_turn.common import run_smoothing, calc_iter_metrics, modify_meas
 def main():
     args = parse_args()
     log = logging.getLogger(__name__)
-    experiment_name = "tmp_ct_varying_sens"
+    experiment_name = "ct_varying_sens_metrics.py"
     setup_logger(f"logs/{experiment_name}.log", logging.INFO)
     log.info(f"Running experiment: {experiment_name}")
     if not args.random:
@@ -133,37 +133,42 @@ def main():
             meas_model=meas_model,
         )
 
-        sigma_point_method = SphericalCubature()
-        cost_fn_ipls = partial(
-            slr_smoothing_cost_pre_comp, measurements=measurements, m_1_0=prior_mean, P_1_0_inv=np.linalg.inv(prior_cov)
-        )
+        print(measurements[0])
+        return
+        # ms_ieks, Ps_ieks, cost_ieks, tmp_rmse, tmp_nees = run_smoothing(
+        #     Ieks(motion_model, meas_model, num_iter),
+        #     states,
+        #     measurements,
+        #     prior_mean,
+        #     prior_cov,
+        #     cost_fn_eks,
+        #     init_traj,
+        # )
+        # rmses_ieks[mc_iter, :] = tmp_rmse
+        # neeses_ieks[mc_iter, :] = tmp_nees
 
-        ms_ieks, Ps_ieks, cost_ieks, tmp_rmse, tmp_nees = run_smoothing(
-            Ieks(motion_model, meas_model, num_iter),
-            states,
-            measurements,
-            prior_mean,
-            prior_cov,
-            cost_fn_eks,
-            init_traj,
-        )
-        rmses_ieks[mc_iter, :] = tmp_rmse
-        neeses_ieks[mc_iter, :] = tmp_nees
+        # ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks, tmp_rmse, tmp_nees = run_smoothing(
+        #     LmIeks(motion_model, meas_model, num_iter, cost_improv_iter_lim=10, lambda_=lambda_, nu=nu),
+        #     states,
+        #     measurements,
+        #     prior_mean,
+        #     prior_cov,
+        #     cost_fn_eks,
+        #     init_traj,
+        # )
+        # rmses_lm_ieks[mc_iter, :] = tmp_rmse
+        # neeses_lm_ieks[mc_iter, :] = tmp_nees
 
-        ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks, tmp_rmse, tmp_nees = run_smoothing(
-            LmIeks(motion_model, meas_model, num_iter, cost_improv_iter_lim=10, lambda_=lambda_, nu=nu),
-            states,
-            measurements,
-            prior_mean,
-            prior_cov,
-            cost_fn_eks,
-            init_traj,
+        dir_der_eks = partial(
+            dir_der_analytical_smoothing_cost,
+            measurements=measurements,
+            m_1_0=prior_mean,
+            P_1_0=prior_cov,
+            motion_model=motion_model,
+            meas_model=meas_model,
         )
-        rmses_lm_ieks[mc_iter, :] = tmp_rmse
-        neeses_lm_ieks[mc_iter, :] = tmp_nees
-
         ms_ls_ieks, Ps_ls_ieks, cost_ls_ieks, tmp_rmse, tmp_nees = run_smoothing(
-            LsIeks(motion_model, meas_model, num_iter, GridSearch(cost_fn_eks, 20)),
+            LsIeks(motion_model, meas_model, num_iter, ArmijoLineSearch(cost_fn_eks, dir_der_eks, c_1=0.1)),
             states,
             measurements,
             prior_mean,
@@ -174,31 +179,36 @@ def main():
         rmses_ls_ieks[mc_iter, :] = tmp_rmse
         neeses_ls_ieks[mc_iter, :] = tmp_nees
 
-        ms_ipls, Ps_ipls, cost_ipls, tmp_rmse, tmp_nees = run_smoothing(
-            SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter),
-            states,
-            measurements,
-            prior_mean,
-            prior_cov,
-            None,
-            init_traj,
+        sigma_point_method = SphericalCubature()
+        cost_fn_ipls = partial(
+            slr_smoothing_cost_pre_comp, measurements=measurements, m_1_0=prior_mean, P_1_0_inv=np.linalg.inv(prior_cov)
         )
-        rmses_ipls[mc_iter, :] = tmp_rmse
-        neeses_ipls[mc_iter, :] = tmp_nees
 
-        ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, tmp_rmse, tmp_nees = run_smoothing(
-            SigmaPointLmIpls(
-                motion_model, meas_model, sigma_point_method, num_iter, cost_improv_iter_lim=10, lambda_=lambda_, nu=nu
-            ),
-            states,
-            measurements,
-            prior_mean,
-            prior_cov,
-            cost_fn_ipls,
-            init_traj,
-        )
-        rmses_lm_ipls[mc_iter, :] = tmp_rmse
-        neeses_lm_ipls[mc_iter, :] = tmp_nees
+        # ms_ipls, Ps_ipls, cost_ipls, tmp_rmse, tmp_nees = run_smoothing(
+        #     SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter),
+        #     states,
+        #     measurements,
+        #     prior_mean,
+        #     prior_cov,
+        #     None,
+        #     init_traj,
+        # )
+        # rmses_ipls[mc_iter, :] = tmp_rmse
+        # neeses_ipls[mc_iter, :] = tmp_nees
+
+        # ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, tmp_rmse, tmp_nees = run_smoothing(
+        #     SigmaPointLmIpls(
+        #         motion_model, meas_model, sigma_point_method, num_iter, cost_improv_iter_lim=10, lambda_=lambda_, nu=nu
+        #     ),
+        #     states,
+        #     measurements,
+        #     prior_mean,
+        #     prior_cov,
+        #     cost_fn_ipls,
+        #     init_traj,
+        # )
+        # rmses_lm_ipls[mc_iter, :] = tmp_rmse
+        # neeses_lm_ipls[mc_iter, :] = tmp_nees
 
         ls_cost_fn = partial(
             slr_smoothing_cost_means,
@@ -210,7 +220,9 @@ def main():
             slr_method=SigmaPointSlr(sigma_point_method),
         )
         ms_ls_ipls, Ps_ls_ipls, cost_ls_ipls, tmp_rmse, tmp_nees = run_smoothing(
-            SigmaPointLsIpls(motion_model, meas_model, sigma_point_method, num_iter, GridSearch, 10),
+            SigmaPointLsIpls(
+                motion_model, meas_model, sigma_point_method, num_iter, partial(ArmijoLineSearch, c_1=0.1), 10
+            ),
             states,
             measurements,
             prior_mean,
@@ -230,20 +242,20 @@ def main():
         "LS-IPLS",
     )
     rmse_stats = [
-        (rmses_ieks, label_ieks),
-        (rmses_lm_ieks, label_lm_ieks),
+        # (rmses_ieks, label_ieks),
+        # (rmses_lm_ieks, label_lm_ieks),
         (rmses_ls_ieks, label_ls_ieks),
-        (rmses_ipls, label_ipls),
-        (rmses_lm_ipls, label_lm_ipls),
+        # (rmses_ipls, label_ipls),
+        # (rmses_lm_ipls, label_lm_ipls),
         (rmses_ls_ipls, label_ls_ipls),
     ]
 
     nees_stats = [
-        (neeses_ieks, label_ieks),
-        (neeses_lm_ieks, label_lm_ieks),
+        # (neeses_ieks, label_ieks),
+        # (neeses_lm_ieks, label_lm_ieks),
         (neeses_ls_ieks, label_ls_ieks),
-        (neeses_ipls, label_ipls),
-        (neeses_lm_ipls, label_lm_ipls),
+        # (neeses_ipls, label_ipls),
+        # (neeses_lm_ipls, label_lm_ipls),
         (neeses_ls_ipls, label_ls_ipls),
     ]
 

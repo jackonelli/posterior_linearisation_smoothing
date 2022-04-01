@@ -212,3 +212,7 @@ def _ss_cost(means, measurements, m_1_0, P_1_0, Q, R, f_fun, h_fun):
             J += (x_k - f_fun(x_k_min_1)).T @ np.linalg.inv(Q) @ (x_k - f_fun(x_k_min_1))
         J += (z_k - h_fun(x_k)).T @ np.linalg.inv(R) @ (z_k - h_fun(x_k))
     return J
+
+
+def noop_cost(*args):
+    return None

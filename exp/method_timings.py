@@ -26,12 +26,20 @@ from src.filter.ekf import Ekf
 from src.smoother.ext.eks import Eks
 from src.smoother.ext.ieks import Ieks
 from src.smoother.ext.lm_ieks import LmIeks
+from src.smoother.ext.ls_ieks import LsIeks
+from src.line_search import ArmijoLineSearch
 from src.smoother.slr.ipls import SigmaPointIpls
 from src.smoother.slr.lm_ipls import SigmaPointLmIpls
+from src.smoother.slr.ls_ipls import SigmaPointLsIpls
 from src.slr.sigma_points import SigmaPointSlr
 from src.sigma_points import SphericalCubature
-from src.cost_fn.slr import slr_smoothing_cost_pre_comp, slr_smoothing_cost, slr_noop_cost
-from src.cost_fn.ext import analytical_smoothing_cost
+from src.cost_fn.slr import (
+    slr_smoothing_cost_pre_comp,
+    slr_smoothing_cost_means,
+    slr_noop_cost,
+    dir_der_slr_smoothing_cost,
+)
+from src.cost_fn.ext import analytical_smoothing_cost, dir_der_analytical_smoothing_cost, noop_cost
 from src.utils import setup_logger
 from src.analytics import rmse
 from src.visualization import to_tikz, write_to_tikz_file
@@ -44,7 +52,7 @@ from exp.coord_turn.common import run_smoothing, calc_iter_metrics, mc_stats
 def main():
     log = logging.getLogger(__name__)
     experiment_name = "lm_ieks"
-    setup_logger(f"logs/{experiment_name}.log", logging.ERROR)
+    setup_logger(f"logs/{experiment_name}.log", logging.WARNING)
     log.info(f"Running experiment: {experiment_name}")
 
     dt = 0.01
@@ -88,13 +96,22 @@ def main():
         meas_model=meas_model,
     )
 
+    dir_der_eks = partial(
+        dir_der_analytical_smoothing_cost,
+        measurements=measurements,
+        m_1_0=prior_mean,
+        P_1_0=prior_cov,
+        motion_model=motion_model,
+        meas_model=meas_model,
+    )
+
     sigma_point_method = SphericalCubature()
 
     cost_fn_ipls = partial(
         slr_smoothing_cost_pre_comp,
         measurements=measurements,
         m_1_0=prior_mean,
-        P_1_0=prior_cov,
+        P_1_0_inv=np.linalg.inv(prior_cov),
     )
     time_ieks = partial(
         Ieks(motion_model, meas_model, num_iter).filter_and_smooth_with_init_traj,
@@ -103,11 +120,26 @@ def main():
         prior_cov,
         (xs_ss, covs),
         1,
-        partial(slr_noop_cost, covs=None),
+        noop_cost,
     )
 
     time_lm_ieks = partial(
         LmIeks(motion_model, meas_model, num_iter, 10, 1e-2, 10).filter_and_smooth_with_init_traj,
+        measurements,
+        prior_mean,
+        prior_cov,
+        (xs_ss, covs),
+        1,
+        cost_fn_eks,
+    )
+
+    time_ls_ieks = partial(
+        LsIeks(
+            motion_model,
+            meas_model,
+            num_iter,
+            ArmijoLineSearch(cost_fn_eks, dir_der_eks, c_1=0.1),
+        ).filter_and_smooth_with_init_traj,
         measurements,
         prior_mean,
         prior_cov,
@@ -122,7 +154,7 @@ def main():
         prior_cov,
         (xs_ss, covs),
         1,
-        partial(slr_noop_cost, covs=None),
+        slr_noop_cost,
     )
     time_lm_ipls = partial(
         SigmaPointLmIpls(
@@ -135,15 +167,40 @@ def main():
         1,
         cost_fn_ipls,
     )
+
+    cost_fn_ls_ipls = partial(
+        slr_smoothing_cost_means,
+        measurements=measurements,
+        m_1_0=prior_mean,
+        P_1_0_inv=np.linalg.inv(prior_cov),
+        motion_fn=motion_model.map_set,
+        meas_fn=meas_model.map_set,
+        slr_method=SigmaPointSlr(sigma_point_method),
+    )
+    time_ls_ipls = partial(
+        SigmaPointLsIpls(
+            motion_model, meas_model, sigma_point_method, num_iter, partial(ArmijoLineSearch, c_1=0.1), 10
+        ).filter_and_smooth_with_init_traj,
+        measurements,
+        prior_mean,
+        prior_cov,
+        (xs_ss, covs),
+        1,
+        cost_fn_ls_ipls,
+    )
     num_samples = 10
     time_ieks = timeit(time_ieks, number=num_samples) / (num_iter * num_samples)
     time_lm_ieks = timeit(time_lm_ieks, number=num_samples) / (num_iter * num_samples)
+    time_ls_ieks = timeit(time_ls_ieks, number=num_samples) / (num_iter * num_samples)
     time_ipls = timeit(time_ipls, number=num_samples) / (num_iter * num_samples)
     time_lm_ipls = timeit(time_lm_ipls, number=num_samples) / (num_iter * num_samples)
+    time_ls_ipls = timeit(time_ls_ipls, number=num_samples) / (num_iter * num_samples)
     print(f"IEKS: {time_ieks:.2f} s, 100.0%")
     print(f"LM-IEKS: {time_lm_ieks:.2f} s, {time_lm_ieks/time_ieks*100:.2f}%")
+    print(f"LS-IEKS: {time_ls_ieks:.2f} s, {time_ls_ieks/time_ieks*100:.2f}%")
     print(f"IPLS: {time_ipls:.2f} s, {time_ipls/time_ieks*100:.2f}%")
     print(f"LM-IPLS: {time_lm_ipls:.2f} s, {time_lm_ipls/time_ieks*100:.2f}%")
+    print(f"LS-IPLS: {time_ls_ipls:.2f} s, {time_ls_ipls/time_ieks*100:.2f}%")
 
 
 # TODO: Sep module?

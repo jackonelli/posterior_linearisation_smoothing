@@ -207,5 +207,5 @@ def slr_smoothing_cost(
     return _cost
 
 
-def slr_noop_cost(means, covs):
+def slr_noop_cost(traj, motion_bar, meas_bar, motion_cov_inv, meas_cov_inv):
     return None

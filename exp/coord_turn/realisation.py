@@ -46,7 +46,7 @@ def main():
     args = parse_args()
     log = logging.getLogger(__name__)
     experiment_name = "ct_experiment_realisation"
-    setup_logger(f"logs/{experiment_name}.log", logging.INFO)
+    setup_logger(f"logs/{experiment_name}.log", logging.DEBUG)
     log.info(f"Running experiment: {experiment_name}")
     if not args.random:
         np.random.seed(2)
@@ -137,32 +137,32 @@ def main():
     #     (ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks[1:], "LM-IEKS"),
     # )
 
-    # log.info("Running LS-IEKS...")
-    # dir_der_eks = partial(
-    #     dir_der_analytical_smoothing_cost,
-    #     measurements=measurements,
-    #     m_1_0=prior_mean,
-    #     P_1_0=prior_cov,
-    #     motion_model=motion_model,
-    #     meas_model=meas_model,
-    # )
-    # ms_ls_ieks, Ps_ls_ieks, cost_ls_ieks, rmses_ls_ieks, neeses_ls_ieks = run_smoothing(
-    #     LsIeks(
-    #         motion_model,
-    #         meas_model,
-    #         num_iter,
-    #         ArmijoLineSearch(cost_fn_eks, dir_der_eks, c_1=0.1),
-    #     ),
-    #     states,
-    #     measurements,
-    #     prior_mean,
-    #     prior_cov,
-    #     cost_fn_eks,
-    #     init_traj,
-    # )
-    # results.append(
-    #     (ms_ls_ieks, Ps_ls_ieks, cost_ls_ieks[1:], "LS-IEKS"),
-    # )
+    log.info("Running LS-IEKS...")
+    dir_der_eks = partial(
+        dir_der_analytical_smoothing_cost,
+        measurements=measurements,
+        m_1_0=prior_mean,
+        P_1_0=prior_cov,
+        motion_model=motion_model,
+        meas_model=meas_model,
+    )
+    ms_ls_ieks, Ps_ls_ieks, cost_ls_ieks, rmses_ls_ieks, neeses_ls_ieks = run_smoothing(
+        LsIeks(
+            motion_model,
+            meas_model,
+            num_iter,
+            ArmijoLineSearch(cost_fn_eks, dir_der_eks, c_1=0.1),
+        ),
+        states,
+        measurements,
+        prior_mean,
+        prior_cov,
+        cost_fn_eks,
+        init_traj,
+    )
+    results.append(
+        (ms_ls_ieks, Ps_ls_ieks, cost_ls_ieks[1:], "LS-IEKS"),
+    )
 
     sigma_point_method = SphericalCubature()
 
@@ -200,31 +200,31 @@ def main():
     #     (ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, "LM-IPLS"),
     # )
 
-    cost_fn_ls_ipls = partial(
-        slr_smoothing_cost_means,
-        measurements=measurements,
-        m_1_0=prior_mean,
-        P_1_0_inv=np.linalg.inv(prior_cov),
-        motion_fn=motion_model.map_set,
-        meas_fn=meas_model.map_set,
-        slr_method=SigmaPointSlr(sigma_point_method),
-    )
+    # cost_fn_ls_ipls = partial(
+    #     slr_smoothing_cost_means,
+    #     measurements=measurements,
+    #     m_1_0=prior_mean,
+    #     P_1_0_inv=np.linalg.inv(prior_cov),
+    #     motion_fn=motion_model.map_set,
+    #     meas_fn=meas_model.map_set,
+    #     slr_method=SigmaPointSlr(sigma_point_method),
+    # )
 
-    log.info("Running LS-IPLS...")
-    ms_ls_ipls, Ps_ls_ipls, cost_ls_ipls, rmses_ls_ipls, neeses_ls_ipls = run_smoothing(
-        SigmaPointLsIpls(
-            motion_model, meas_model, sigma_point_method, num_iter, partial(ArmijoLineSearch, c_1=0.1), 10
-        ),
-        states,
-        measurements,
-        prior_mean,
-        prior_cov,
-        cost_fn_ls_ipls,
-        init_traj,
-    )
-    results.append(
-        (ms_ls_ipls, Ps_ls_ipls, cost_ls_ipls, "LS-IPLS"),
-    )
+    # log.info("Running LS-IPLS...")
+    # ms_ls_ipls, Ps_ls_ipls, cost_ls_ipls, rmses_ls_ipls, neeses_ls_ipls = run_smoothing(
+    #     SigmaPointLsIpls(
+    #         motion_model, meas_model, sigma_point_method, num_iter, partial(ArmijoLineSearch, c_1=0.1), 10
+    #     ),
+    #     states,
+    #     measurements,
+    #     prior_mean,
+    #     prior_cov,
+    #     cost_fn_ls_ipls,
+    #     init_traj,
+    # )
+    # results.append(
+    #     (ms_ls_ipls, Ps_ls_ipls, cost_ls_ipls, "LS-IPLS"),
+    # )
 
     for ms, _, _, label in results:
         tikz_2d_traj(Path.cwd() / "tikz", ms[:, :2], label)
