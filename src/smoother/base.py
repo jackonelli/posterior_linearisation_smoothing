@@ -12,8 +12,8 @@ class Smoother(ABC):
         x_k = f(x_{k-1}) + q_k, q_k ~ N(0, Q_k)
         y_k = f(x_k}) + r_k, r_k ~ N(0, R_k).
 
-    All the smoother in this codebase differs only in their method of linearisation.
-    As such, a new filter type is created by specifying the method of linearisation
+    All the smoothers in this codebase differs only in their method of linearisation.
+    As such, a new smoother type is created by specifying the method of linearisation
     in the concrete implementations of this class.
     """
 
@@ -25,8 +25,8 @@ class Smoother(ABC):
 
         Args:
             measurements (K, D_y): Measurement sequence for times 1,..., K
-            m_0_0 (D_x,): Prior mean for time 1
-            P_0_0 (D_x, D_x): Prior covariance for time 1
+            m_1_0 (D_x,): Prior mean for time 1
+            P_1_0 (D_x, D_x): Prior covariance for time 1
             cost_fn: optional fn, mapping estimated traj to cost: R^(K x D_x) --> R
                 useful to track progress for iterated smoother and needs to be included here
                 to get a uniform api.

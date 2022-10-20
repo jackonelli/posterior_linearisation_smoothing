@@ -19,7 +19,7 @@ class SigmaPointPrLs(Smoother):
             self._mapping_with_time_step(self._motion_model.map_set, time_step=time_step), mean, cov
         )
 
-    def _filter_seq(self, measurements, x_0_0, P_0_0):
+    def _filter_seq(self, measurements, m_1_0, P_1_0):
         return SigmaPointPrLf(self._motion_model, self._meas_model, self._sigma_point_method).filter_seq(
-            measurements, x_0_0, P_0_0
+            measurements, m_1_0, P_1_0
         )

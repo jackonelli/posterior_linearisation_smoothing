@@ -132,36 +132,36 @@ def main():
         cost_fn_ipls,
     )
     results.append((ms_gn_ipls, Ps_gn_ipls, cost_ipls[1:], "IPLS"))
-    ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, rmses_lm_ipls, neeses_lm_ipls = run_smoothing(
-        SigmaPointLmIpls(
-            motion_model, meas_model, sigma_point_method, num_iter, cost_improv_iter_lim=10, lambda_=lambda_, nu=nu
-        ),
-        states,
-        measurements,
-        prior_mean,
-        prior_cov,
-        cost_fn_ipls,
-    )
-    results.append((ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls[1:], "LM-IPLS"))
+    # ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, rmses_lm_ipls, neeses_lm_ipls = run_smoothing(
+    #     SigmaPointLmIpls(
+    #         motion_model, meas_model, sigma_point_method, num_iter, cost_improv_iter_lim=10, lambda_=lambda_, nu=nu
+    #     ),
+    #     states,
+    #     measurements,
+    #     prior_mean,
+    #     prior_cov,
+    #     cost_fn_ipls,
+    # )
+    # results.append((ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls[1:], "LM-IPLS"))
 
-    ls_cost_fn = partial(
-        slr_smoothing_cost_means,
-        measurements=measurements,
-        m_1_0=prior_mean,
-        P_1_0_inv=np.linalg.inv(prior_cov),
-        motion_fn=motion_model.map_set,
-        meas_fn=meas_model.map_set,
-        slr_method=SigmaPointSlr(sigma_point_method),
-    )
-    ms_ls_ipls, Ps_ls_ipls, cost_ls_ipls, tmp_rmse, tmp_nees = run_smoothing(
-        SigmaPointLsIpls(motion_model, meas_model, sigma_point_method, num_iter, GridSearch, grid_search_points),
-        states,
-        measurements,
-        prior_mean,
-        prior_cov,
-        ls_cost_fn,
-    )
-    results.append((ms_ls_ipls, Ps_ls_ipls, cost_ls_ipls[1:], "LS-IPLS"))
+    # ls_cost_fn = partial(
+    #     slr_smoothing_cost_means,
+    #     measurements=measurements,
+    #     m_1_0=prior_mean,
+    #     P_1_0_inv=np.linalg.inv(prior_cov),
+    #     motion_fn=motion_model.map_set,
+    #     meas_fn=meas_model.map_set,
+    #     slr_method=SigmaPointSlr(sigma_point_method),
+    # )
+    # ms_ls_ipls, Ps_ls_ipls, cost_ls_ipls, tmp_rmse, tmp_nees = run_smoothing(
+    #     SigmaPointLsIpls(motion_model, meas_model, sigma_point_method, num_iter, GridSearch, grid_search_points),
+    #     states,
+    #     measurements,
+    #     prior_mean,
+    #     prior_cov,
+    #     ls_cost_fn,
+    # )
+    # results.append((ms_ls_ipls, Ps_ls_ipls, cost_ls_ipls[1:], "LS-IPLS"))
 
     plot_results(
         states,
@@ -174,13 +174,13 @@ def main():
             (cost_ieks[1:], "IEKS"),
             (cost_lm_ieks[1:], "LM-IEKS"),
             (cost_ipls[1:], "IPLS"),
-            (cost_lm_ipls[0:], "LM-IPLS"),
+            # (cost_lm_ipls[0:], "LM-IPLS"),
         ],
         [
             (rmses_ieks, "IEKS"),
             (rmses_lm_ieks, "LM-IEKS"),
             (rmses_ipls, "IPLS"),
-            (rmses_lm_ipls, "LM-IPLS"),
+            # (rmses_lm_ipls, "LM-IPLS"),
         ],
         [
             (neeses_ieks, "IEKS"),

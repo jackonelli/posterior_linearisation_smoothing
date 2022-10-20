@@ -12,3 +12,5 @@ __pycache__
 .vim
 .hypothesis
 nb
+tikz
+tmp_results

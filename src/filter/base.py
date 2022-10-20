@@ -30,8 +30,8 @@ class Filter(ABC):
             measurements (K, D_y): Measurement sequence for times 1,..., K
                 The measurement seq can be any "iteratable" container of np arrays,
                 as long as `len(measurements) = K`.
-            m_0_0 (D_x,): Prior mean for time 1
-            P_0_0 (D_x, D_x): Prior covariance for time 1
+            m_1_0 (D_x,): Prior mean for time 1
+            P_1_0 (D_x, D_x): Prior covariance for time 1
 
         Returns:
             filter_means (K, D_x): Filtered estimates for times 1,..., K
