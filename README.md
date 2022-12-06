@@ -1,4 +1,4 @@
-# Bayesian filtering and smoothing
+# Levenberg–Marquardt and line-search iterated posterior linearisation smoothing
 
 This is the code base for the pre-print [Posterior linearisation smoothing with robust iterations](https://arxiv.org/abs/2112.03969).
 It also provides implementations for related papers
