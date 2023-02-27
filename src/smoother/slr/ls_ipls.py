@@ -17,7 +17,7 @@ from src.cost_fn.slr import dir_der_slr_smoothing_cost
 class SigmaPointLsIpls(IteratedSmoother):
     """Line-search Iterated Posterior Linearisation Smoother (LS-IPLS)"""
 
-    def __init__(self, motion_model, meas_model, sigma_point_method, num_iter, line_search_method, num_points):
+    def __init__(self, motion_model, meas_model, sigma_point_method, num_iter, line_search_method):
         super().__init__()
         self._motion_model = motion_model
         self._meas_model = meas_model
