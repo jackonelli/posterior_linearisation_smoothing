@@ -57,6 +57,50 @@ def dir_der_analytical_smoothing_cost(
 
     prior_diff = x_0[0, :] - m_1_0
     motion_diff = x_0[1:, :] - motion_model.map_set(x_0[:-1, :], None)
+
+    der = p[0, :] @ np.linalg.inv(P_1_0) @ prior_diff
+    H_1 = meas_model.jacobian(x_0[0, :], 1)
+    R_1_inv = np.linalg.inv(meas_model.meas_noise(1))
+    meas_model.mapping(x_0[0, :], 1)
+    meas_diff_1 = measurements[0] - meas_model.mapping(x_0[0, :], 1)
+    der -= p[0, :] @ H_1.T @ R_1_inv @ meas_diff_1
+
+    for k_ind in range(1, K):
+        k = k_ind + 1
+        F_k_min_1 = motion_model.jacobian(x_0[k_ind - 1, :], k - 1)
+        factor_1 = p[k_ind, :].T - F_k_min_1 @ p[k_ind - 1, :].T
+        der += factor_1 @ np.linalg.inv(motion_model.proc_noise(k - 1)) @ motion_diff[k_ind - 1, :]
+        if any(np.isnan(measurements[k_ind])):
+            continue
+        meas_diff_k = measurements[k_ind] - meas_model.mapping(x_0[k_ind, :], k)
+        H_k = meas_model.jacobian(x_0[k_ind, :], k)
+        R_k_inv = np.linalg.inv(meas_model.meas_noise(k))
+        der -= p[k_ind, :] @ H_k.T @ R_k_inv @ meas_diff_k
+
+    return der
+
+
+def dir_der_analytical_smoothing_cost_const_models(
+    x_0, p, measurements, m_1_0, P_1_0, motion_model: MotionModel, meas_model: MeasModel
+):
+    """Directional derivative of the cost function f in `analytical_smoothing_cost`
+
+    Assumes constant motion and meas. models (i.e., uses the map_set methods)
+
+    Here, the full trajectory x_1:K is interpreted as one vector (x_1^T, ..., x_K)^T with K d_x elements.
+
+    Args:
+        x_0: current iterate
+            represented as a np.array(K, D_x).
+        p: search direction, here: x_1 - x_0, i.e. new smoothing estimated means minus current iterate.
+            represented as a np.array(K, D_x).
+        measurements: measurements for a time sequence 1, ..., K
+            represented as a list of length K of np.array(D_y,)
+    """
+    K = len(measurements)
+
+    prior_diff = x_0[0, :] - m_1_0
+    motion_diff = x_0[1:, :] - motion_model.map_set(x_0[:-1, :], None)
     meas_diff = measurements - meas_model.map_set(x_0, None)
 
     der = p[0, :] @ np.linalg.inv(P_1_0) @ prior_diff
