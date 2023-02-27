@@ -134,7 +134,6 @@ def main():
         )
 
         print(measurements[0])
-        return
         # ms_ieks, Ps_ieks, cost_ieks, tmp_rmse, tmp_nees = run_smoothing(
         #     Ieks(motion_model, meas_model, num_iter),
         #     states,
@@ -301,7 +300,7 @@ class MeasType(Enum):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="LM-IEKS paper experiment.")
+    parser = argparse.ArgumentParser(description="CT experiment with varying meas. model.")
     parser.add_argument("--random", action="store_true")
     parser.add_argument("--num_iter", type=int, default=10)
     parser.add_argument("--num_mc_samples", type=int, default=100)
