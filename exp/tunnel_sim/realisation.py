@@ -7,27 +7,25 @@ where a car passes through a tunnel, thereby going through the stages of
 - Increased uncertainty while in the tunnel
 (- Ending past the tunnel, again with certain measurements)
 """
+import argparse
 import logging
 from functools import partial
 import numpy as np
 import matplotlib.pyplot as plt
-from src import visualization as vis
-from src.filter.ekf import Ekf
-from src.smoother.ext.eks import Eks
 from src.smoother.ext.ieks import Ieks
 from src.smoother.ext.lm_ieks import LmIeks
 from src.smoother.ext.ls_ieks import LsIeks
 from src.smoother.slr.ipls import SigmaPointIpls
 from src.smoother.slr.lm_ipls import SigmaPointLmIpls
 from src.smoother.slr.ls_ipls import SigmaPointLsIpls
-from src.line_search import GridSearch
 from src.utils import setup_logger
 from src.models.range_bearing import RangeBearing
 from src.models.coord_turn import CoordTurn
 from data.lm_ieks_paper.coord_turn_example import simulate_data
 from src.slr.sigma_points import SigmaPointSlr
 from src.sigma_points import SphericalCubature
-from src.cost_fn.ext import analytical_smoothing_cost
+from src.line_search import ArmijoWolfeLineSearch
+from src.cost_fn.ext import analytical_smoothing_cost, dir_der_analytical_smoothing_cost
 from src.cost_fn.slr import slr_smoothing_cost_pre_comp, slr_smoothing_cost_means
 from exp.coord_turn.common import plot_results, calc_iter_metrics
 from src.analytics import rmse, nees
@@ -37,13 +35,14 @@ from src.visualization import to_tikz, write_to_tikz_file
 
 
 def main():
+    args = parse_args()
     log = logging.getLogger(__name__)
     experiment_name = "tunnel_simulation"
     setup_logger(f"logs/{experiment_name}.log", logging.DEBUG)
     log.info(f"Running experiment: {experiment_name}")
 
-    np.random.seed(2)
-    num_iter = 10
+    if not args.random:
+        np.random.seed(2)
 
     # Motion model
     sampling_period = 0.1
@@ -76,9 +75,12 @@ def main():
 
     prior_mean = np.array([0, 0, 1, 0, 0])
     prior_cov = np.diag([0.1, 0.1, 1, 1, 1])
+
+    # LM parameters
     lambda_ = 1e-2
     nu = 10
-    grid_search_points = 10
+    # Armijo-Wolfe parameters
+    c_1, c_2 = 0.1, 0.9
 
     results = []
     cost_fn_eks = partial(
@@ -98,13 +100,13 @@ def main():
         m_1_0=prior_mean,
         P_1_0_inv=np.linalg.inv(prior_cov),
     )
-    ms_gn_ieks, Ps_gn_ieks, cost_ieks, rmses_ieks, neeses_ieks = run_smoothing(
-        Ieks(motion_model, meas_model, num_iter), states, measurements, prior_mean, prior_cov, cost_fn_eks
+    ms_ieks, Ps_ieks, cost_ieks, rmses_ieks, neeses_ieks = run_smoothing(
+        Ieks(motion_model, meas_model, args.num_iter), states, measurements, prior_mean, prior_cov, cost_fn_eks
     )
-    results.append((ms_gn_ieks, Ps_gn_ieks, cost_ieks[1:], "IEKS"))
+    results.append((ms_ieks, Ps_ieks, cost_ieks[1:], "IEKS"))
 
     ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks, rmses_lm_ieks, neeses_lm_ieks = run_smoothing(
-        LmIeks(motion_model, meas_model, num_iter, cost_improv_iter_lim=10, lambda_=lambda_, nu=nu),
+        LmIeks(motion_model, meas_model, args.num_iter, cost_improv_iter_lim=10, lambda_=lambda_, nu=nu),
         states,
         measurements,
         prior_mean,
@@ -113,8 +115,21 @@ def main():
     )
     results.append((ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks[1:], "LM-IEKS"))
 
-    ms_ls_ieks, Ps_ls_ieks, cost_ls_ieks, tmp_rmse, tmp_nees = run_smoothing(
-        LsIeks(motion_model, meas_model, num_iter, GridSearch(cost_fn_eks, grid_search_points)),
+    dir_der_eks = partial(
+        dir_der_analytical_smoothing_cost,
+        measurements=measurements,
+        m_1_0=prior_mean,
+        P_1_0=prior_cov,
+        motion_model=motion_model,
+        meas_model=meas_model,
+    )
+    ms_ls_ieks, Ps_ls_ieks, cost_ls_ieks, rmses_ls_ieks, neeses_ls_ieks = run_smoothing(
+        LsIeks(
+            motion_model,
+            meas_model,
+            args.num_iter,
+            ArmijoWolfeLineSearch(cost_fn_eks, dir_der_eks, c_1=c_1, c_2=c_2),
+        ),
         states,
         measurements,
         prior_mean,
@@ -123,45 +138,52 @@ def main():
     )
     results.append((ms_ls_ieks, Ps_ls_ieks, cost_ls_ieks[1:], "LS-IEKS"))
 
-    ms_gn_ipls, Ps_gn_ipls, cost_ipls, rmses_ipls, neeses_ipls = run_smoothing(
-        SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter),
+    ms_ipls, Ps_ipls, cost_ipls, rmses_ipls, neeses_ipls = run_smoothing(
+        SigmaPointIpls(motion_model, meas_model, sigma_point_method, args.num_iter),
         states,
         measurements,
         prior_mean,
         prior_cov,
         cost_fn_ipls,
     )
-    results.append((ms_gn_ipls, Ps_gn_ipls, cost_ipls[1:], "IPLS"))
-    # ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, rmses_lm_ipls, neeses_lm_ipls = run_smoothing(
-    #     SigmaPointLmIpls(
-    #         motion_model, meas_model, sigma_point_method, num_iter, cost_improv_iter_lim=10, lambda_=lambda_, nu=nu
-    #     ),
-    #     states,
-    #     measurements,
-    #     prior_mean,
-    #     prior_cov,
-    #     cost_fn_ipls,
-    # )
-    # results.append((ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls[1:], "LM-IPLS"))
+    results.append((ms_ipls, Ps_ipls, cost_ipls[1:], "IPLS"))
+    ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, rmses_lm_ipls, neeses_lm_ipls = run_smoothing(
+        SigmaPointLmIpls(
+            motion_model, meas_model, sigma_point_method, args.num_iter, cost_improv_iter_lim=10, lambda_=lambda_, nu=nu
+        ),
+        states,
+        measurements,
+        prior_mean,
+        prior_cov,
+        cost_fn_ipls,
+    )
+    results.append((ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls[1:], "LM-IPLS"))
 
-    # ls_cost_fn = partial(
-    #     slr_smoothing_cost_means,
-    #     measurements=measurements,
-    #     m_1_0=prior_mean,
-    #     P_1_0_inv=np.linalg.inv(prior_cov),
-    #     motion_fn=motion_model.map_set,
-    #     meas_fn=meas_model.map_set,
-    #     slr_method=SigmaPointSlr(sigma_point_method),
-    # )
-    # ms_ls_ipls, Ps_ls_ipls, cost_ls_ipls, tmp_rmse, tmp_nees = run_smoothing(
-    #     SigmaPointLsIpls(motion_model, meas_model, sigma_point_method, num_iter, GridSearch, grid_search_points),
-    #     states,
-    #     measurements,
-    #     prior_mean,
-    #     prior_cov,
-    #     ls_cost_fn,
-    # )
-    # results.append((ms_ls_ipls, Ps_ls_ipls, cost_ls_ipls[1:], "LS-IPLS"))
+    ls_cost_fn = partial(
+        slr_smoothing_cost_means,
+        measurements=measurements,
+        m_1_0=prior_mean,
+        P_1_0_inv=np.linalg.inv(prior_cov),
+        motion_fn=motion_model.map_set,
+        meas_fn=meas_model.map_set,
+        slr_method=SigmaPointSlr(sigma_point_method),
+    )
+
+    ms_ls_ipls, Ps_ls_ipls, cost_ls_ipls, rmses_ls_ipls, neeses_ls_ipls = run_smoothing(
+        SigmaPointLsIpls(
+            motion_model,
+            meas_model,
+            sigma_point_method,
+            args.num_iter,
+            partial(ArmijoWolfeLineSearch, c_1=c_1, c_2=c_2),
+        ),
+        states,
+        measurements,
+        prior_mean,
+        prior_cov,
+        ls_cost_fn,
+    )
+    results.append((ms_ls_ipls, Ps_ls_ipls, cost_ls_ipls[1:], "LS-IPLS"))
 
     plot_results(
         states,
@@ -171,22 +193,20 @@ def main():
     )
     plot_metrics(
         [
-            (cost_ieks[1:], "IEKS"),
-            (cost_lm_ieks[1:], "LM-IEKS"),
-            (cost_ipls[1:], "IPLS"),
-            # (cost_lm_ipls[0:], "LM-IPLS"),
-        ],
-        [
             (rmses_ieks, "IEKS"),
             (rmses_lm_ieks, "LM-IEKS"),
+            (rmses_ls_ieks, "LS-IEKS"),
             (rmses_ipls, "IPLS"),
-            # (rmses_lm_ipls, "LM-IPLS"),
+            (rmses_lm_ipls, "LM-IPLS"),
+            (rmses_ls_ipls, "LS-IPLS"),
         ],
         [
             (neeses_ieks, "IEKS"),
             (neeses_lm_ieks, "LM-IEKS"),
+            (neeses_ls_ieks, "LS-IEKS"),
             (neeses_ipls, "IPLS"),
             (neeses_lm_ipls, "LM-IPLS"),
+            (neeses_ls_ipls, "LS-IPLS"),
         ],
     )
     # tikz_res = [(label, ms) for ms, _, _, label in results]
@@ -222,13 +242,9 @@ def run_smoothing(smoother, states, measurements, prior_mean, prior_cov, cost_fn
     return ms, Ps, iter_cost, rmses, neeses
 
 
-def plot_metrics(costs, rmses, neeses):
+def plot_metrics(rmses, neeses):
     iter_ticks = np.arange(1, len(rmses[0][0]) + 1)
-    fig, (cost_ax, rmse_ax, nees_ax) = plt.subplots(3)
-    # for cost, label in costs:
-    #     cost_ax.plot(iter_ticks, cost, label=label)
-    # cost_ax.set_title("Cost")
-    # cost_ax.legend()
+    _, (rmse_ax, nees_ax) = plt.subplots(2)
     for rmse_, label in rmses:
         rmse_ax.plot(iter_ticks, rmse_, label=label)
     rmse_ax.set_title("RMSE")
@@ -238,6 +254,14 @@ def plot_metrics(costs, rmses, neeses):
     rmse_ax.set_title("NEES")
     rmse_ax.legend()
     plt.show()
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Tunnel sim. experiment")
+    parser.add_argument("--random", action="store_true")
+    parser.add_argument("--num_iter", type=int, default=10)
+
+    return parser.parse_args()
 
 
 if __name__ == "__main__":

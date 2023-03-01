@@ -17,6 +17,7 @@ import logging
 import argparse
 from pathlib import Path
 from functools import partial
+from copy import deepcopy
 import numpy as np
 import matplotlib.pyplot as plt
 from src.smoother.ext.ieks import Ieks
@@ -127,46 +128,6 @@ def main():
     results.append(
         (ms_ieks, Ps_ieks, cost_ieks[1:], "IEKS"),
     )
-    log.info("Running LM-IEKS...")
-    ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks, _, _ = run_smoothing(
-        LmIeks(motion_model, meas_model, num_iter, 10, lambda_, nu),
-        states,
-        measurements,
-        prior_mean,
-        prior_cov,
-        cost_fn_eks,
-        init_traj,
-    )
-    results.append(
-        (ms_lm_ieks, Ps_lm_ieks, cost_lm_ieks[1:], "LM-IEKS"),
-    )
-
-    log.info("Running LS-IEKS...")
-    dir_der_eks = partial(
-        dir_der_analytical_smoothing_cost,
-        measurements=measurements,
-        m_1_0=prior_mean,
-        P_1_0=prior_cov,
-        motion_model=motion_model,
-        meas_model=meas_model,
-    )
-    ms_ls_ieks, Ps_ls_ieks, cost_ls_ieks, _, _ = run_smoothing(
-        LsIeks(
-            motion_model,
-            meas_model,
-            num_iter,
-            ArmijoWolfeLineSearch(cost_fn_eks, dir_der_eks, c_1=c_1, c_2=c_2),
-        ),
-        states,
-        measurements,
-        prior_mean,
-        prior_cov,
-        cost_fn_eks,
-        init_traj,
-    )
-    results.append(
-        (ms_ls_ieks, Ps_ls_ieks, cost_ls_ieks[1:], "LS-IEKS"),
-    )
 
     sigma_point_method = SphericalCubature()
 
@@ -174,19 +135,19 @@ def main():
         slr_smoothing_cost_pre_comp, measurements=measurements, m_1_0=prior_mean, P_1_0_inv=np.linalg.inv(prior_cov)
     )
 
-    log.info("Running IPLS...")
-    ms_ipls, Ps_ipls, cost_ipls, _, _ = run_smoothing(
-        SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter),
-        states,
-        measurements,
-        prior_mean,
-        prior_cov,
-        None,
-        init_traj,
-    )
-    results.append(
-        (ms_ipls, Ps_ipls, cost_ipls, "IPLS"),
-    )
+    # log.info("Running IPLS...")
+    # ms_ipls, Ps_ipls, cost_ipls, _, _ = run_smoothing(
+    #     SigmaPointIpls(motion_model, meas_model, sigma_point_method, num_iter),
+    #     states,
+    #     measurements,
+    #     prior_mean,
+    #     prior_cov,
+    #     None,
+    #     init_traj,
+    # )
+    # results.append(
+    #     (ms_ipls, Ps_ipls, cost_ipls, "IPLS"),
+    # )
 
     log.info("Running LM-IPLS...")
     ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, _, _ = run_smoothing(
@@ -204,30 +165,19 @@ def main():
         (ms_lm_ipls, Ps_lm_ipls, cost_lm_ipls, "LM-IPLS"),
     )
 
-    cost_fn_ls_ipls = partial(
-        slr_smoothing_cost_means,
-        measurements=measurements,
-        m_1_0=prior_mean,
-        P_1_0_inv=np.linalg.inv(prior_cov),
-        motion_fn=motion_model.map_set,
-        meas_fn=meas_model.map_set,
-        slr_method=SigmaPointSlr(sigma_point_method),
-    )
-
-    log.info("Running LS-IPLS...")
-    ms_ls_ipls, Ps_ls_ipls, cost_ls_ipls, _, _ = run_smoothing(
-        SigmaPointLsIpls(
-            motion_model, meas_model, sigma_point_method, num_iter, partial(ArmijoWolfeLineSearch, c_1=c_1, c_2=c_2)
-        ),
+    log.info("Running LM-IPLS + IEKS...")
+    lm_ipls_traj = (deepcopy(ms_lm_ipls), deepcopy(Ps_lm_ipls))
+    ms_comb, Ps_comb, cost_comb, rmse_comb, nees_comb = run_smoothing(
+        Ieks(motion_model, meas_model, num_iter),
         states,
         measurements,
         prior_mean,
         prior_cov,
-        cost_fn_ls_ipls,
-        init_traj,
+        cost_fn_eks,
+        lm_ipls_traj,
     )
     results.append(
-        (ms_ls_ipls, Ps_ls_ipls, cost_ls_ipls, "LS-IPLS"),
+        (ms_comb, Ps_comb, cost_comb, "LM-IPLS + IEKS"),
     )
 
     for ms, _, _, label in results:

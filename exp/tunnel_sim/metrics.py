@@ -12,20 +12,17 @@ import logging
 from functools import partial
 import numpy as np
 import matplotlib.pyplot as plt
-from src import visualization as vis
-from src.filter.ekf import Ekf
-from src.smoother.ext.eks import Eks
 from src.smoother.ext.ieks import Ieks
 from src.smoother.ext.lm_ieks import LmIeks
 from src.smoother.ext.ls_ieks import LsIeks
 from src.smoother.slr.ipls import SigmaPointIpls
 from src.smoother.slr.lm_ipls import SigmaPointLmIpls
 from src.smoother.slr.ls_ipls import SigmaPointLsIpls
-from src.line_search import GridSearch
+from src.line_search import ArmijoWolfeLineSearch
+from src.cost_fn.ext import analytical_smoothing_cost, dir_der_analytical_smoothing_cost
 from src.utils import setup_logger, save_stats
 from src.models.range_bearing import RangeBearing
 from src.models.coord_turn import CoordTurn
-from data.lm_ieks_paper.coord_turn_example import simulate_data
 from src.slr.sigma_points import SigmaPointSlr
 from src.sigma_points import SphericalCubature
 from src.cost_fn.ext import analytical_smoothing_cost
@@ -74,9 +71,12 @@ def main():
     # tunnel_segment = [None, None]
     prior_mean = np.array([0, 0, 1, 0, 0])
     prior_cov = np.diag([0.1, 0.1, 1, 1, 1])
+
+    # LM parameters
     lambda_ = 1e-2
     nu = 10
-    grid_search_points = 10
+    # Armijo-Wolfe parameters
+    c_1, c_2 = 0.1, 0.9
 
     num_mc_samples = args.num_mc_samples
     rmses_ieks = np.zeros((num_mc_samples, num_iter))
@@ -128,8 +128,21 @@ def main():
         rmses_lm_ieks[mc_iter, :] = tmp_rmse
         neeses_lm_ieks[mc_iter, :] = tmp_nees
 
+        dir_der_eks = partial(
+            dir_der_analytical_smoothing_cost,
+            measurements=measurements,
+            m_1_0=prior_mean,
+            P_1_0=prior_cov,
+            motion_model=motion_model,
+            meas_model=meas_model,
+        )
         ms_ls_ieks, Ps_ls_ieks, cost_ls_ieks, tmp_rmse, tmp_nees = run_smoothing(
-            LsIeks(motion_model, meas_model, num_iter, GridSearch(cost_fn_eks, grid_search_points)),
+            LsIeks(
+                motion_model,
+                meas_model,
+                num_iter,
+                ArmijoWolfeLineSearch(cost_fn_eks, dir_der_eks, c_1=c_1, c_2=c_2),
+            ),
             states,
             measurements,
             prior_mean,
@@ -173,7 +186,9 @@ def main():
             slr_method=SigmaPointSlr(sigma_point_method),
         )
         ms_ls_ipls, Ps_ls_ipls, cost_ls_ipls, tmp_rmse, tmp_nees = run_smoothing(
-            SigmaPointLsIpls(motion_model, meas_model, sigma_point_method, num_iter, GridSearch, grid_search_points),
+            SigmaPointLsIpls(
+                motion_model, meas_model, sigma_point_method, num_iter, partial(ArmijoWolfeLineSearch, c_1=c_1, c_2=c_2)
+            ),
             states,
             measurements,
             prior_mean,

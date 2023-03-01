@@ -40,7 +40,7 @@ def plot_1d_est(true_x, meas, means_and_covs, sigma_level=3, skip_cov=1, ax=None
         ax.plot(time_steps, meas, ".r", label="meas")
 
     for m, P, label in means_and_covs:
-        plot_1d_mean_and_cov(ax, m, P, sigma_level, label, "b", skip_cov)
+        plot_1d_mean_and_cov(ax, m, P, sigma_level, label)
 
     ax.set_title("Estimates")
     ax.set_xlabel("$pos_x$")
@@ -48,9 +48,13 @@ def plot_1d_est(true_x, meas, means_and_covs, sigma_level=3, skip_cov=1, ax=None
     ax.legend()
 
 
-def plot_1d_mean_and_cov(ax, means, covs, sigma_level, label, color, skip_cov):
-    time_steps = np.arange(means.shape[0])
+def plot_1d_mean_and_cov(ax, means, covs, sigma_level, label):
+    K = means.shape[0]
+    time_steps = np.arange(K)
     stds = np.sqrt(covs)
+    means, stds = means.reshape(K,), stds.reshape(
+        K,
+    )
     handle = ax.errorbar(x=time_steps, y=means, yerr=sigma_level * stds)
     handle.set_label(r"{}, ${} \sigma$".format(label, sigma_level))
     return handle

@@ -1,13 +1,9 @@
 """Line-search Iterated Posterior Linearisation Smoother (LS-IPLS)"""
 import numpy as np
-from src.smoother.ext.eks import Eks
 from src.smoother.base import IteratedSmoother
-from src.filter.ekf import ExtCache
-from src.filter.iekf import Iekf
 from functools import partial
 from src.slr.base import SlrCache
 from src.smoother.base import IteratedSmoother
-from src.filter.prlf import SigmaPointPrLf
 from src.smoother.slr.prls import SigmaPointPrLs
 from src.filter.iplf import SigmaPointIplf
 from src.slr.sigma_points import SigmaPointSlr
@@ -103,7 +99,6 @@ class SigmaPointLsIpls(IteratedSmoother):
         iplf._update_estimates(self._current_means, self._current_covs, self._cache)
         return iplf.filter_seq(measurements, m_1_0, P_1_0)
 
-    # traj, measurements, m_1_0, P_1_0, estimated_covs, motion_fn, meas_fn, motion_cov, meas_cov, slr_method
     def _specialise_cost_fn(self, cost_fn_prototype, params):
         (
             estimated_covs,

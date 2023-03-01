@@ -21,13 +21,33 @@ pipenv shell
 Results published in the the paper can be reproduced by running the corresponding script in the `exp` sub-dir.
 Using a fixed seed will guarantee exactly replicated data and conditions.
 
-- Figure 2. Simulated coordinated turn with bearings only measurements
+- Figure 2. Single realisation of coordinated turn model with bearings only measurements
+
   ```bash
   python exp/coord_turn/realisation.py --meas_type bearings --num_iter 10
   ```
+
+- Figure 3. RMSE and NEES for coordinated turn model with bearings only measurements
+
+  ```bash
+  python exp/coord_turn/constant_sens_metrics.py --meas_type bearings --num_iter 10 --num_mc_samples 100 --random
+  ```
+
 - Figure 4. Visualisation of a single realisation of the CT experiment with varying bearings only measurements.
+
   ```bash
   python exp/coord_turn/realisation.py --meas_type bearings --var_sensors --num_iter 10
+  ```
+
+- Figure 5. RMSE and NEES for coordinated turn model with varying bearings only measurements.
+
+  ```bash
+  python exp/coord_turn/varying_sens_metrics.py --num_iter 10 --num_mc_samples 100 --random
+  ```
+
+- Table I. Method timings
+  ```bash
+  python exp/method_timings.py --num_trials=100
   ```
 
 For previous results that this code reproduces a fixed seed is not possible (the previous papers' experiments are exclusively implemented in matlab).

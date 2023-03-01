@@ -1,33 +1,16 @@
-"""Example: Levenberg-Marquardt regularised IEKS smoothing
+"""Timings of smoother methods"""
 
-Reproducing the experiment (with two different meas. models) in the paper:
-
-"Levenberg-Marquardt and line-search extended Kalman smoother".
-
-The problem is evaluated for
-(Original experiment)
-- (GN-)IEKS
-- LM-IEKS
-(Additional models)
-- (GN-)IPLS
-- Reg-IPLS (LM-IPLS)
-"""
-
-from enum import Enum
 from timeit import timeit
 from functools import partial
+import argparse
 import logging
 from pathlib import Path
 from functools import partial
 import numpy as np
-import matplotlib.pyplot as plt
-from src import visualization as vis
-from src.filter.ekf import Ekf
-from src.smoother.ext.eks import Eks
 from src.smoother.ext.ieks import Ieks
 from src.smoother.ext.lm_ieks import LmIeks
 from src.smoother.ext.ls_ieks import LsIeks
-from src.line_search import ArmijoLineSearch
+from src.line_search import ArmijoWolfeLineSearch
 from src.smoother.slr.ipls import SigmaPointIpls
 from src.smoother.slr.lm_ipls import SigmaPointLmIpls
 from src.smoother.slr.ls_ipls import SigmaPointLsIpls
@@ -37,21 +20,18 @@ from src.cost_fn.slr import (
     slr_smoothing_cost_pre_comp,
     slr_smoothing_cost_means,
     slr_noop_cost,
-    dir_der_slr_smoothing_cost,
 )
 from src.cost_fn.ext import analytical_smoothing_cost, dir_der_analytical_smoothing_cost, noop_cost
 from src.utils import setup_logger
-from src.analytics import rmse
-from src.visualization import to_tikz, write_to_tikz_file
-from src.models.range_bearing import MultiSensorRange, MultiSensorBearings
+from src.models.range_bearing import MultiSensorRange
 from src.models.coord_turn import CoordTurn
-from data.lm_ieks_paper.coord_turn_example import Type, get_specific_states_from_file, simulate_data
-from exp.coord_turn.common import run_smoothing, calc_iter_metrics, mc_stats
+from data.lm_ieks_paper.coord_turn_example import Type, get_specific_states_from_file
 
 
 def main():
+    args = parse_args()
     log = logging.getLogger(__name__)
-    experiment_name = "lm_ieks"
+    experiment_name = "method_timings"
     setup_logger(f"logs/{experiment_name}.log", logging.WARNING)
     log.info(f"Running experiment: {experiment_name}")
 
@@ -80,7 +60,7 @@ def main():
 
     num_iter = 1
     np.random.seed(0)
-    states, all_meas, _, xs_ss = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.LM, num_iter)
+    _, all_meas, _, xs_ss = get_specific_states_from_file(Path.cwd() / "data/lm_ieks_paper", Type.LM, num_iter)
     K = all_meas.shape[0]
     covs = np.array([prior_cov] * K) * (0.90 + np.random.rand() / 5)
 
@@ -138,7 +118,7 @@ def main():
             motion_model,
             meas_model,
             num_iter,
-            ArmijoLineSearch(cost_fn_eks, dir_der_eks, c_1=0.1),
+            ArmijoWolfeLineSearch(cost_fn_eks, dir_der_eks, c_1=0.1, c_2=0.2),
         ).filter_and_smooth_with_init_traj,
         measurements,
         prior_mean,
@@ -179,7 +159,7 @@ def main():
     )
     time_ls_ipls = partial(
         SigmaPointLsIpls(
-            motion_model, meas_model, sigma_point_method, num_iter, partial(ArmijoLineSearch, c_1=0.1), 10
+            motion_model, meas_model, sigma_point_method, num_iter, partial(ArmijoWolfeLineSearch, c_1=0.1, c_2=0.9)
         ).filter_and_smooth_with_init_traj,
         measurements,
         prior_mean,
@@ -188,13 +168,13 @@ def main():
         1,
         cost_fn_ls_ipls,
     )
-    num_samples = 10
-    time_ieks = timeit(time_ieks, number=num_samples) / (num_iter * num_samples)
-    time_lm_ieks = timeit(time_lm_ieks, number=num_samples) / (num_iter * num_samples)
-    time_ls_ieks = timeit(time_ls_ieks, number=num_samples) / (num_iter * num_samples)
-    time_ipls = timeit(time_ipls, number=num_samples) / (num_iter * num_samples)
-    time_lm_ipls = timeit(time_lm_ipls, number=num_samples) / (num_iter * num_samples)
-    time_ls_ipls = timeit(time_ls_ipls, number=num_samples) / (num_iter * num_samples)
+    num_trials = args.num_trials
+    time_ieks = timeit(time_ieks, number=num_trials) / (num_iter * num_trials)
+    time_lm_ieks = timeit(time_lm_ieks, number=num_trials) / (num_iter * num_trials)
+    time_ls_ieks = timeit(time_ls_ieks, number=num_trials) / (num_iter * num_trials)
+    time_ipls = timeit(time_ipls, number=num_trials) / (num_iter * num_trials)
+    time_lm_ipls = timeit(time_lm_ipls, number=num_trials) / (num_iter * num_trials)
+    time_ls_ipls = timeit(time_ls_ipls, number=num_trials) / (num_iter * num_trials)
     print(f"IEKS: {time_ieks:.2f} s, 100.0%")
     print(f"LM-IEKS: {time_lm_ieks:.2f} s, {time_lm_ieks/time_ieks*100:.2f}%")
     print(f"LS-IEKS: {time_ls_ieks:.2f} s, {time_ls_ieks/time_ieks*100:.2f}%")
@@ -203,36 +183,11 @@ def main():
     print(f"LS-IPLS: {time_ls_ipls:.2f} s, {time_ls_ipls/time_ieks*100:.2f}%")
 
 
-# TODO: Sep module?
-def plot_results(states, trajs_and_costs, meas, skip_cov=50):
-    means_and_covs = [(ms, Ps, f"{label}-{len(cost)}") for (ms, Ps, cost, label) in trajs_and_costs]
-    # costs = [
-    #     (cost, f"{label}-{len(cost)}") for (_, _, cost, label) in trajs_and_costs
-    # ]
-    # _, (ax_1, ax_2) = plt.subplots(1, 2)
-    fig, ax_1 = plt.subplots()
-    vis.plot_2d_est(
-        states,
-        meas=meas,
-        means_and_covs=means_and_covs,
-        sigma_level=2,
-        skip_cov=skip_cov,
-        ax=ax_1,
-    )
-    plt.show()
+def parse_args():
+    parser = argparse.ArgumentParser(description="LM-IEKS paper experiment.")
+    parser.add_argument("--num_trials", type=int, default=100)
 
-
-def plot_cost(ax, costs):
-    for (iter_cost, label) in costs:
-        ax.semilogy(iter_cost, label=label)
-    ax.set_xlabel("Iteration number i")
-    ax.set_ylabel("$L_{LM}$")
-    ax.set_title("Cost function")
-
-
-class MeasType(Enum):
-    Range = "range"
-    Bearings = "bearings"
+    return parser.parse_args()
 
 
 if __name__ == "__main__":
